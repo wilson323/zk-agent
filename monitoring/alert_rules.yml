@@ -1,0 +1,319 @@
+# Prometheus 告警规则配置
+# 定义 ZK-Agent 应用的监控告警规则
+
+groups:
+  # 应用服务告警
+  - name: zk-agent-application
+    interval: 30s
+    rules:
+      # 应用服务不可用
+      - alert: ZKAgentDown
+        expr: up{job="zk-agent"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: zk-agent
+          category: availability
+        annotations:
+          summary: "ZK-Agent 应用服务不可用"
+          description: "ZK-Agent 应用服务 {{ $labels.instance }} 已经停止响应超过 1 分钟"
+          runbook_url: "https://docs.zkagent.com/runbooks/app-down"
+
+      # 应用响应时间过长
+      - alert: ZKAgentHighResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="zk-agent"}[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+          service: zk-agent
+          category: performance
+        annotations:
+          summary: "ZK-Agent 应用响应时间过长"
+          description: "ZK-Agent 应用 {{ $labels.instance }} 的 95% 响应时间超过 2 秒，当前值: {{ $value }}s"
+          runbook_url: "https://docs.zkagent.com/runbooks/high-response-time"
+
+      # 应用错误率过高
+      - alert: ZKAgentHighErrorRate
+        expr: |
+          (
+            rate(http_requests_total{job="zk-agent",status=~"5.."}[5m]) /
+            rate(http_requests_total{job="zk-agent"}[5m])
+          ) * 100 > 5
+        for: 3m
+        labels:
+          severity: critical
+          service: zk-agent
+          category: reliability
+        annotations:
+          summary: "ZK-Agent 应用错误率过高"
+          description: "ZK-Agent 应用 {{ $labels.instance }} 的 5xx 错误率超过 5%，当前值: {{ $value }}%"
+          runbook_url: "https://docs.zkagent.com/runbooks/high-error-rate"
+
+      # 应用内存使用率过高
+      - alert: ZKAgentHighMemoryUsage
+        expr: (process_resident_memory_bytes{job="zk-agent"} / 1024 / 1024 / 1024) > 2
+        for: 5m
+        labels:
+          severity: warning
+          service: zk-agent
+          category: resource
+        annotations:
+          summary: "ZK-Agent 应用内存使用率过高"
+          description: "ZK-Agent 应用 {{ $labels.instance }} 内存使用超过 2GB，当前值: {{ $value }}GB"
+          runbook_url: "https://docs.zkagent.com/runbooks/high-memory-usage"
+
+      # 应用 CPU 使用率过高
+      - alert: ZKAgentHighCPUUsage
+        expr: rate(process_cpu_seconds_total{job="zk-agent"}[5m]) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: zk-agent
+          category: resource
+        annotations:
+          summary: "ZK-Agent 应用 CPU 使用率过高"
+          description: "ZK-Agent 应用 {{ $labels.instance }} CPU 使用率超过 80%，当前值: {{ $value }}%"
+          runbook_url: "https://docs.zkagent.com/runbooks/high-cpu-usage"
+
+  # 数据库告警
+  - name: postgresql-database
+    interval: 30s
+    rules:
+      # PostgreSQL 服务不可用
+      - alert: PostgreSQLDown
+        expr: up{job="postgres-exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: postgresql
+          category: availability
+        annotations:
+          summary: "PostgreSQL 数据库服务不可用"
+          description: "PostgreSQL 数据库 {{ $labels.instance }} 已经停止响应超过 1 分钟"
+          runbook_url: "https://docs.zkagent.com/runbooks/postgres-down"
+
+      # 数据库连接数过多
+      - alert: PostgreSQLTooManyConnections
+        expr: |
+          (
+            pg_stat_database_numbackends{datname="zkagent"} /
+            pg_settings_max_connections
+          ) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: postgresql
+          category: resource
+        annotations:
+          summary: "PostgreSQL 数据库连接数过多"
+          description: "PostgreSQL 数据库 {{ $labels.instance }} 连接数使用率超过 80%，当前值: {{ $value }}%"
+          runbook_url: "https://docs.zkagent.com/runbooks/postgres-connections"
+
+      # 数据库查询时间过长
+      - alert: PostgreSQLSlowQueries
+        expr: pg_stat_activity_max_tx_duration{datname="zkagent"} > 300
+        for: 2m
+        labels:
+          severity: warning
+          service: postgresql
+          category: performance
+        annotations:
+          summary: "PostgreSQL 数据库查询时间过长"
+          description: "PostgreSQL 数据库 {{ $labels.instance }} 存在运行超过 5 分钟的查询，当前最长: {{ $value }}s"
+          runbook_url: "https://docs.zkagent.com/runbooks/postgres-slow-queries"
+
+      # 数据库磁盘空间不足
+      - alert: PostgreSQLDiskSpaceLow
+        expr: |
+          (
+            pg_database_size_bytes{datname="zkagent"} /
+            (1024 * 1024 * 1024)
+          ) > 50
+        for: 5m
+        labels:
+          severity: warning
+          service: postgresql
+          category: storage
+        annotations:
+          summary: "PostgreSQL 数据库磁盘空间不足"
+          description: "PostgreSQL 数据库 {{ $labels.instance }} 磁盘使用超过 50GB，当前值: {{ $value }}GB"
+          runbook_url: "https://docs.zkagent.com/runbooks/postgres-disk-space"
+
+  # Redis 缓存告警
+  - name: redis-cache
+    interval: 30s
+    rules:
+      # Redis 服务不可用
+      - alert: RedisDown
+        expr: up{job="redis-exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: redis
+          category: availability
+        annotations:
+          summary: "Redis 缓存服务不可用"
+          description: "Redis 缓存 {{ $labels.instance }} 已经停止响应超过 1 分钟"
+          runbook_url: "https://docs.zkagent.com/runbooks/redis-down"
+
+      # Redis 内存使用率过高
+      - alert: RedisHighMemoryUsage
+        expr: |
+          (
+            redis_memory_used_bytes /
+            redis_memory_max_bytes
+          ) * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+          service: redis
+          category: resource
+        annotations:
+          summary: "Redis 缓存内存使用率过高"
+          description: "Redis 缓存 {{ $labels.instance }} 内存使用率超过 90%，当前值: {{ $value }}%"
+          runbook_url: "https://docs.zkagent.com/runbooks/redis-memory"
+
+      # Redis 连接数过多
+      - alert: RedisTooManyConnections
+        expr: redis_connected_clients > 100
+        for: 5m
+        labels:
+          severity: warning
+          service: redis
+          category: resource
+        annotations:
+          summary: "Redis 缓存连接数过多"
+          description: "Redis 缓存 {{ $labels.instance }} 连接数超过 100，当前值: {{ $value }}"
+          runbook_url: "https://docs.zkagent.com/runbooks/redis-connections"
+
+  # 系统资源告警
+  - name: system-resources
+    interval: 30s
+    rules:
+      # 系统 CPU 使用率过高
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+          category: resource
+        annotations:
+          summary: "系统 CPU 使用率过高"
+          description: "系统 {{ $labels.instance }} CPU 使用率超过 85%，当前值: {{ $value }}%"
+          runbook_url: "https://docs.zkagent.com/runbooks/high-cpu"
+
+      # 系统内存使用率过高
+      - alert: HighMemoryUsage
+        expr: |
+          (
+            (
+              node_memory_MemTotal_bytes - node_memory_MemFree_bytes - 
+              node_memory_Buffers_bytes - node_memory_Cached_bytes
+            ) / node_memory_MemTotal_bytes
+          ) * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+          category: resource
+        annotations:
+          summary: "系统内存使用率过高"
+          description: "系统 {{ $labels.instance }} 内存使用率超过 90%，当前值: {{ $value }}%"
+          runbook_url: "https://docs.zkagent.com/runbooks/high-memory"
+
+      # 系统磁盘空间不足
+      - alert: HighDiskUsage
+        expr: |
+          (
+            (
+              node_filesystem_size_bytes{fstype!="tmpfs"} - 
+              node_filesystem_free_bytes{fstype!="tmpfs"}
+            ) / node_filesystem_size_bytes{fstype!="tmpfs"}
+          ) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+          category: storage
+        annotations:
+          summary: "系统磁盘空间不足"
+          description: "系统 {{ $labels.instance }} 磁盘 {{ $labels.mountpoint }} 使用率超过 85%，当前值: {{ $value }}%"
+          runbook_url: "https://docs.zkagent.com/runbooks/high-disk"
+
+  # 网络和外部服务告警
+  - name: external-services
+    interval: 30s
+    rules:
+      # 网站不可访问
+      - alert: WebsiteDown
+        expr: probe_success{job="blackbox-http"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: website
+          category: availability
+        annotations:
+          summary: "网站不可访问"
+          description: "网站 {{ $labels.instance }} 无法访问超过 2 分钟"
+          runbook_url: "https://docs.zkagent.com/runbooks/website-down"
+
+      # SSL 证书即将过期
+      - alert: SSLCertificateExpiringSoon
+        expr: probe_ssl_earliest_cert_expiry - time() < 86400 * 30
+        for: 1h
+        labels:
+          severity: warning
+          service: ssl
+          category: security
+        annotations:
+          summary: "SSL 证书即将过期"
+          description: "域名 {{ $labels.instance }} 的 SSL 证书将在 30 天内过期"
+          runbook_url: "https://docs.zkagent.com/runbooks/ssl-expiry"
+
+      # 网站响应时间过长
+      - alert: WebsiteSlowResponse
+        expr: probe_duration_seconds{job="blackbox-http"} > 5
+        for: 5m
+        labels:
+          severity: warning
+          service: website
+          category: performance
+        annotations:
+          summary: "网站响应时间过长"
+          description: "网站 {{ $labels.instance }} 响应时间超过 5 秒，当前值: {{ $value }}s"
+          runbook_url: "https://docs.zkagent.com/runbooks/slow-response"
+
+  # 容器和 Docker 告警
+  - name: docker-containers
+    interval: 30s
+    rules:
+      # 容器重启频繁
+      - alert: ContainerHighRestartRate
+        expr: rate(container_start_time_seconds[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: docker
+          category: stability
+        annotations:
+          summary: "容器重启频繁"
+          description: "容器 {{ $labels.name }} 重启频率过高，当前值: {{ $value }}/s"
+          runbook_url: "https://docs.zkagent.com/runbooks/container-restarts"
+
+      # 容器内存使用率过高
+      - alert: ContainerHighMemoryUsage
+        expr: |
+          (
+            container_memory_usage_bytes{name!=""} /
+            container_spec_memory_limit_bytes{name!=""}
+          ) * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+          service: docker
+          category: resource
+        annotations:
+          summary: "容器内存使用率过高"
+          description: "容器 {{ $labels.name }} 内存使用率超过 90%，当前值: {{ $value }}%"
+          runbook_url: "https://docs.zkagent.com/runbooks/container-memory"

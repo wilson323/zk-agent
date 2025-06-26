@@ -1,0 +1,387 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 用户表 - 增强版
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  avatar    String?
+  password  String   // 加密后的密码
+  role      Role     @default(USER)
+  status    UserStatus @default(ACTIVE)
+  emailVerified Boolean @default(false)
+  emailVerifiedAt DateTime?
+  lastLoginAt DateTime?
+  loginCount Int @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 关联关系
+  posterTasks       PosterTask[]
+  posterGenerations PosterGeneration[]
+  chatSessions      ChatSession[]
+  refreshTokens     RefreshToken[]
+  passwordResets    PasswordReset[]
+
+  @@map("users")
+}
+
+// 用户角色枚举
+enum Role {
+  USER
+  ADMIN
+  SUPER_ADMIN
+}
+
+// 用户状态枚举
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  DELETED
+}
+
+// 刷新令牌表
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  isRevoked Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  // 关联关系
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+// 密码重置表
+model PasswordReset {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expiresAt DateTime
+  isUsed    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  userId    String
+
+  // 关联关系
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_resets")
+}
+
+// 聊天会话
+model ChatSession {
+  id        String   @id @default(cuid())
+  userId    String
+  agentId   String
+  title     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 关联关系
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages ChatMessage[]
+
+  @@map("chat_sessions")
+}
+
+// 聊天消息
+model ChatMessage {
+  id        String   @id @default(cuid())
+  sessionId String
+  role      String   // user, assistant, system
+  content   String
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  // 关联关系
+  session ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("chat_messages")
+}
+
+// 海报风格表
+model PosterStyle {
+  id          String  @id @default(cuid())
+  name        String
+  description String
+  category    String
+  previewUrl  String?
+  tags        String[] // 存储标签数组
+  industrySpecific Boolean @default(false)
+  parameters  Json?    // 风格参数
+  isActive    Boolean @default(true)
+  order       Int     @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // 关联关系
+  posterTasks       PosterTask[]
+  posterGenerations PosterGeneration[]
+
+  @@map("poster_styles")
+}
+
+// 海报尺寸表
+model PosterSize {
+  id         String  @id @default(cuid())
+  name       String
+  dimensions String
+  ratio      String
+  width      Int
+  height     Int
+  dpi        Int?
+  category   String  @default("general")
+  recommended Boolean @default(false)
+  isActive   Boolean @default(true)
+  order      Int     @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // 关联关系
+  posterTasks       PosterTask[]
+  posterGenerations PosterGeneration[]
+
+  @@map("poster_sizes")
+}
+
+// 配色方案表
+model ColorPalette {
+  id          String   @id @default(cuid())
+  name        String
+  colors      String[] // 存储颜色数组
+  description String?
+  category    String   @default("general")
+  industryRecommended String[] // 推荐行业
+  isActive    Boolean  @default(true)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // 关联关系
+  posterTasks       PosterTask[]
+  posterGenerations PosterGeneration[]
+
+  @@map("color_palettes")
+}
+
+// 海报模板表
+model PosterTemplate {
+  id           String  @id @default(cuid())
+  name         String
+  description  String
+  thumbnailUrl String
+  category     String
+  industry     String? // 行业分类
+  productType  String? // 产品类型
+  useCase      String? // 使用场景
+  elements     Json    // 模板元素配置
+  popularity   Int     @default(0)
+  usageCount   Int     @default(0)
+  isNew        Boolean @default(false)
+  isPremium    Boolean @default(false)
+  isActive     Boolean @default(true)
+  lastUsed     DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // 关联关系
+  posterTasks       PosterTask[]
+  posterGenerations PosterGeneration[]
+  tags              PosterTemplateTag[]
+
+  @@map("poster_templates")
+}
+
+// 模板标签表
+model PosterTemplateTag {
+  id         String @id @default(cuid())
+  templateId String
+  name       String
+
+  // 关联关系
+  template PosterTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@unique([templateId, name])
+  @@map("poster_template_tags")
+}
+
+// 海报任务表 - 按照设计文档定义
+model PosterTask {
+  id                 String   @id @default(cuid())
+  userId             String
+  description        String
+  style              String
+  size               String
+  palette            String
+  referenceImageUrl  String?
+  resultImageUrl     String
+  status             TaskStatus @default(PENDING)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  // 关联关系
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  styleRef     PosterStyle     @relation(fields: [style], references: [id])
+  sizeRef      PosterSize      @relation(fields: [size], references: [id])
+  paletteRef   ColorPalette    @relation(fields: [palette], references: [id])
+  templateRef  PosterTemplate? @relation(fields: [templateId], references: [id])
+  templateId   String?
+
+  @@map("poster_tasks")
+}
+
+// 任务状态枚举
+enum TaskStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+// 海报生成历史表
+model PosterGeneration {
+  id           String   @id @default(cuid())
+  userId       String
+  prompt       String
+  style        String
+  size         String
+  palette      String
+  templateId   String?
+  imageUrl     String
+  thumbnailUrl String?
+  settings     Json     // 生成设置
+  metadata     Json?    // 生成元数据
+  rating       Int?     // 用户评分 1-5
+  feedback     String?  // 用户反馈
+  industry     String?  // 行业分类
+  createdAt    DateTime @default(now())
+
+  // 关联关系
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  styleRef    PosterStyle     @relation(fields: [style], references: [id])
+  sizeRef     PosterSize      @relation(fields: [size], references: [id])
+  paletteRef  ColorPalette    @relation(fields: [palette], references: [id])
+  templateRef PosterTemplate? @relation(fields: [templateId], references: [id])
+
+  @@map("poster_generations")
+}
+
+// 系统配置表
+model SystemConfig {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     Json
+  category  String   @default("general")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("system_configs")
+}
+
+// 智能体配置表
+model AgentConfig {
+  id          String   @id @default(cuid())
+  agentId     String   @unique
+  name        String
+  type        AgentType
+  description String
+  avatarUrl   String?
+  status      AgentStatus @default(ACTIVE)
+  config      Json     // 智能体配置
+  metrics     Json?    // 智能体指标
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("agent_configs")
+}
+
+// 智能体类型枚举
+enum AgentType {
+  CONVERSATION
+  CAD_ANALYZER
+  POSTER_GENERATOR
+}
+
+// 智能体状态枚举
+enum AgentStatus {
+  ACTIVE
+  INACTIVE
+  ERROR
+  MAINTENANCE
+}
+
+// 使用统计表
+model UsageStats {
+  id        String   @id @default(cuid())
+  userId    String?
+  agentType String   // conversation, cad-analyzer, poster-generator
+  action    String   // generate, export, share, etc.
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@map("usage_stats")
+}
+
+// 错误日志表
+model ErrorLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  level     LogLevel
+  message   String
+  stack     String?
+  metadata  Json?
+  resolved  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("error_logs")
+}
+
+// 日志级别枚举
+enum LogLevel {
+  INFO
+  WARN
+  ERROR
+  FATAL
+}
+
+// 行业配置表
+model IndustryConfig {
+  id          String   @id @default(cuid())
+  industry    String   @unique
+  name        String
+  description String?
+  config      Json     // 行业特定配置
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("industry_configs")
+}
+
+// 点赞表
+model Like {
+  id        String   @id @default(cuid())
+  userId    String   // 用户ID，支持匿名用户
+  itemId    String   // 被点赞项目ID
+  itemType  String   // 项目类型：poster, cad_analysis, chat_message
+  createdAt DateTime @default(now())
+
+  @@unique([userId, itemId, itemType])
+  @@map("likes")
+}

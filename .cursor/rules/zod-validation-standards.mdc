@@ -1,0 +1,482 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Zod验证开发规范 - 强制执行标准
+
+## 🎯 核心使命
+
+**在ZK-Agent项目中严格执行Zod验证规范，确保数据验证的一致性、类型安全和安全防护，所有API和数据处理必须遵循Zod验证标准。**
+
+## 📋 强制执行的Zod规范
+
+### 1. 导入和命名约定 (不可违反)
+
+```typescript
+// ✅ 正确的导入方式
+import { z } from 'zod';
+import { 
+  CADFileSchema, 
+  validateCADFile,
+  UserInputSchema,
+  ValidationResult 
+} from '@/lib/validation/schemas';
+
+// ❌ 禁止的导入方式
+import * as zod from 'zod';  // 禁止使用命名空间导入
+import { ZodSchema } from 'zod';  // 禁止直接导入内部类型
+
+// 强制命名规范
+interface ZodNamingConventions {
+  schemas: "PascalCase + Schema后缀 (如: UserInputSchema)";
+  validators: "validate + 对象名称 (如: validateCADFile)";
+  types: "对象名称 + Type后缀 (如: UserInputType)";
+  constants: "VALIDATION_ + 大写描述 (如: VALIDATION_LIMITS)";
+}
+```
+
+### 2. Schema定义强制标准
+
+参考现有的验证模式 [lib/validation/schemas.ts](mdc:lib/validation/schemas.ts)：
+
+```typescript
+// ✅ 强制要求：所有Schema必须包含详细的错误信息
+const UserSchema = z.object({
+  email: z.string()
+    .email('邮箱格式不正确')  // 必须有中文错误信息
+    .max(254, '邮箱地址过长'),
+  
+  name: z.string()
+    .min(1, '姓名不能为空')
+    .max(100, '姓名不能超过100个字符')
+    .regex(/^[\u4e00-\u9fff\u3400-\u4dbfa-zA-Z\s]+$/, '姓名只能包含中文、英文和空格'),
+  
+  password: z.string()
+    .min(8, '密码不能少于8个字符')
+    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, '密码必须包含大小写字母和数字'),
+});
+
+// ❌ 禁止的Schema定义
+const BadSchema = z.object({
+  email: z.string().email(),  // 缺少错误信息
+  name: z.string(),           // 缺少验证规则
+});
+```
+
+### 3. API路由验证强制要求
+
+```typescript
+// ✅ 强制要求：所有API路由必须使用验证中间件
+import { withValidation } from '@/lib/validation/middleware';
+import { UserInputSchema } from '@/lib/validation/schemas';
+
+// 方式1: 使用验证中间件
+const handler = withValidation({
+  validateBody: UserInputSchema,
+  debug: process.env.NODE_ENV === 'development'
+})(async (request) => {
+  // request.validatedBody 包含验证后的数据
+  const { email, name, password } = request.validatedBody;
+  
+  // 业务逻辑处理...
+  return NextResponse.json({ success: true });
+});
+
+export const POST = handler;
+
+// 方式2: 手动验证（仅在特殊情况下使用）
+export async function POST(request: NextRequest) {
+  const body = await request.json();
+  
+  // 必须使用现有的验证函数
+  const validation = validateUserInput(body);
+  if (!validation.success) {
+    return NextResponse.json({
+      success: false,
+      errors: validation.error.issues
+    }, { status: 400 });
+  }
+  
+  const { email, name, password } = validation.data;
+  // 业务逻辑处理...
+}
+
+// ❌ 禁止的API实现
+export async function POST(request: NextRequest) {
+  const body = await request.json();
+  // 直接使用未验证的数据 - 严格禁止
+  const { email, name } = body;
+}
+```
+
+### 4. 文件上传验证强制标准
+
+参考 [app/api/cad/upload-enhanced/route.ts](mdc:app/api/cad/upload-enhanced/route.ts)：
+
+```typescript
+// ✅ 强制要求：文件上传必须使用CADFileSchema验证
+import { CADFileSchema, validateCADFile } from '@/lib/validation/schemas';
+
+export async function POST(request: NextRequest) {
+  const formData = await request.formData();
+  const file = formData.get('file') as File;
+  
+  // 必须验证文件信息
+  const fileValidation = validateCADFile({
+    name: file.name,
+    size: file.size,
+    type: file.type,
+    lastModified: file.lastModified
+  });
+  
+  if (!fileValidation.success) {
+    return NextResponse.json({
+      success: false,
+      errors: fileValidation.error.issues
+    }, { status: 400 });
+  }
+  
+  // 使用验证后的文件信息
+  const validatedFile = fileValidation.data;
+}
+
+// ❌ 禁止直接处理文件而不验证
+export async function POST(request: NextRequest) {
+  const formData = await request.formData();
+  const file = formData.get('file') as File;
+  // 直接使用file.name, file.size等 - 严格禁止
+}
+```
+
+## 🔒 安全验证强制要求
+
+### 5. 输入清理和安全检查
+
+```typescript
+// ✅ 强制要求：所有用户输入必须包含安全检查
+const SecureMessageSchema = z.object({
+  content: z.string()
+    .min(1, '消息内容不能为空')
+    .max(4000, '消息内容不能超过4000个字符')
+    .refine(
+      content => !/<script|javascript:|data:|vbscript:|onload|onerror/i.test(content),
+      '消息内容包含潜在的安全风险'
+    ),
+  
+  type: z.enum(['text', 'file', 'image'], {
+    errorMap: () => ({ message: '消息类型不正确' })
+  })
+});
+
+// ✅ 强制要求：使用sanitizeAndValidate进行输入清理
+import { sanitizeAndValidate } from '@/lib/validation/schemas';
+
+const result = sanitizeAndValidate(
+  UserInputSchema,
+  userInput,
+  [
+    (input) => input.trim(),  // 去除首尾空格
+    (input) => input.replace(/<[^>]*>/g, '')  // 移除HTML标签
+  ]
+);
+```
+
+### 6. 错误处理标准化
+
+```typescript
+// ✅ 强制要求：统一的错误处理格式
+interface StandardErrorResponse {
+  success: false;
+  error: {
+    message: string;
+    code: string;
+    details?: any;
+  };
+  timestamp: string;
+}
+
+// 使用ValidationResult类型
+function handleValidationResult<T>(result: ValidationResult<T>) {
+  if (!result.success) {
+    return NextResponse.json({
+      success: false,
+      error: {
+        message: result.error.message,
+        code: 'VALIDATION_ERROR',
+        details: result.error.issues
+      },
+      timestamp: new Date().toISOString()
+    }, { status: 400 });
+  }
+  
+  // 处理验证成功的数据
+  return result.data;
+}
+```
+
+## 🏗️ 团队协作Zod规范
+
+### 7. 团队A (前端) Zod使用约束
+
+```typescript
+// ✅ 允许：前端表单验证
+import { UserInputSchema } from '@/lib/validation/schemas';
+
+function UserForm() {
+  const handleSubmit = (data: unknown) => {
+    const validation = validateUserInput(data);
+    if (!validation.success) {
+      // 显示验证错误
+      setErrors(validation.error.issues);
+      return;
+    }
+    
+    // 提交验证后的数据
+    submitForm(validation.data);
+  };
+}
+
+// ✅ 允许：客户端数据验证
+const clientValidation = UserInputSchema.safeParse(formData);
+
+// ❌ 禁止：团队A不能修改Schema定义
+// 不能在components/目录下创建新的Schema
+// 不能修改lib/validation/schemas.ts中的Schema
+```
+
+### 8. 团队B (后端) Zod使用约束
+
+```typescript
+// ✅ 允许：创建新的Schema定义
+export const NewFeatureSchema = z.object({
+  // 新功能的Schema定义
+});
+
+// ✅ 允许：扩展现有Schema
+export const ExtendedUserSchema = UserInputSchema.extend({
+  additionalField: z.string().optional()
+});
+
+// ✅ 允许：创建复合验证
+export const ComplexValidationSchema = z.union([
+  CADFileSchema,
+  UserInputSchema
+]);
+
+// ❌ 禁止：破坏现有Schema的向后兼容性
+// 不能删除现有Schema的必需字段
+// 不能修改现有字段的验证规则使其更严格
+```
+
+## 📊 质量门禁与检查
+
+### 9. 代码提交前检查
+
+```bash
+# 强制要求：提交前必须通过的检查
+✅ npm run lint:zod        # Zod使用规范检查
+✅ npm run test:validation # 验证测试通过
+✅ npm run type-check      # TypeScript类型检查
+✅ npm run security-scan   # 安全漏洞扫描
+```
+
+### 10. Zod使用质量标准
+
+```typescript
+// ✅ 质量标准检查清单
+interface ZodQualityStandards {
+  // Schema定义质量
+  schemaQuality: {
+    errorMessages: "所有验证规则必须有中文错误信息";
+    typeInference: "必须正确导出TypeScript类型";
+    documentation: "复杂Schema必须有JSDoc注释";
+    testing: "每个Schema必须有对应的测试用例";
+  };
+  
+  // API验证质量
+  apiValidation: {
+    coverage: "所有API端点必须有输入验证";
+    errorHandling: "统一的错误响应格式";
+    security: "包含安全检查和输入清理";
+    performance: "验证不能影响API响应时间";
+  };
+  
+  // 类型安全质量
+  typeSafety: {
+    inference: "充分利用Zod的类型推断";
+    consistency: "前后端类型定义一致";
+    validation: "运行时验证与编译时类型匹配";
+  };
+}
+```
+
+## 🚨 违规处理与约束
+
+### 11. 严重违规 (立即停止)
+
+```typescript
+// 🚨 立即停止的违规行为
+interface CriticalViolations {
+  security: [
+    "绕过Zod验证直接处理用户输入",
+    "在生产环境中禁用验证",
+    "使用不安全的验证规则",
+    "泄露验证错误中的敏感信息"
+  ];
+  
+  architecture: [
+    "在错误的层级进行验证",
+    "重复定义相同功能的Schema",
+    "破坏现有Schema的向后兼容性",
+    "在前端绕过后端验证"
+  ];
+  
+  quality: [
+    "提交没有错误信息的Schema",
+    "使用any类型绕过Zod验证",
+    "验证逻辑导致性能问题",
+    "缺少必要的安全检查"
+  ];
+}
+```
+
+### 12. 警告级别违规
+
+```typescript
+// ⚠️ 需要改进的违规行为
+interface WarningViolations {
+  bestPractices: [
+    "Schema命名不符合规范",
+    "缺少TypeScript类型导出",
+    "验证错误信息不够详细",
+    "没有使用现有的验证工具函数"
+  ];
+  
+  performance: [
+    "复杂验证没有缓存",
+    "重复验证相同数据",
+    "验证逻辑过于复杂",
+    "没有使用适当的验证策略"
+  ];
+  
+  maintenance: [
+    "缺少Schema文档注释",
+    "没有对应的测试用例",
+    "验证逻辑分散在多个文件",
+    "没有版本控制策略"
+  ];
+}
+```
+
+## 🎯 最佳实践与优化
+
+### 13. 性能优化要求
+
+```typescript
+// ✅ 性能优化最佳实践
+import { createValidator } from '@/lib/validation/schemas';
+
+// 缓存验证器
+const cachedUserValidator = createValidator(
+  UserInputSchema, 
+  '用户输入验证失败'
+);
+
+// 条件验证
+const ConditionalSchema = z.object({
+  type: z.enum(['basic', 'advanced']),
+  data: z.unknown()
+}).refine((data) => {
+  if (data.type === 'basic') {
+    return BasicDataSchema.safeParse(data.data).success;
+  }
+  return AdvancedDataSchema.safeParse(data.data).success;
+}, '数据格式不匹配类型');
+
+// 流式验证（大数据）
+const StreamValidationSchema = z.array(ItemSchema).max(1000, '数组长度不能超过1000');
+```
+
+### 14. 测试要求
+
+```typescript
+// ✅ 强制要求：每个Schema必须有完整的测试
+describe('UserInputSchema验证测试', () => {
+  it('应该验证正确的用户输入', () => {
+    const validInput = {
+      email: 'test@example.com',
+      name: '张三',
+      password: 'Password123'
+    };
+    
+    const result = validateUserInput(validInput);
+    expect(result.success).toBe(true);
+  });
+  
+  it('应该拒绝无效的邮箱格式', () => {
+    const invalidInput = {
+      email: 'invalid-email',
+      name: '张三',
+      password: 'Password123'
+    };
+    
+    const result = validateUserInput(invalidInput);
+    expect(result.success).toBe(false);
+    expect(result.error.issues[0].message).toContain('邮箱格式不正确');
+  });
+  
+  // 必须测试所有验证规则和边界情况
+});
+```
+
+## 🔍 监控与审计
+
+### 15. Zod使用监控
+
+```typescript
+// ✅ 验证性能监控
+interface ValidationMetrics {
+  performance: {
+    averageValidationTime: "平均验证时间 ≤ 5ms";
+    validationCacheHitRate: "缓存命中率 ≥ 80%";
+    validationErrorRate: "验证错误率监控";
+  };
+  
+  security: {
+    maliciousInputDetection: "恶意输入检测统计";
+    validationBypassAttempts: "验证绕过尝试监控";
+    securityRuleEffectiveness: "安全规则有效性分析";
+  };
+  
+  quality: {
+    schemaUsageStatistics: "Schema使用统计";
+    errorMessageQuality: "错误信息质量评估";
+    typeInferenceAccuracy: "类型推断准确性";
+  };
+}
+```
+
+---
+
+## 🚀 执行总结
+
+### 核心执行要点
+1. **严格Schema定义**: 所有Schema必须包含详细错误信息和安全检查
+2. **强制API验证**: 所有API端点必须使用Zod验证中间件
+3. **统一错误处理**: 使用标准化的验证错误响应格式
+4. **安全第一**: 所有用户输入必须经过安全检查和清理
+5. **性能优化**: 验证逻辑不能影响系统性能
+
+### 团队协作约束
+- **团队A**: 只能使用现有Schema进行前端验证，不能修改Schema定义
+- **团队B**: 负责Schema定义和维护，确保向后兼容性
+- **共同责任**: 遵循命名规范，编写测试用例，维护文档
+
+### 质量保障
+- **代码审查**: Zod相关代码必须经过安全和性能审查
+- **自动化测试**: 所有验证逻辑必须有对应的测试用例
+- **性能监控**: 验证性能必须在可接受范围内
+- **安全审计**: 定期审计验证规则的安全性
+
+**严格执行Zod验证规范，确保ZK-Agent项目的数据安全、类型安全和系统稳定性！** 🛡️

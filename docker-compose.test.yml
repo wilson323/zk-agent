@@ -1,0 +1,112 @@
+version: '3.8'
+
+services:
+  # 测试数据库
+  postgres:
+    image: postgres:15-alpine
+    container_name: zkagent-test-postgres
+    environment:
+      POSTGRES_DB: zkagent_dev
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123456
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_test_data:/var/lib/postgresql/data
+      - ./scripts/init-test-db.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d zkagent_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - test-network
+
+  # 测试Redis
+  redis:
+    image: redis:7-alpine
+    container_name: zkagent-test-redis
+    ports:
+      - "6380:6379"
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - test-network
+
+  # 测试应用
+  zkagent-test:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    container_name: zkagent-test-app
+    environment:
+      - NODE_ENV=test
+      - DATABASE_URL=postgresql://postgres:123456@postgres:5432/zkagent_dev
+      - REDIS_URL=redis://redis:6379/1
+      - NEXTAUTH_SECRET=test-secret-key-for-testing-only
+      - NEXTAUTH_URL=http://localhost:3000
+      - FASTGPT_API_URL=http://mock-fastgpt:3001
+      - DISABLE_FACE_ENHANCEMENT=true
+    ports:
+      - "3001:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+    networks:
+      - test-network
+
+  # Mock FastGPT服务
+  mock-fastgpt:
+    image: node:18-alpine
+    container_name: zkagent-mock-fastgpt
+    working_dir: /app
+    command: node mock-server.js
+    ports:
+      - "3002:3001"
+    volumes:
+      - ./scripts/mock-fastgpt.js:/app/mock-server.js
+    networks:
+      - test-network
+
+  # 性能测试工具
+  k6:
+    image: grafana/k6:latest
+    container_name: zkagent-k6
+    volumes:
+      - ./tests/performance:/scripts
+    networks:
+      - test-network
+    profiles:
+      - performance
+
+  # 安全扫描工具
+  zap:
+    image: owasp/zap2docker-stable
+    container_name: zkagent-zap
+    command: zap-baseline.py -t http://zkagent-test:3000 -J zap-report.json
+    volumes:
+      - ./test-reports:/zap/wrk
+    depends_on:
+      - zkagent-test
+    networks:
+      - test-network
+    profiles:
+      - security
+
+volumes:
+  postgres_test_data:
+    driver: local
+
+networks:
+  test-network:
+    driver: bridge

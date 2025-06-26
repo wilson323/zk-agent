@@ -1,0 +1,507 @@
+# 性能监控和优化工作流
+# 专门用于应用性能测试、监控和优化建议
+
+name: Performance Monitoring
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # 每周日凌晨3点运行完整性能测试
+    - cron: '0 3 * * 0'
+  workflow_dispatch:
+    inputs:
+      test_type:
+        description: 'Performance test type'
+        required: true
+        default: 'full'
+        type: choice
+        options:
+          - 'full'
+          - 'lighthouse'
+          - 'load'
+          - 'bundle'
+
+env:
+  NODE_VERSION: '20'
+  LIGHTHOUSE_CI_TOKEN: ${{ secrets.LIGHTHOUSE_CI_TOKEN }}
+
+jobs:
+  # Bundle 分析
+  bundle-analysis:
+    name: Bundle Analysis
+    runs-on: ubuntu-latest
+    if: github.event.inputs.test_type == 'full' || github.event.inputs.test_type == 'bundle' || github.event.inputs.test_type == ''
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npm run db:generate
+
+      - name: Build application
+        run: npm run build
+        env:
+          ANALYZE: true
+
+      - name: Analyze bundle size
+        run: |
+          echo "## 📦 Bundle 分析结果" >> $GITHUB_STEP_SUMMARY
+          
+          # 获取总体积
+          TOTAL_SIZE=$(du -sh .next/static | cut -f1)
+          echo "- **总体积**: $TOTAL_SIZE" >> $GITHUB_STEP_SUMMARY
+          
+          # 分析各个chunk
+          echo "\n### 主要文件大小" >> $GITHUB_STEP_SUMMARY
+          find .next/static -name "*.js" -type f -exec du -h {} + | sort -hr | head -10 | \
+          while read size file; do
+            echo "- \`$(basename $file)\`: $size" >> $GITHUB_STEP_SUMMARY
+          done
+
+      - name: Check bundle size limits
+        run: |
+          # 检查主bundle是否超过限制
+          MAIN_BUNDLE_SIZE=$(find .next/static -name "*main*.js" -exec stat -c%s {} + | awk '{sum+=$1} END {print sum}')
+          MAX_SIZE=1048576  # 1MB in bytes
+          
+          if [ $MAIN_BUNDLE_SIZE -gt $MAX_SIZE ]; then
+            echo "❌ Main bundle size ($MAIN_BUNDLE_SIZE bytes) exceeds limit ($MAX_SIZE bytes)"
+            exit 1
+          else
+            echo "✅ Main bundle size is within limits"
+          fi
+
+      - name: Upload bundle analysis
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-analysis
+          path: |
+            .next/analyze/
+            .next/static/
+          retention-days: 30
+
+  # Lighthouse CI 性能测试
+  lighthouse:
+    name: Lighthouse Performance
+    runs-on: ubuntu-latest
+    if: github.event.inputs.test_type == 'full' || github.event.inputs.test_type == 'lighthouse' || github.event.inputs.test_type == ''
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: zkagent_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup test environment
+        run: |
+          cp .env.example .env.local
+          echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/zkagent_test" >> .env.local
+          echo "REDIS_URL=redis://localhost:6379" >> .env.local
+          echo "NEXTAUTH_SECRET=test-secret-key-for-lighthouse" >> .env.local
+          echo "NEXTAUTH_URL=http://localhost:3000" >> .env.local
+
+      - name: Generate Prisma client
+        run: npm run db:generate
+
+      - name: Run database migrations
+        run: npm run db:migrate
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/zkagent_test
+
+      - name: Build application
+        run: npm run build
+
+      - name: Start application
+        run: |
+          npm start &
+          sleep 30
+          curl -f http://localhost:3000 || exit 1
+        env:
+          PORT: 3000
+
+      - name: Run Lighthouse CI
+        run: |
+          npm install -g @lhci/cli
+          lhci autorun
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+          LHCI_TOKEN: ${{ secrets.LIGHTHOUSE_CI_TOKEN }}
+
+      - name: Upload Lighthouse reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-reports
+          path: .lighthouseci/
+          retention-days: 30
+
+  # 负载测试
+  load-testing:
+    name: Load Testing
+    runs-on: ubuntu-latest
+    if: github.event.inputs.test_type == 'full' || github.event.inputs.test_type == 'load' || github.event.inputs.test_type == ''
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: zkagent_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+
+      - name: Setup test environment
+        run: |
+          cp .env.example .env.local
+          echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/zkagent_test" >> .env.local
+          echo "REDIS_URL=redis://localhost:6379" >> .env.local
+          echo "NEXTAUTH_SECRET=test-secret-key-for-load-test" >> .env.local
+          echo "NEXTAUTH_URL=http://localhost:3000" >> .env.local
+
+      - name: Generate Prisma client
+        run: npm run db:generate
+
+      - name: Run database migrations
+        run: npm run db:migrate
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/zkagent_test
+
+      - name: Build and start application
+        run: |
+          npm run build
+          npm start &
+          sleep 30
+          curl -f http://localhost:3000 || exit 1
+        env:
+          PORT: 3000
+
+      - name: Create k6 test script
+        run: |
+          cat > load-test.js << 'EOF'
+          import http from 'k6/http';
+          import { check, sleep } from 'k6';
+          import { Rate } from 'k6/metrics';
+          
+          export let errorRate = new Rate('errors');
+          
+          export let options = {
+            stages: [
+              { duration: '2m', target: 10 }, // 预热
+              { duration: '5m', target: 50 }, // 正常负载
+              { duration: '2m', target: 100 }, // 峰值负载
+              { duration: '5m', target: 50 }, // 回落
+              { duration: '2m', target: 0 }, // 冷却
+            ],
+            thresholds: {
+              http_req_duration: ['p(95)<2000'], // 95%请求在2秒内完成
+              http_req_failed: ['rate<0.1'], // 错误率低于10%
+              errors: ['rate<0.1'],
+            },
+          };
+          
+          export default function() {
+            // 测试主页
+            let response = http.get('http://localhost:3000');
+            check(response, {
+              'status is 200': (r) => r.status === 200,
+              'response time < 2s': (r) => r.timings.duration < 2000,
+            }) || errorRate.add(1);
+            
+            sleep(1);
+            
+            // 测试API端点
+            response = http.get('http://localhost:3000/api/health');
+            check(response, {
+              'API status is 200': (r) => r.status === 200,
+              'API response time < 1s': (r) => r.timings.duration < 1000,
+            }) || errorRate.add(1);
+            
+            sleep(1);
+          }
+          EOF
+
+      - name: Run load test
+        run: k6 run load-test.js --out json=load-test-results.json
+
+      - name: Analyze load test results
+        run: |
+          echo "## 🚀 负载测试结果" >> $GITHUB_STEP_SUMMARY
+          
+          # 提取关键指标
+          AVG_RESPONSE_TIME=$(cat load-test-results.json | jq -r '.metrics.http_req_duration.values.avg')
+          P95_RESPONSE_TIME=$(cat load-test-results.json | jq -r '.metrics.http_req_duration.values."p(95)"')
+          ERROR_RATE=$(cat load-test-results.json | jq -r '.metrics.http_req_failed.values.rate')
+          
+          echo "- **平均响应时间**: ${AVG_RESPONSE_TIME}ms" >> $GITHUB_STEP_SUMMARY
+          echo "- **95%响应时间**: ${P95_RESPONSE_TIME}ms" >> $GITHUB_STEP_SUMMARY
+          echo "- **错误率**: $(echo "$ERROR_RATE * 100" | bc -l)%" >> $GITHUB_STEP_SUMMARY
+          
+          # 检查是否通过阈值
+          if (( $(echo "$P95_RESPONSE_TIME > 2000" | bc -l) )); then
+            echo "❌ P95响应时间超过2秒阈值" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ P95响应时间在阈值内" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if (( $(echo "$ERROR_RATE > 0.1" | bc -l) )); then
+            echo "❌ 错误率超过10%阈值" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ 错误率在阈值内" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload load test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: load-test-results
+          path: load-test-results.json
+          retention-days: 30
+
+  # 内存和CPU性能分析
+  profiling:
+    name: Performance Profiling
+    runs-on: ubuntu-latest
+    if: github.event.inputs.test_type == 'full' || github.event.inputs.test_type == ''
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install profiling tools
+        run: |
+          npm install -g clinic
+          npm install --save-dev @types/node
+
+      - name: Generate Prisma client
+        run: npm run db:generate
+
+      - name: Build application
+        run: npm run build
+
+      - name: Create profiling script
+        run: |
+          cat > profile-test.js << 'EOF'
+          const { spawn } = require('child_process');
+          const http = require('http');
+          
+          // 启动应用
+          const app = spawn('npm', ['start'], {
+            env: { ...process.env, PORT: '3000' }
+          });
+          
+          // 等待应用启动
+          setTimeout(() => {
+            // 发送一些请求来触发性能分析
+            for (let i = 0; i < 100; i++) {
+              http.get('http://localhost:3000', (res) => {
+                res.on('data', () => {});
+                res.on('end', () => {});
+              });
+            }
+            
+            // 10秒后停止应用
+            setTimeout(() => {
+              app.kill('SIGTERM');
+              process.exit(0);
+            }, 10000);
+          }, 5000);
+          EOF
+
+      - name: Run CPU profiling
+        run: |
+          timeout 60s clinic doctor -- node profile-test.js || true
+          ls -la .clinic/
+        continue-on-error: true
+
+      - name: Upload profiling results
+        uses: actions/upload-artifact@v4
+        with:
+          name: profiling-results
+          path: .clinic/
+          retention-days: 30
+        if: always()
+
+  # 性能回归检测
+  performance-regression:
+    name: Performance Regression
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout PR code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build PR version
+        run: npm run build
+
+      - name: Measure PR bundle size
+        run: |
+          PR_SIZE=$(du -sb .next/static | cut -f1)
+          echo "PR_BUNDLE_SIZE=$PR_SIZE" >> $GITHUB_ENV
+
+      - name: Checkout base branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.base_ref }}
+
+      - name: Install base dependencies
+        run: npm ci
+
+      - name: Build base version
+        run: npm run build
+
+      - name: Measure base bundle size
+        run: |
+          BASE_SIZE=$(du -sb .next/static | cut -f1)
+          echo "BASE_BUNDLE_SIZE=$BASE_SIZE" >> $GITHUB_ENV
+
+      - name: Compare performance
+        run: |
+          DIFF=$(($PR_BUNDLE_SIZE - $BASE_BUNDLE_SIZE))
+          PERCENT_CHANGE=$(echo "scale=2; $DIFF * 100 / $BASE_BUNDLE_SIZE" | bc -l)
+          
+          echo "## 📊 性能回归分析" >> $GITHUB_STEP_SUMMARY
+          echo "- **基础版本Bundle大小**: $(numfmt --to=iec $BASE_BUNDLE_SIZE)" >> $GITHUB_STEP_SUMMARY
+          echo "- **PR版本Bundle大小**: $(numfmt --to=iec $PR_BUNDLE_SIZE)" >> $GITHUB_STEP_SUMMARY
+          echo "- **大小变化**: $(numfmt --to=iec $DIFF) (${PERCENT_CHANGE}%)" >> $GITHUB_STEP_SUMMARY
+          
+          if [ $DIFF -gt 102400 ]; then  # 100KB增长阈值
+            echo "❌ Bundle大小增长超过100KB，可能存在性能回归" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          elif [ $DIFF -gt 51200 ]; then  # 50KB警告阈值
+            echo "⚠️ Bundle大小增长超过50KB，请注意" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ Bundle大小变化在可接受范围内" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # 性能报告汇总
+  performance-summary:
+    name: Performance Summary
+    runs-on: ubuntu-latest
+    needs: [bundle-analysis, lighthouse, load-testing, profiling]
+    if: always()
+    steps:
+      - name: Generate performance summary
+        run: |
+          echo "## 🎯 性能测试汇总" >> $GITHUB_STEP_SUMMARY
+          echo "| 测试项 | 状态 | 说明 |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|------|------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Bundle分析 | ${{ needs.bundle-analysis.result == 'success' && '✅' || needs.bundle-analysis.result == 'skipped' && '⏭️' || '❌' }} | Bundle大小和组成分析 |" >> $GITHUB_STEP_SUMMARY
+          echo "| Lighthouse | ${{ needs.lighthouse.result == 'success' && '✅' || needs.lighthouse.result == 'skipped' && '⏭️' || '❌' }} | 页面性能和用户体验 |" >> $GITHUB_STEP_SUMMARY
+          echo "| 负载测试 | ${{ needs.load-testing.result == 'success' && '✅' || needs.load-testing.result == 'skipped' && '⏭️' || '❌' }} | 并发用户负载能力 |" >> $GITHUB_STEP_SUMMARY
+          echo "| 性能分析 | ${{ needs.profiling.result == 'success' && '✅' || needs.profiling.result == 'skipped' && '⏭️' || '❌' }} | CPU和内存使用分析 |" >> $GITHUB_STEP_SUMMARY
+          
+          echo "\n### 📈 性能优化建议" >> $GITHUB_STEP_SUMMARY
+          echo "- 定期监控Bundle大小，避免不必要的依赖" >> $GITHUB_STEP_SUMMARY
+          echo "- 使用代码分割和懒加载优化首屏加载" >> $GITHUB_STEP_SUMMARY
+          echo "- 优化图片和静态资源的加载策略" >> $GITHUB_STEP_SUMMARY
+          echo "- 实施有效的缓存策略" >> $GITHUB_STEP_SUMMARY
+          echo "- 监控和优化数据库查询性能" >> $GITHUB_STEP_SUMMARY
+
+      - name: Notify performance results
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const results = {
+              bundle: '${{ needs.bundle-analysis.result }}',
+              lighthouse: '${{ needs.lighthouse.result }}',
+              load: '${{ needs.load-testing.result }}',
+              profiling: '${{ needs.profiling.result }}'
+            };
+            
+            const passed = Object.values(results).filter(r => r === 'success').length;
+            const total = Object.values(results).filter(r => r !== 'skipped').length;
+            
+            console.log(`Performance tests completed: ${passed}/${total} passed`);

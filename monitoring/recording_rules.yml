@@ -1,0 +1,311 @@
+# Prometheus 记录规则配置
+# 预计算常用的复杂查询以提高性能
+
+groups:
+  # 应用性能指标记录规则
+  - name: zk-agent-performance-recording
+    interval: 30s
+    rules:
+      # HTTP 请求速率 (每秒请求数)
+      - record: zk_agent:http_requests:rate5m
+        expr: rate(http_requests_total{job="zk-agent"}[5m])
+        labels:
+          aggregation: rate
+          window: 5m
+
+      # HTTP 请求错误率
+      - record: zk_agent:http_requests:error_rate5m
+        expr: |
+          rate(http_requests_total{job="zk-agent",status=~"5.."}[5m]) /
+          rate(http_requests_total{job="zk-agent"}[5m])
+        labels:
+          aggregation: error_rate
+          window: 5m
+
+      # HTTP 请求延迟分位数
+      - record: zk_agent:http_request_duration:p50
+        expr: histogram_quantile(0.50, rate(http_request_duration_seconds_bucket{job="zk-agent"}[5m]))
+        labels:
+          quantile: "0.50"
+          window: 5m
+
+      - record: zk_agent:http_request_duration:p90
+        expr: histogram_quantile(0.90, rate(http_request_duration_seconds_bucket{job="zk-agent"}[5m]))
+        labels:
+          quantile: "0.90"
+          window: 5m
+
+      - record: zk_agent:http_request_duration:p95
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="zk-agent"}[5m]))
+        labels:
+          quantile: "0.95"
+          window: 5m
+
+      - record: zk_agent:http_request_duration:p99
+        expr: histogram_quantile(0.99, rate(http_request_duration_seconds_bucket{job="zk-agent"}[5m]))
+        labels:
+          quantile: "0.99"
+          window: 5m
+
+      # 应用可用性 (成功率)
+      - record: zk_agent:availability:success_rate5m
+        expr: |
+          (
+            rate(http_requests_total{job="zk-agent",status!~"5.."}[5m]) /
+            rate(http_requests_total{job="zk-agent"}[5m])
+          ) * 100
+        labels:
+          aggregation: success_rate
+          window: 5m
+
+      # 应用吞吐量 (总请求数)
+      - record: zk_agent:throughput:total5m
+        expr: increase(http_requests_total{job="zk-agent"}[5m])
+        labels:
+          aggregation: total
+          window: 5m
+
+  # 数据库性能指标记录规则
+  - name: postgresql-performance-recording
+    interval: 30s
+    rules:
+      # 数据库连接使用率
+      - record: postgresql:connections:usage_rate
+        expr: |
+          (
+            pg_stat_database_numbackends{datname="zkagent"} /
+            pg_settings_max_connections
+          ) * 100
+        labels:
+          database: zkagent
+          aggregation: usage_rate
+
+      # 数据库查询速率
+      - record: postgresql:queries:rate5m
+        expr: rate(pg_stat_database_xact_commit{datname="zkagent"}[5m]) + rate(pg_stat_database_xact_rollback{datname="zkagent"}[5m])
+        labels:
+          database: zkagent
+          aggregation: rate
+          window: 5m
+
+      # 数据库缓存命中率
+      - record: postgresql:cache:hit_rate
+        expr: |
+          (
+            pg_stat_database_blks_hit{datname="zkagent"} /
+            (pg_stat_database_blks_hit{datname="zkagent"} + pg_stat_database_blks_read{datname="zkagent"})
+          ) * 100
+        labels:
+          database: zkagent
+          aggregation: hit_rate
+
+      # 数据库大小增长率
+      - record: postgresql:size:growth_rate1h
+        expr: rate(pg_database_size_bytes{datname="zkagent"}[1h])
+        labels:
+          database: zkagent
+          aggregation: growth_rate
+          window: 1h
+
+      # 数据库锁等待时间
+      - record: postgresql:locks:wait_time_avg
+        expr: avg(pg_stat_activity_max_tx_duration{datname="zkagent"})
+        labels:
+          database: zkagent
+          aggregation: avg_wait_time
+
+  # Redis 性能指标记录规则
+  - name: redis-performance-recording
+    interval: 30s
+    rules:
+      # Redis 内存使用率
+      - record: redis:memory:usage_rate
+        expr: |
+          (
+            redis_memory_used_bytes /
+            redis_memory_max_bytes
+          ) * 100
+        labels:
+          aggregation: usage_rate
+
+      # Redis 命令执行速率
+      - record: redis:commands:rate5m
+        expr: rate(redis_commands_processed_total[5m])
+        labels:
+          aggregation: rate
+          window: 5m
+
+      # Redis 缓存命中率
+      - record: redis:cache:hit_rate
+        expr: |
+          (
+            rate(redis_keyspace_hits_total[5m]) /
+            (rate(redis_keyspace_hits_total[5m]) + rate(redis_keyspace_misses_total[5m]))
+          ) * 100
+        labels:
+          aggregation: hit_rate
+          window: 5m
+
+      # Redis 连接使用率
+      - record: redis:connections:usage_rate
+        expr: |
+          (
+            redis_connected_clients /
+            redis_config_maxclients
+          ) * 100
+        labels:
+          aggregation: usage_rate
+
+      # Redis 键过期速率
+      - record: redis:keys:expiration_rate5m
+        expr: rate(redis_expired_keys_total[5m])
+        labels:
+          aggregation: expiration_rate
+          window: 5m
+
+  # 系统资源指标记录规则
+  - name: system-resources-recording
+    interval: 30s
+    rules:
+      # CPU 使用率
+      - record: system:cpu:usage_rate
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)
+        labels:
+          aggregation: usage_rate
+          window: 5m
+
+      # 内存使用率
+      - record: system:memory:usage_rate
+        expr: |
+          (
+            (
+              node_memory_MemTotal_bytes - node_memory_MemFree_bytes - 
+              node_memory_Buffers_bytes - node_memory_Cached_bytes
+            ) / node_memory_MemTotal_bytes
+          ) * 100
+        labels:
+          aggregation: usage_rate
+
+      # 磁盘使用率
+      - record: system:disk:usage_rate
+        expr: |
+          (
+            (
+              node_filesystem_size_bytes{fstype!="tmpfs"} - 
+              node_filesystem_free_bytes{fstype!="tmpfs"}
+            ) / node_filesystem_size_bytes{fstype!="tmpfs"}
+          ) * 100
+        labels:
+          aggregation: usage_rate
+
+      # 网络流量速率
+      - record: system:network:receive_rate5m
+        expr: rate(node_network_receive_bytes_total[5m])
+        labels:
+          aggregation: receive_rate
+          window: 5m
+
+      - record: system:network:transmit_rate5m
+        expr: rate(node_network_transmit_bytes_total[5m])
+        labels:
+          aggregation: transmit_rate
+          window: 5m
+
+      # 磁盘 I/O 速率
+      - record: system:disk:read_rate5m
+        expr: rate(node_disk_read_bytes_total[5m])
+        labels:
+          aggregation: read_rate
+          window: 5m
+
+      - record: system:disk:write_rate5m
+        expr: rate(node_disk_written_bytes_total[5m])
+        labels:
+          aggregation: write_rate
+          window: 5m
+
+  # 业务指标记录规则
+  - name: business-metrics-recording
+    interval: 60s
+    rules:
+      # 用户活跃度
+      - record: zk_agent:users:active_rate1h
+        expr: rate(user_actions_total{job="zk-agent"}[1h])
+        labels:
+          aggregation: active_rate
+          window: 1h
+
+      # API 调用成功率
+      - record: zk_agent:api:success_rate5m
+        expr: |
+          (
+            rate(api_calls_total{job="zk-agent",status="success"}[5m]) /
+            rate(api_calls_total{job="zk-agent"}[5m])
+          ) * 100
+        labels:
+          aggregation: success_rate
+          window: 5m
+
+      # 任务处理速率
+      - record: zk_agent:tasks:processing_rate5m
+        expr: rate(tasks_processed_total{job="zk-agent"}[5m])
+        labels:
+          aggregation: processing_rate
+          window: 5m
+
+      # 错误恢复时间
+      - record: zk_agent:errors:recovery_time_avg
+        expr: avg(error_recovery_duration_seconds{job="zk-agent"})
+        labels:
+          aggregation: avg_recovery_time
+
+  # SLA 和 SLI 指标记录规则
+  - name: sla-sli-recording
+    interval: 60s
+    rules:
+      # 服务可用性 SLI (99.9%)
+      - record: sli:availability:99_9
+        expr: |
+          (
+            (
+              rate(http_requests_total{job="zk-agent",status!~"5.."}[5m]) /
+              rate(http_requests_total{job="zk-agent"}[5m])
+            ) >= 0.999
+          ) * 100
+        labels:
+          sli_type: availability
+          target: "99.9"
+
+      # 响应时间 SLI (95% < 2s)
+      - record: sli:latency:95_2s
+        expr: |
+          (
+            histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="zk-agent"}[5m])) < 2
+          ) * 100
+        labels:
+          sli_type: latency
+          target: "95_percentile_2s"
+
+      # 错误预算消耗率
+      - record: sli:error_budget:burn_rate1h
+        expr: |
+          (
+            1 - (
+              rate(http_requests_total{job="zk-agent",status!~"5.."}[1h]) /
+              rate(http_requests_total{job="zk-agent"}[1h])
+            )
+          ) / 0.001
+        labels:
+          sli_type: error_budget
+          window: 1h
+
+      # 服务健康评分
+      - record: sli:health:score
+        expr: |
+          (
+            (zk_agent:availability:success_rate5m / 100) * 0.4 +
+            (1 - (zk_agent:http_request_duration:p95 / 5)) * 0.3 +
+            (1 - (zk_agent:http_requests:error_rate5m)) * 0.3
+          ) * 100
+        labels:
+          aggregation: health_score
