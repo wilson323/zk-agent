@@ -5,17 +5,17 @@
  * @date 2025-06-25
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { createApiRoute, RouteConfigs, CommonValidations } from '@/lib/middleware/api-route-wrapper';
+import { NextRequest } from 'next/server';
+import { createApiRoute, RouteConfigs } from '@/lib/middleware/api-route-wrapper';
 import { ApiResponseWrapper } from '@/lib/utils/api-helper';
-import fs from 'fs';
-import path from 'path';
-
-// 常量定义
-const AGENTS_FILE = path.join(process.cwd(), 'data', 'agents.json');
+import { ErrorCode } from '@/types/core';
+import * as fs from 'fs';
+import * as path from 'path';
 
 // 辅助函数
-function readJsonFile(filePath: string, defaultValue: any = null) {
+const AGENTS_FILE = path.join(process.cwd(), 'data', 'agents.json');
+
+function readJsonFile(filePath: string, defaultValue: any = []) {
   try {
     if (fs.existsSync(filePath)) {
       return JSON.parse(fs.readFileSync(filePath, 'utf8'));
@@ -45,7 +45,7 @@ function getChatSessionsFilePath(agentId: string) {
 }
 
 export const GET = createApiRoute(
-  RouteConfigs.publicGet(),
+  RouteConfigs.protectedGet(),
   async (req: NextRequest, { params, validatedBody, validatedQuery, user, requestId }) => {
     try {
       const url = new URL(req.url);
@@ -70,16 +70,16 @@ export const GET = createApiRoute(
         const agent = agents.find((a: any) => a.id === agentId);
         
         if (!agent) {
-          return ApiResponseWrapper.error('Agent not found', 404);
+          return ApiResponseWrapper.error(ErrorCode.NOT_FOUND, 'Agent not found', null);
         }
         
         return ApiResponseWrapper.success(agent);
       }
 
-      return ApiResponseWrapper.error('Invalid path', 400);
+      return ApiResponseWrapper.error(ErrorCode.VALIDATION_ERROR, 'Invalid path', null);
     } catch (error) {
       console.error('GET /api/db error:', error);
-      return ApiResponseWrapper.error('Internal server error', 500);
+      return ApiResponseWrapper.error(ErrorCode.INTERNAL_SERVER_ERROR, 'Internal server error', null);
     }
   }
 );
@@ -88,8 +88,7 @@ export const POST = createApiRoute(
   RouteConfigs.protectedPost(),
   async (req: NextRequest, { params, validatedBody, validatedQuery, user, requestId }) => {
     try {
-      const body = await req.json();
-      const { action, data } = body;
+      const { action, data } = validatedBody;
 
       // 根据action执行不同的操作
       if (action === 'saveApiConfig') {
@@ -109,7 +108,7 @@ export const POST = createApiRoute(
           return ApiResponseWrapper.success({ message: '配置已保存' });
         } catch (error) {
           console.error('Save API config error:', error);
-          return ApiResponseWrapper.error('保存配置失败', 500);
+          return ApiResponseWrapper.error(ErrorCode.INTERNAL_SERVER_ERROR, '保存配置失败', null);
         }
       }
 
@@ -119,14 +118,14 @@ export const POST = createApiRoute(
           const configPath = path.join(process.cwd(), 'data', 'api-config.json');
 
           if (!fs.existsSync(configPath)) {
-            return ApiResponseWrapper.error('配置不存在', 404);
+            return ApiResponseWrapper.error(ErrorCode.NOT_FOUND, '配置不存在', null);
           }
 
           const configData = JSON.parse(fs.readFileSync(configPath, 'utf8'));
           return ApiResponseWrapper.success({ data: configData });
         } catch (error) {
           console.error('Get API config error:', error);
-          return ApiResponseWrapper.error('读取配置失败', 500);
+          return ApiResponseWrapper.error(ErrorCode.INTERNAL_SERVER_ERROR, '读取配置失败', null);
         }
       }
 
@@ -146,15 +145,15 @@ export const POST = createApiRoute(
           return ApiResponseWrapper.success(newAgent);
         } catch (error) {
           console.error('Create agent error:', error);
-          return ApiResponseWrapper.error('创建代理失败', 500);
+          return ApiResponseWrapper.error(ErrorCode.INTERNAL_SERVER_ERROR, '创建代理失败', null);
         }
       }
 
       // 未知操作
-      return ApiResponseWrapper.error(`未知操作: ${action}`, 400);
+      return ApiResponseWrapper.error(ErrorCode.VALIDATION_ERROR, `未知操作: ${action}`, null);
     } catch (error) {
       console.error('POST /api/db error:', error);
-      return ApiResponseWrapper.error('Internal server error', 500);
+      return ApiResponseWrapper.error(ErrorCode.INTERNAL_SERVER_ERROR, 'Internal server error', null);
     }
   }
 );
@@ -166,13 +165,6 @@ export const PUT = createApiRoute(
       const url = new URL(req.url);
       const apiPath = url.pathname.split('/api/db/')[1];
 
-      let body;
-      try {
-        body = await req.json();
-      } catch (error) {
-        return ApiResponseWrapper.error('Invalid JSON body', 400);
-      }
-
       if (apiPath?.startsWith('agent/')) {
         const agentId = apiPath.split('agent/')[1];
         const agents = readJsonFile(AGENTS_FILE, []);
@@ -181,10 +173,10 @@ export const PUT = createApiRoute(
         if (index !== -1) {
           agents[index] = {
             ...agents[index],
-            ...body,
+            ...validatedBody,
             config: {
               ...agents[index].config,
-              ...body.config,
+              ...validatedBody.config,
             },
             updatedAt: new Date().toISOString(),
           };
@@ -192,14 +184,14 @@ export const PUT = createApiRoute(
           writeJsonFile(AGENTS_FILE, agents);
           return ApiResponseWrapper.success(agents[index]);
         } else {
-          return ApiResponseWrapper.error('Agent not found', 404);
+          return ApiResponseWrapper.error(ErrorCode.NOT_FOUND, 'Agent not found', null);
         }
       }
 
-      return ApiResponseWrapper.error('Invalid path', 400);
+      return ApiResponseWrapper.error(ErrorCode.VALIDATION_ERROR, 'Invalid path', null);
     } catch (error) {
       console.error('PUT /api/db error:', error);
-      return ApiResponseWrapper.error('Internal server error', 500);
+      return ApiResponseWrapper.error(ErrorCode.INTERNAL_SERVER_ERROR, 'Internal server error', null);
     }
   }
 );
@@ -217,17 +209,17 @@ export const DELETE = createApiRoute(
         const filteredAgents = agents.filter((agent: any) => agent.id !== agentId);
 
         if (agents.length === filteredAgents.length) {
-          return ApiResponseWrapper.error('Agent not found', 404);
+          return ApiResponseWrapper.error(ErrorCode.NOT_FOUND, 'Agent not found', null);
         }
 
         writeJsonFile(AGENTS_FILE, filteredAgents);
         return ApiResponseWrapper.success({ message: 'Agent deleted successfully' });
       }
 
-      return ApiResponseWrapper.error('Invalid path', 400);
+      return ApiResponseWrapper.error(ErrorCode.VALIDATION_ERROR, 'Invalid path', null);
     } catch (error) {
       console.error('DELETE /api/db error:', error);
-      return ApiResponseWrapper.error('Internal server error', 500);
+      return ApiResponseWrapper.error(ErrorCode.INTERNAL_SERVER_ERROR, 'Internal server error', null);
     }
   }
 );

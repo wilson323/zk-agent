@@ -7,7 +7,8 @@
 
 import { EventEmitter } from 'events'
 import { enhancedDb } from './enhanced-connection'
-import { databaseMonitor, DatabaseMetrics, AlertLevel } from './monitoring'
+import { databaseMonitor, AlertLevel } from './monitoring'
+import { DatabaseMetrics } from './unified-interfaces'
 
 // 连接池配置
 export interface PoolConfiguration {
@@ -101,8 +102,10 @@ export class DatabasePoolOptimizer extends EventEmitter {
     // 初始化优化策略
     this.strategies = this.getDefaultStrategies()
 
-    // 监听数据库监控事件
-    this.setupMonitoringEventListeners()
+    // 延迟监听数据库监控事件，避免循环依赖
+    process.nextTick(() => {
+      this.setupMonitoringEventListeners()
+    })
   }
 
   /**
@@ -528,8 +531,8 @@ export class DatabasePoolOptimizer extends EventEmitter {
     await new Promise(resolve => setTimeout(resolve, 100))
     
     // 这里可以调用enhancedDb的配置更新方法
-    if (enhancedDb && typeof enhancedDb.updateConfiguration === 'function') {
-      await enhancedDb.updateConfiguration(config)
+    if (enhancedDb && typeof enhancedDb.updateConfig === 'function') {
+      await enhancedDb.updateConfig(config)
     }
   }
 

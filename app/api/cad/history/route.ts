@@ -5,158 +5,215 @@
  * @date 2025-06-25
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { createApiRoute, RouteConfigs, CommonValidations } from '@/lib/middleware/api-route-wrapper';
+import { NextRequest } from 'next/server';
+import { createApiRoute, RouteConfigs } from '@/lib/middleware/api-route-wrapper';
 import { ApiResponseWrapper } from '@/lib/utils/api-helper';
 import { ErrorCode } from '@/types/core';
-import type { CADAnalysisHistory } from "@/types/cad"
+import type { AnalysisResult } from '@/types/cad';
 
 export const GET = createApiRoute(
-  RouteConfigs.publicGet(),
+  RouteConfigs.protectedGet(),
   async (req: NextRequest, { params, validatedBody, validatedQuery, user, requestId }) => {
     try {
-      const { searchParams } = new URL(req.url)
-      const userId = validatedQuery?.userId
-      const limit = Number.parseInt(validatedQuery?.limit || "20")
-      const query = validatedQuery?.query
+      const userId = validatedQuery?.userId;
+      const limit = Number.parseInt(validatedQuery?.limit || "20");
+      const query = validatedQuery?.query;
   
       if (!userId) {
-        return ApiResponseWrapper.error(ErrorCode.VALIDATION_ERROR, "缺少用户ID", null)
+        return ApiResponseWrapper.error(ErrorCode.VALIDATION_ERROR, "缺少用户ID", null);
       }
     
-        // 模拟获取用户CAD分析历史
-        const mockHistory: CADAnalysisHistory[] = [
-          {
-            id: "history_1",
-            fileId: "file_1",
-            fileName: "办公楼安防设计图.dwg",
-            fileType: "dwg",
-            fileSize: 2048000,
-            analysisResult: {
-              fileId: "file_1",
-              userId: userId,
-              structure: [],
-              devices: [],
-              risks: [],
-              summary: {
-                totalDevices: 15,
-                totalRisks: 3,
-                risksBySeverity: { critical: 0, high: 1, medium: 2, low: 0 },
-                complianceScore: 88,
-                recommendations: ["增加应急出口标识", "完善消防设备"],
-              },
-              statistics: {
-                analysisTime: "3.2秒",
-                fileSize: 2048000,
-                processingSteps: 5,
-                accuracy: "96%",
-              },
-              recommendations: [],
-              reportUrl: "/reports/analysis_file_1.pdf",
-              createdAt: new Date("2024-01-20T10:30:00Z"),
-            },
-            createdAt: new Date("2024-01-20T10:30:00Z"),
-            updatedAt: new Date("2024-01-20T10:30:00Z"),
-            tags: ["办公楼", "安防设计"],
-            notes: "主要分析监控布局和门禁系统",
-            isBookmarked: true,
-            sharedWith: ["team@company.com"],
+      // 模拟获取用户CAD分析历史
+      const mockHistory: AnalysisResult[] = [
+        {
+          id: "history_1",
+          fileInfo: {
+            id: "file_1",
+            name: "办公楼安防设计图.dwg",
+            type: "dwg",
+            size: 2048000,
+            uploadedAt: new Date("2024-01-20T10:30:00Z"),
+            userId: userId,
           },
-          {
-            id: "history_2",
-            fileId: "file_2",
-            fileName: "工厂监控布局图.dxf",
-            fileType: "dxf",
-            fileSize: 1536000,
-            analysisResult: {
-              fileId: "file_2",
-              userId: userId,
-              structure: [],
-              devices: [],
-              risks: [],
-              summary: {
-                totalDevices: 28,
-                totalRisks: 5,
-                risksBySeverity: { critical: 1, high: 2, medium: 2, low: 0 },
-                complianceScore: 75,
-                recommendations: ["增加周界防护", "升级监控设备"],
-              },
-              statistics: {
-                analysisTime: "4.1秒",
-                fileSize: 1536000,
-                processingSteps: 6,
-                accuracy: "94%",
-              },
-              recommendations: [],
-              reportUrl: "/reports/analysis_file_2.pdf",
-              createdAt: new Date("2024-01-18T14:15:00Z"),
-            },
-            createdAt: new Date("2024-01-18T14:15:00Z"),
-            updatedAt: new Date("2024-01-18T14:15:00Z"),
-            tags: ["工厂", "周界防护"],
-            notes: "重点关注生产区域安全",
-            isBookmarked: false,
-            sharedWith: [],
+          config: {
+            enableStructureAnalysis: true,
+            enableDeviceDetection: true,
+            enableRiskAssessment: true,
+            enableComplianceCheck: true,
+            detectionSensitivity: "medium",
+            riskThreshold: "balanced",
+            complianceStandards: ["GB50348-2018", "GA/T75-1994"],
+            generateReport: true,
+            reportFormat: "pdf",
+            includeImages: true,
+            includeRecommendations: true,
           },
-        ]
+          summary: {
+            totalDevices: 15,
+            devicesByCategory: {},
+            totalRisks: 3,
+            risksBySeverity: { critical: 0, high: 1, medium: 2, low: 0 },
+            complianceScore: 88,
+            overallStatus: "good",
+            keyFindings: ["增加应急出口标识", "完善消防设备"],
+            criticalIssues: 0,
+            recommendationsCount: 2,
+          },
+          devices: [],
+          risks: [],
+          compliance: {
+            overall: { overall: "compliant", standards: [], recommendations: [], lastChecked: new Date() },
+            standards: [],
+            violations: [],
+            recommendations: [],
+            score: 88,
+            lastUpdated: new Date(),
+          },
+          recommendations: [],
+          performance: {
+            processingTime: 3200,
+            memoryUsage: 0,
+            cpuUsage: 0,
+            cacheHitRate: 0,
+            errorRate: 0,
+            throughput: 0,
+          },
+          createdAt: new Date("2024-01-20T10:30:00Z"),
+          processingTime: 3200,
+          version: "1.0.0",
+          report: {
+            id: "report_1",
+            format: "pdf",
+            url: "/reports/analysis_file_1.pdf",
+            size: 0,
+            generatedAt: new Date("2024-01-20T10:30:00Z"),
+            sections: [],
+            metadata: {},
+          },
+        },
+        {
+          id: "history_2",
+          fileInfo: {
+            id: "file_2",
+            name: "工厂监控布局图.dxf",
+            type: "dxf",
+            size: 1536000,
+            uploadedAt: new Date("2024-01-18T14:15:00Z"),
+            userId: userId,
+          },
+          config: {
+            enableStructureAnalysis: true,
+            enableDeviceDetection: true,
+            enableRiskAssessment: true,
+            enableComplianceCheck: true,
+            detectionSensitivity: "medium",
+            riskThreshold: "balanced",
+            complianceStandards: ["GB50348-2018", "GA/T75-1994"],
+            generateReport: true,
+            reportFormat: "pdf",
+            includeImages: true,
+            includeRecommendations: true,
+          },
+          summary: {
+            totalDevices: 28,
+            devicesByCategory: {},
+            totalRisks: 5,
+            risksBySeverity: { critical: 1, high: 2, medium: 2, low: 0 },
+            complianceScore: 75,
+            overallStatus: "fair",
+            keyFindings: ["增加周界防护", "升级监控设备"],
+            criticalIssues: 1,
+            recommendationsCount: 2,
+          },
+          devices: [],
+          risks: [],
+          compliance: {
+            overall: { overall: "non_compliant", standards: [], recommendations: [], lastChecked: new Date() },
+            standards: [],
+            violations: [],
+            recommendations: [],
+            score: 75,
+            lastUpdated: new Date(),
+          },
+          recommendations: [],
+          performance: {
+            processingTime: 4100,
+            memoryUsage: 0,
+            cpuUsage: 0,
+            cacheHitRate: 0,
+            errorRate: 0,
+            throughput: 0,
+          },
+          createdAt: new Date("2024-01-18T14:15:00Z"),
+          processingTime: 4100,
+          version: "1.0.0",
+          report: {
+            id: "report_2",
+            format: "pdf",
+            url: "/reports/analysis_file_2.pdf",
+            size: 0,
+            generatedAt: new Date("2024-01-18T14:15:00Z"),
+            sections: [],
+            metadata: {},
+          },
+        },
+      ];
     
-        // 如果有搜索查询，过滤结果
-        let filteredHistory = mockHistory
-        if (query) {
-          filteredHistory = mockHistory.filter(
-            (item) =>
-              item.fileName.toLowerCase().includes(query.toLowerCase()) ||
-              item.tags.some((tag) => tag.toLowerCase().includes(query.toLowerCase())) ||
-              item.notes.toLowerCase().includes(query.toLowerCase()),
-          )
-        }
-    
-        // 应用限制
-        const limitedHistory = filteredHistory.slice(0, limit)
-    
-        return ApiResponseWrapper.success({
-          success: true,
-          history: limitedHistory,
-          total: filteredHistory.length,
-          hasMore: filteredHistory.length > limit,
-        })
-      } catch (error) {
-        console.error('获取历史记录失败:', error)
-        return ApiResponseWrapper.error(
-          "获取历史记录失败",
-          { status: 500 }
-        )
+      // 如果有搜索查询，过滤结果
+      let filteredHistory = mockHistory;
+      if (query) {
+        filteredHistory = mockHistory.filter(
+          (item) =>
+            item.fileInfo.name.toLowerCase().includes(query.toLowerCase())
+        );
       }
+    
+      // 应用限制
+      const limitedHistory = filteredHistory.slice(0, limit);
+    
+      return ApiResponseWrapper.success({
+        history: limitedHistory,
+        total: filteredHistory.length,
+        hasMore: filteredHistory.length > limit,
+      });
+    } catch (error) {
+      console.error('获取历史记录失败:', error);
+      return ApiResponseWrapper.error(
+        ErrorCode.INTERNAL_SERVER_ERROR,
+        "获取历史记录失败",
+        null,
+        500
+      );
     }
-  )
+  }
+);
 
 export const DELETE = createApiRoute(
-  { method: 'DELETE', requireAuth: true, timeout: 60000 },
+  RouteConfigs.protectedDelete(),
   async (req: NextRequest, { params, validatedBody, validatedQuery, user, requestId }) => {
     try {
-      const { searchParams } = new URL(req.url)
-      const analysisId = validatedQuery?.analysisId
-      const userId = validatedQuery?.userId
+      const analysisId = validatedQuery?.analysisId;
+      const userId = validatedQuery?.userId;
     
       if (!analysisId || !userId) {
-        return ApiResponseWrapper.error(ErrorCode.VALIDATION_ERROR, "缺少必要参数", null)
+        return ApiResponseWrapper.error(ErrorCode.VALIDATION_ERROR, "缺少必要参数", null);
       }
     
       // 模拟删除分析结果
       // 在实际实现中，这里会删除数据库中的记录和相关文件
-      console.log(`删除用户 ${userId} 的分析结果 ${analysisId}`)
+      console.log(`删除用户 ${userId} 的分析结果 ${analysisId}`);
     
       return ApiResponseWrapper.success({
-        success: true,
         message: "删除成功",
-      })
+      });
     } catch (error) {
-      console.error('删除分析结果失败:', error)
+      console.error('删除分析结果失败:', error);
       return ApiResponseWrapper.error(
+        ErrorCode.INTERNAL_SERVER_ERROR,
         "删除失败",
-        { status: 500 }
-      )
+        null,
+        500
+      );
     }
   }
-)
-
+);

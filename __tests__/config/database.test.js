@@ -5,7 +5,7 @@
  * @date 2025-05-25
  */
 
-const { getDatabaseConfig, validateDatabaseConfig } = require('../../config/database.config');
+const { getCurrentConfig, validateDatabaseConfig } = require('../../lib/database/database.config');
 
 describe('数据库配置测试', () => {
   test('应该能够获取测试数据库配置', () => {

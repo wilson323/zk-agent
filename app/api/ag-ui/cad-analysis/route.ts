@@ -5,9 +5,10 @@
  * @date 2025-06-25
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { createApiRoute, RouteConfigs, CommonValidations } from '@/lib/middleware/api-route-wrapper';
+import { NextRequest } from 'next/server';
+import { createApiRoute, RouteConfigs } from '@/lib/middleware/api-route-wrapper';
 import { ApiResponseWrapper } from '@/lib/utils/api-helper';
+import { ErrorCode } from '@/types/core';
 
 // CAD分析结果类型定义
 interface CADAnalysisResult {
@@ -19,6 +20,27 @@ interface CADAnalysisResult {
       height: number;
       depth: number;
     };
+    complexity: 'low' | 'medium' | 'high';
+  };
+  components: Array<{
+    id: string;
+    name: string;
+    type: string;
+    material: string;
+    quantity: number;
+    dimensions: {
+      length: number;
+      width: number;
+      height: number;
+    };
+    riskLevel: 'low' | 'medium' | 'high';
+    issues: string[];
+  }>;
+  recommendations: string[];
+  riskAssessment: {
+    overallRisk: 'low' | 'medium' | 'high';
+    criticalIssues: string[];
+    warnings: string[];
   };
 }
 
@@ -32,11 +54,11 @@ export const POST = createApiRoute(
       const runId = formData.get("runId") as string;
     
       if (!file) {
-        return ApiResponseWrapper.error('文件不能为空', 400);
+        return ApiResponseWrapper.error(ErrorCode.VALIDATION_ERROR, '文件不能为空', null, 400);
       }
     
       // 验证文件类型
-      const allowedTypes = [
+      const _allowedTypes = [
         'application/octet-stream',
         'application/x-autocad',
         'application/dwg',
@@ -49,7 +71,7 @@ export const POST = createApiRoute(
       const allowedExtensions = ['dwg', 'dxf', 'step', 'stp', 'iges', 'igs', 'obj', 'stl'];
     
       if (!allowedExtensions.includes(fileExtension || '')) {
-        return ApiResponseWrapper.error('不支持的文件类型', 400);
+        return ApiResponseWrapper.error(ErrorCode.VALIDATION_ERROR, '不支持的文件类型', null, 400);
       }
     
         // 模拟CAD分析过程
@@ -126,7 +148,7 @@ export const POST = createApiRoute(
         }
       });
     } catch (error) {
-      return ApiResponseWrapper.error('CAD分析失败', 500);
+      return ApiResponseWrapper.error(ErrorCode.INTERNAL_SERVER_ERROR, 'CAD分析失败', null, 500);
     }
   }
 );

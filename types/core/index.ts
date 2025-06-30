@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * @file types/core/index.ts
  * @description 核心类型定义，包含API响应、通用接口等全局类型
@@ -8,36 +7,15 @@
  *   - 2024-12-19 初始创建核心类型系统
  */
 
-// API响应统一格式
-export interface ApiResponse<T = any> {
-  success: boolean;
-  data?: T;
-  error?: {
-    code: string;
-    message: string;
-    details?: any;
-  };
-  pagination?: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
-  timestamp: string;
-}
+import { ERROR_CODES } from '../../config/constants';
 
-// 分页请求参数
-export interface PaginationParams {
-  page?: number;
-  limit?: number;
-  sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
-}
+// 导入核心接口定义
+import { ApiResponse, PaginationParams } from './core-interfaces';
 
 // 搜索参数
 export interface SearchParams {
   query?: string;
-  filters?: Record<string, any>;
+  filters?: Record<string, unknown>;
 }
 
 // 文件上传相关
@@ -58,19 +36,20 @@ export interface BaseEntity {
   updatedAt: string;
 }
 
-// 用户角色枚举
+// 用户角色枚举 - 使用与user.types.ts一致的值
 export enum UserRole {
-  USER = 'USER',
-  ADMIN = 'ADMIN',
-  SUPER_ADMIN = 'SUPER_ADMIN'
+  USER = 'user',
+  ADMIN = 'admin',
+  PREMIUM = 'premium',
+  SUPER_ADMIN = 'super_admin'
 }
 
-// 用户状态枚举
+// 用户状态枚举 - 使用与user.types.ts一致的值
 export enum UserStatus {
-  ACTIVE = 'ACTIVE',
-  INACTIVE = 'INACTIVE',
-  SUSPENDED = 'SUSPENDED',
-  DELETED = 'DELETED'
+  ACTIVE = 'active',
+  INACTIVE = 'inactive',
+  SUSPENDED = 'suspended',
+  DELETED = 'deleted'
 }
 
 // 任务状态枚举
@@ -84,14 +63,34 @@ export enum TaskStatus {
 
 // 错误代码枚举
 export enum ErrorCode {
+  // 验证错误
   VALIDATION_ERROR = 'VALIDATION_ERROR',
+  
+  // 认证和授权错误
   AUTHENTICATION_ERROR = 'AUTHENTICATION_ERROR',
   AUTHORIZATION_ERROR = 'AUTHORIZATION_ERROR',
+  
+  // 资源错误
   NOT_FOUND = 'NOT_FOUND',
+  
+  // 服务器错误
   INTERNAL_SERVER_ERROR = 'INTERNAL_SERVER_ERROR',
-  RATE_LIMIT_EXCEEDED = 'RATE_LIMIT_EXCEEDED'
+  
+  // 限流错误
+  RATE_LIMIT_ERROR = 'RATE_LIMIT_ERROR',
+  RATE_LIMIT_EXCEEDED = 'RATE_LIMIT_EXCEEDED',
+  
+  // 超时错误
+  TIMEOUT_ERROR = 'TIMEOUT_ERROR',
+  
+  // 外部服务错误
+  EXTERNAL_SERVICE_ERROR = 'EXTERNAL_SERVICE_ERROR',
+  
+  // 服务不可用
+  SERVICE_UNAVAILABLE = 'SERVICE_UNAVAILABLE'
 }
 
 // 导出所有类型
 export * from './api.types';
-export * from './user.types'; 
+export * from './user.types';
+export * from './error.types';

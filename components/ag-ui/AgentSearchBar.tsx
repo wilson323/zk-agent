@@ -24,13 +24,13 @@ interface AgentSearchBarProps {
 }
 
 export function AgentSearchBar({
-  value,
+  _value,
   onChange,
   placeholder = '搜索智能体...',
   debounceMs = 300,
   className = ''
 }: AgentSearchBarProps) {
-  const [internalValue, setInternalValue] = useState(value);
+  const [internalValue, setInternalValue] = useState(_value);
 
   // 防抖处理
   useEffect(() => {

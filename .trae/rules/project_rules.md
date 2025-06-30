@@ -177,3 +177,5 @@
 使用 ESLint 和 Prettier 进行代码格式化：
 npm run lint          # Check code style
 npm run lint:fix      # Fix code style issues
+
+每项工作必须要充分使用mcp的工具.

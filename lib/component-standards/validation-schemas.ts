@@ -724,7 +724,7 @@ export function createRuntimePropsChecker<T>(
             error.errors.map(err => ({
               path: err.path.join('.'),
               message: err.message,
-              received: err.received
+              received: 'received' in err ? err.received : undefined
             }))
           );
         }

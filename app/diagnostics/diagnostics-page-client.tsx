@@ -9,9 +9,9 @@ import { useFastGPT } from "@/contexts/FastGPTContext"
 import FastGPTConnectionDiagnostic from "./fastgpt-connection"
 
 export default function DiagnosticsPageClient() {
-  const [localStorageData, setLocalStorageData] = useState<Record<string, any>>({})
-  const [activeTab, setActiveTab] = useState("overview")
-  const [isLoading, setIsLoading] = useState(false)
+  const [_localStorageData, setLocalStorageData] = useState<Record<string, any>>({})
+  const [_activeTab, setActiveTab] = useState("overview")
+  const [_isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
   const { fetchApplications } = useFastGPT()
 
@@ -52,12 +52,12 @@ export default function DiagnosticsPageClient() {
   // 初始加载
   useEffect(() => {
     loadLocalStorageData()
-  }, [])
+  }, [loadLocalStorageData])
 
   // 导出所有数据
-  const exportData = () => {
+  const _exportData = () => {
     try {
-      const dataStr = JSON.stringify(localStorageData, null, 2)
+      const dataStr = JSON.stringify(_localStorageData, null, 2)
       const dataUri = `data:application/json;charset=utf-8,${encodeURIComponent(dataStr)}`
 
       const exportFileDefaultName = `ai-chat-backup-${new Date().toISOString().slice(0, 10)}.json`
@@ -82,7 +82,7 @@ export default function DiagnosticsPageClient() {
   }
 
   // 导入数据
-  const importData = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const _importData = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) {return}
 
@@ -129,7 +129,7 @@ export default function DiagnosticsPageClient() {
   }
 
   // 清除所有数据
-  const clearAllData = () => {
+  const _clearAllData = () => {
     if (window.confirm("确定要清除所有本地存储数据吗？此操作无法撤销！")) {
       try {
         localStorage.clear()

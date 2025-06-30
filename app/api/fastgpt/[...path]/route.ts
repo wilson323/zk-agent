@@ -5,22 +5,23 @@
  * @date 2025-06-25
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { createApiRoute, RouteConfigs, CommonValidations } from '@/lib/middleware/api-route-wrapper';
+import { NextRequest } from 'next/server';
+import { createApiRoute, RouteConfigs } from '@/lib/middleware/api-route-wrapper';
 import { ApiResponseWrapper } from '@/lib/utils/api-helper';
+import { ErrorCode } from '@/types/core';
 
 export const GET = createApiRoute(
-  RouteConfigs.publicGet(),
+  RouteConfigs.protectedGet(),
   async (req: NextRequest, { params, validatedBody, validatedQuery, user, requestId }) => {
     try {
       const FASTGPT_API_URL = process.env.FASTGPT_API_URL;
       const FASTGPT_API_KEY = process.env.FASTGPT_API_KEY;
 
       if (!FASTGPT_API_URL || !FASTGPT_API_KEY) {
-        return ApiResponseWrapper.error('FastGPT configuration missing', 500);
+        return ApiResponseWrapper.error(ErrorCode.CONFIGURATION_ERROR, 'FastGPT configuration missing', null);
       }
 
-      const path = params.path.join('/');
+      const path = (params?.path as string[])?.join('/') || '';
       const url = new URL(req.url);
       const queryString = url.search;
 
@@ -33,10 +34,10 @@ export const GET = createApiRoute(
       });
 
       const data = await response.json();
-      return ApiResponseWrapper.success(data, { status: response.status });
+      return ApiResponseWrapper.success(data);
     } catch (error) {
       console.error('GET /api/fastgpt error:', error);
-      return ApiResponseWrapper.error('Internal server error', 500);
+      return ApiResponseWrapper.error(ErrorCode.INTERNAL_SERVER_ERROR, 'Internal server error', null);
     }
   }
 );
@@ -49,11 +50,10 @@ export const POST = createApiRoute(
       const FASTGPT_API_KEY = process.env.FASTGPT_API_KEY;
 
       if (!FASTGPT_API_URL || !FASTGPT_API_KEY) {
-        return ApiResponseWrapper.error('FastGPT configuration missing', 500);
+        return ApiResponseWrapper.error(ErrorCode.CONFIGURATION_ERROR, 'FastGPT configuration missing', null);
       }
 
-      const path = params.path.join('/');
-      const body = await req.json();
+      const path = (params?.path as string[])?.join('/') || '';
 
       const response = await fetch(`${FASTGPT_API_URL}/${path}`, {
         method: 'POST',
@@ -61,14 +61,14 @@ export const POST = createApiRoute(
           'Content-Type': 'application/json',
           Authorization: `Bearer ${FASTGPT_API_KEY}`,
         },
-        body: JSON.stringify(body),
+        body: JSON.stringify(validatedBody),
       });
 
       const data = await response.json();
-      return ApiResponseWrapper.success(data, { status: response.status });
+      return ApiResponseWrapper.success(data);
     } catch (error) {
       console.error('POST /api/fastgpt error:', error);
-      return ApiResponseWrapper.error('Internal server error', 500);
+      return ApiResponseWrapper.error(ErrorCode.INTERNAL_SERVER_ERROR, 'Internal server error', null);
     }
   }
 );
@@ -81,10 +81,10 @@ export const DELETE = createApiRoute(
       const FASTGPT_API_KEY = process.env.FASTGPT_API_KEY;
 
       if (!FASTGPT_API_URL || !FASTGPT_API_KEY) {
-        return ApiResponseWrapper.error('FastGPT configuration missing', 500);
+        return ApiResponseWrapper.error(ErrorCode.CONFIGURATION_ERROR, 'FastGPT configuration missing', null);
       }
 
-      const path = params.path.join('/');
+      const path = (params?.path as string[])?.join('/') || '';
       const url = new URL(req.url);
       const queryString = url.search;
 
@@ -97,10 +97,10 @@ export const DELETE = createApiRoute(
       });
 
       const data = await response.json();
-      return ApiResponseWrapper.success(data, { status: response.status });
+      return ApiResponseWrapper.success(data);
     } catch (error) {
       console.error('DELETE /api/fastgpt error:', error);
-      return ApiResponseWrapper.error('Internal server error', 500);
+      return ApiResponseWrapper.error(ErrorCode.INTERNAL_SERVER_ERROR, 'Internal server error', null);
     }
   }
 );

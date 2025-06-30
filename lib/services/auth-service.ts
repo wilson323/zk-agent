@@ -5,203 +5,199 @@
  * @date 2025-06-25
  */
 
-import { db } from '@/lib/database';
 import { z } from 'zod';
+import { enhancedDb, dbTransaction } from '@/lib/database';
 import { hashPassword, verifyPassword } from '@/lib/auth/password';
-import { generateToken, verifyToken } from '@/lib/auth/token';
-import { ApiResponseWrapper } from '@/lib/response';
+import { generateToken, verifyToken } from '@/lib/auth/jwt';
+import { ApiResponseWrapper } from '@/lib/utils/api-helper';
 import { ErrorCode } from '@/types/core';
+import { IAuthService, loginSchema, registerSchema, changePasswordSchema } from '../interfaces/auth-manager.interface';
+import { injectable } from '../di/container';
 
-// Zod validation schema for login
-const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
-});
+@injectable()
+export class AuthService implements IAuthService {
+  async login(data: z.infer<typeof loginSchema>) {
+    const { email, password } = data;
 
-// Zod validation schema for registration
-const registerSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
-  name: z.string().optional(),
-  avatar: z.string().optional(),
-});
+    const user = await enhancedDb.prisma.user.findUnique({
+      where: { email: email.toLowerCase() },
+      select: {
+        id: true,
+        email: true,
+        password: true,
+        name: true,
+        avatar: true,
+        role: true,
+        status: true,
+      },
+    });
 
-// Zod validation schema for password change
-const changePasswordSchema = z.object({
-  oldPassword: z.string(),
-  newPassword: z.string().min(8),
-});
+    if (!user) {
+      throw new Error('Invalid email or password.');
+    }
 
-/**
- * Handles user login.
- *
- * @param {object} data - The login data.
- * @returns {Promise<object>} The login result with tokens.
- */
-export const login = async (data: z.infer<typeof loginSchema>) => {
-  const { email, password } = data;
+    const isValidPassword = await verifyPassword(password, user.password);
+    if (!isValidPassword) {
+      throw new Error('Invalid email or password.');
+    }
 
-  const user = await db?.user.findUnique({
-    where: { email: email.toLowerCase() },
-    select: {
-      id: true,
-      email: true,
-      password: true,
-      name: true,
-      avatar: true,
-      role: true,
-      status: true,
-    },
-  });
+    if (user.status !== 'ACTIVE') {
+      throw new Error('Account is not active.');
+    }
 
-  if (!user) {
-    throw new Error('Invalid email or password.');
+    // Update login stats
+    await enhancedDb.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        lastLoginAt: new Date(),
+        loginCount: { increment: 1 },
+      },
+    });
+
+    const { accessToken, refreshToken } = await generateToken(user);
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        avatar: user.avatar,
+        role: user.role,
+      },
+      tokens: { accessToken, refreshToken },
+    }
   }
 
-  const isValidPassword = await verifyPassword(password, user.password);
-  if (!isValidPassword) {
-    throw new Error('Invalid email or password.');
+  async register(data: z.infer<typeof registerSchema>) {
+    const { email, password, name, avatar } = data;
+
+    return dbTransaction(async (prisma) => {
+      const existingUser = await prisma.user.findUnique({
+        where: { email: email.toLowerCase() },
+      });
+
+      if (existingUser) {
+        throw new Error('User with this email already exists.');
+      }
+
+      const hashedPassword = await hashPassword(password);
+
+      const newUser = await prisma.user.create({
+        data: {
+          email: email.toLowerCase(),
+          password: hashedPassword,
+          name,
+          avatar,
+          role: 'USER',
+          status: 'ACTIVE',
+        },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          avatar: true,
+          role: true,
+        },
+      });
+
+      const { accessToken, refreshToken } = await generateToken(newUser);
+
+      return {
+        user: newUser,
+        tokens: { accessToken, refreshToken },
+      };
+    });
   }
 
-  if (user.status !== 'ACTIVE') {
-    throw new Error('Account is not active.');
+  async refreshToken(token: string) {
+    const payload = await verifyToken(token, 'refresh');
+    if (!payload) {
+      throw new Error('Invalid refresh token.');
+    }
+
+    const user = await enhancedDb.prisma.user.findUnique({
+      where: { id: payload.userId },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        avatar: true,
+        role: true,
+        status: true,
+      },
+    });
+
+    if (!user || user.status !== 'ACTIVE') {
+      throw new Error('User not found or inactive.');
+    }
+
+    const { accessToken, refreshToken: newRefreshToken } = await generateToken(user);
+
+    return { accessToken, refreshToken: newRefreshToken };
   }
 
-  // Update login stats
-  await db?.user.update({
-    where: { id: user.id },
-    data: {
-      lastLoginAt: new Date(),
-      loginCount: { increment: 1 },
-    },
-  });
+  async changePassword(userId: string, data: z.infer<typeof changePasswordSchema>) {
+    const { oldPassword, newPassword } = data;
 
-  const { accessToken, refreshToken } = await generateToken(user);
+    return dbTransaction(async (prisma) => {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          password: true,
+        },
+      });
 
-  return {
-    user: {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      avatar: user.avatar,
-      role: user.role,
-    },
-    tokens: { accessToken, refreshToken },
-  };
-};
+      if (!user) {
+        throw new Error('User not found.');
+      }
 
-/**
- * Handles user registration.
- *
- * @param {object} data - The registration data.
- * @returns {Promise<object>} The registration result with tokens.
- */
-export const register = async (data: z.infer<typeof registerSchema>) => {
-  const { email, password, name, avatar } = data;
+      const isValidPassword = await verifyPassword(oldPassword, user.password);
+      if (!isValidPassword) {
+        throw new Error('Invalid current password.');
+      }
 
-  const existingUser = await db?.user.findUnique({
-    where: { email: email.toLowerCase() },
-  });
+      const hashedPassword = await hashPassword(newPassword);
 
-  if (existingUser) {
-    throw new Error('User with this email already exists.');
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          password: hashedPassword,
+          updatedAt: new Date(),
+        },
+      });
+    });
   }
 
-  const hashedPassword = await hashPassword(password);
-
-  const newUser = await db?.user.create({
-    data: {
-      email: email.toLowerCase(),
-      password: hashedPassword,
-      name,
-      avatar,
-      role: 'USER',
-      status: 'ACTIVE',
-    },
-    select: {
-      id: true,
-      email: true,
-      name: true,
-      avatar: true,
-      role: true,
-    },
-  });
-
-  const { accessToken, refreshToken } = await generateToken(newUser);
-
-  return {
-    user: newUser,
-    tokens: { accessToken, refreshToken },
-  };
-};
-
-/**
- * Refreshes the access token using a refresh token.
- *
- * @param {string} refreshToken - The refresh token.
- * @returns {Promise<object>} The new tokens.
- */
-export const refreshToken = async (token: string) => {
-  const payload = await verifyToken(token, 'refresh');
-  if (!payload) {
-    throw new Error('Invalid refresh token.');
+  async checkHealth(): Promise<HealthCheckResult> {
+    try {
+      await enhancedDb.prisma.$queryRaw`SELECT 1`;
+      return {
+        status: 'UP',
+        timestamp: new Date(),
+        details: { database: 'Connected' },
+      };
+    } catch (error: any) {
+      return {
+        status: 'DOWN',
+        timestamp: new Date(),
+        details: { database: 'Disconnected' },
+        error: error.message,
+      };
+    }
   }
+}
 
-  const user = await db?.user.findUnique({
-    where: { id: payload.userId },
-    select: {
-      id: true,
-      email: true,
-      name: true,
-      avatar: true,
-      role: true,
-      status: true,
-    },
-  });
+// Export service instance
+const authService = new AuthService();
 
-  if (!user || user.status !== 'ACTIVE') {
-    throw new Error('User not found or inactive.');
-  }
+// Export individual methods for backward compatibility
+export const login = authService.login.bind(authService);
+export const register = authService.register.bind(authService);
+export const changePassword = authService.changePassword.bind(authService);
+export const refreshToken = authService.refreshToken.bind(authService);
+export const checkHealth = authService.checkHealth.bind(authService);
 
-  const { accessToken, refreshToken: newRefreshToken } = await generateToken(user);
-
-  return { accessToken, refreshToken: newRefreshToken };
-};
-
-/**
- * Changes a user's password.
- *
- * @param {string} userId - The user ID.
- * @param {object} data - The password change data.
- * @returns {Promise<void>}
- */
-export const changePassword = async (userId: string, data: z.infer<typeof changePasswordSchema>) => {
-  const { oldPassword, newPassword } = data;
-
-  const user = await db?.user.findUnique({
-    where: { id: userId },
-    select: {
-      id: true,
-      password: true,
-    },
-  });
-
-  if (!user) {
-    throw new Error('User not found.');
-  }
-
-  const isValidPassword = await verifyPassword(oldPassword, user.password);
-  if (!isValidPassword) {
-    throw new Error('Invalid current password.');
-  }
-
-  const hashedPassword = await hashPassword(newPassword);
-
-  await db?.user.update({
-    where: { id: userId },
-    data: {
-      password: hashedPassword,
-      updatedAt: new Date(),
-    },
-  });
-};
+// Export the service instance
+export { authService };
+export default authService;

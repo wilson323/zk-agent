@@ -2,13 +2,15 @@
 "use client"
 
 import { motion } from "framer-motion"
+import { useDevicePerformance } from "@/hooks/use-device-performance"
 
 interface BackgroundEffectsProps {
   isDarkMode: boolean
   isLowEndDevice: boolean
 }
 
-export function BackgroundEffects({ isDarkMode, isLowEndDevice }: BackgroundEffectsProps) {
+export function BackgroundEffects({ isDarkMode }: BackgroundEffectsProps) {
+  const isLowEndDevice = useDevicePerformance()
   return (
     <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/50 dark:from-gray-900 dark:via-indigo-950/80 dark:to-purple-950/60 transition-all duration-1000">
       {/* 增强的粒子动效 */}

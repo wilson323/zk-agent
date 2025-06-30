@@ -5,18 +5,24 @@
  * @date 2025-06-25
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { createApiRoute, RouteConfigs, CommonValidations } from '@/lib/middleware/api-route-wrapper';
+import { NextRequest } from 'next/server';
+import { createApiRoute, RouteConfigs } from '@/lib/middleware/api-route-wrapper';
 import { ApiResponseWrapper } from '@/lib/utils/api-helper';
+import { PosterExportSystem } from '@/lib/poster/export-system';
 
 export const POST = createApiRoute(
   RouteConfigs.protectedPost(),
   async (req: NextRequest, { params, validatedBody, validatedQuery, user, requestId }) => {
     try {
-      const { imageUrl, width, height, metadata } = await req.json();
+      const { imageUrl, width, height, metadata } = _validatedBody as {
+        imageUrl: string;
+        width?: number;
+        height?: number;
+        metadata?: any;
+      };
       
       if (!imageUrl) {
-        return ApiResponseWrapper.error('Image URL is required', { status: 400 });
+        return ApiResponseWrapper.error('Image URL is required', 400);
       }
       
       // 模拟PDF生成过程
@@ -45,13 +51,15 @@ export const POST = createApiRoute(
           creator: "AI Multi-Agent Platform",
           producer: "AI Multi-Agent Platform",
           creationDate: new Date().toISOString(),
+          dimensions: {
+            width: width || 1080,
+            height: height || 1080
+          }
         },
       });
     } catch (error) {
-      return ApiResponseWrapper.error(
-        "Internal server error",
-        { status: 500 }
-      );
+      console.error('Error converting poster to PDF:', error);
+      return ApiResponseWrapper.error('Internal server error', 500);
     }
   }
 );

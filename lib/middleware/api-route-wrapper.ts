@@ -8,9 +8,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { withGlobalErrorHandler } from './global-error-handler';
-import { ApiResponseWrapper, ApiLogger } from '@/lib/utils/api-helper';
-import { validateRequestBody, validateSearchParams } from '@/lib/utils/api-helper';
-import { ErrorCode } from '@/types/core';
+import { ApiResponseWrapper, ApiLogger } from '../utils/api-helper';
+import { validateRequestBody, validateSearchParams } from '../utils/api-helper';
+import { ErrorCode } from '../../types/core';
 
 // API路由配置接口
 interface ApiRouteConfig {
@@ -63,6 +63,78 @@ export function createApiRoute<T = any>(
         );
       }
 
+      const processRequest = async (): Promise<NextResponse<T>> => {
+        // 3. 速率限制检查
+        if (config.rateLimit) {
+          const rateLimitResult = checkRateLimit(req, config.rateLimit);
+          if (!rateLimitResult.allowed) {
+            return ApiResponseWrapper.rateLimitExceeded(
+              'Too many requests',
+              rateLimitResult.resetTime
+            ) as NextResponse<T>;
+          }
+        }
+
+        // 4. 身份验证
+        let user = null;
+        if (config.requireAuth) {
+          user = await authenticateRequest(req);
+          if (!user) {
+            return ApiResponseWrapper.unauthorized('Authentication required') as NextResponse<T>;
+          }
+        }
+
+        // 5. 请求验证
+        let validatedBody, validatedQuery;
+        
+        if (config.validation?.body && req.method !== 'GET') {
+          try {
+            const body = await req.json();
+            validatedBody = config.validation.body.parse(body);
+          } catch (error) {
+            if (error instanceof z.ZodError) {
+              return ApiResponseWrapper.validationError(error.errors) as NextResponse<T>;
+            }
+            throw error;
+          }
+        }
+
+        if (config.validation?.query) {
+          try {
+            const url = new URL(req.url);
+            const queryParams = Object.fromEntries(url.searchParams.entries());
+            validatedQuery = config.validation.query.parse(queryParams);
+          } catch (error) {
+            if (error instanceof z.ZodError) {
+              return ApiResponseWrapper.validationError(error.errors) as NextResponse<T>;
+            }
+            throw error;
+          }
+        }
+
+        // 6. 记录请求日志
+        ApiLogger.logRequest(req, user?.id);
+
+        // 7. 执行处理器
+        const response = await handler(req, {
+          params: routeParams,
+          validatedBody,
+          validatedQuery,
+          user,
+          requestId
+        });
+
+        // 8. 记录响应日志
+        const duration = Date.now() - startTime;
+        ApiLogger.logResponse(response, duration);
+
+        // 9. 添加响应头
+        response.headers.set('X-Request-ID', requestId);
+        response.headers.set('X-Response-Time', `${duration}ms`);
+        
+        return response;
+      };
+
       // 2. 超时控制
       if (config.timeout) {
         const timeoutPromise = new Promise<never>((_, reject) => {
@@ -78,96 +150,6 @@ export function createApiRoute<T = any>(
       }
 
       return await processRequest();
-
-      async function processRequest(): Promise<NextResponse<T>> {
-        // 3. 速率限制检查
-        if (config.rateLimit) {
-          const rateLimitResult = checkRateLimit(req, config.rateLimit);
-          if (!rateLimitResult.allowed) {
-            return ApiResponseWrapper.rateLimitExceeded(
-              'Too many requests',
-              rateLimitResult.resetTime
-            );
-          }
-        }
-
-        // 4. 身份验证
-        let user = null;
-        if (config.requireAuth) {
-          user = await authenticateRequest(req);
-          if (!user) {
-            return ApiResponseWrapper.unauthorized('Authentication required');
-          }
-        }
-
-        // 5. 请求验证
-        let validatedBody, validatedQuery;
-        
-        if (config.validation?.body && req.method !== 'GET') {
-          try {
-            const body = await req.json();
-            validatedBody = config.validation.body.parse(body);
-          } catch (error) {
-            if (error instanceof z.ZodError) {
-              return ApiResponseWrapper.validationError(
-                'Request body validation failed',
-                error.errors
-              );
-            }
-            throw error;
-          }
-        }
-
-        if (config.validation?.query) {
-          try {
-            const url = new URL(req.url);
-            const queryParams = Object.fromEntries(url.searchParams.entries());
-            validatedQuery = config.validation.query.parse(queryParams);
-          } catch (error) {
-            if (error instanceof z.ZodError) {
-              return ApiResponseWrapper.validationError(
-                'Query parameters validation failed',
-                error.errors
-              );
-            }
-            throw error;
-          }
-        }
-
-        // 6. 记录请求日志
-        ApiLogger.logRequest(req, {
-          requestId,
-          method: config.method,
-          description: config.description,
-          user: user?.id,
-          validatedBody: validatedBody ? '[VALIDATED]' : undefined,
-          validatedQuery: validatedQuery ? '[VALIDATED]' : undefined
-        });
-
-        // 7. 执行处理器
-        const response = await handler(req, {
-          params: routeParams,
-          validatedBody,
-          validatedQuery,
-          user,
-          requestId
-        });
-
-        // 8. 记录响应日志
-        const duration = Date.now() - startTime;
-        ApiLogger.logResponse(response, {
-          requestId,
-          duration,
-          method: config.method,
-          status: response.status
-        });
-
-        // 9. 添加响应头
-        response.headers.set('X-Request-ID', requestId);
-        response.headers.set('X-Response-Time', `${duration}ms`);
-        
-        return response;
-      }
     } catch (error) {
       // 错误会被全局错误处理器捕获
       throw error;
@@ -187,7 +169,7 @@ function checkRateLimit(
   const windowStart = now - rateLimit.windowMs;
   
   // 清理过期记录
-  for (const [key, value] of rateLimitStore.entries()) {
+  for (const [key, value] of Array.from(rateLimitStore.entries())) {
     if (value.resetTime < now) {
       rateLimitStore.delete(key);
     }
@@ -320,6 +302,24 @@ export const RouteConfigs = {
     timeout: 60000
   }),
   
+  // PATCH路由 - 需要认证和速率限制
+  protectedPatch: (validation?: { body?: z.ZodSchema; query?: z.ZodSchema }): ApiRouteConfig => ({
+    method: 'PATCH',
+    requireAuth: true,
+    rateLimit: { requests: 100, windowMs: 60000 }, // 每分钟100次
+    validation,
+    timeout: 60000
+  }),
+  
+  // DELETE路由 - 需要认证和速率限制
+  protectedDelete: (validation?: { query?: z.ZodSchema }): ApiRouteConfig => ({
+    method: 'DELETE',
+    requireAuth: true,
+    rateLimit: { requests: 50, windowMs: 60000 }, // 每分钟50次
+    validation,
+    timeout: 30000
+  }),
+  
   // 文件上传路由
   fileUpload: (validation?: { body?: z.ZodSchema }): ApiRouteConfig => ({
     method: 'POST',
@@ -330,7 +330,7 @@ export const RouteConfigs = {
   }),
   
   // 管理员路由
-  admin: (method: 'GET' | 'POST' | 'PUT' | 'DELETE', validation?: any): ApiRouteConfig => ({
+  admin: (method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH', validation?: any): ApiRouteConfig => ({
     method,
     requireAuth: true,
     rateLimit: { requests: 200, windowMs: 60000 },
@@ -338,6 +338,9 @@ export const RouteConfigs = {
     timeout: 60000
   })
 };
+
+// 导出ApiResponseWrapper类
+export { ApiResponseWrapper } from '../utils/api-helper';
 
 // 导出便捷函数
 export const GET = (handler: ApiHandler, config?: Partial<ApiRouteConfig>) => 
@@ -348,6 +351,9 @@ export const POST = (handler: ApiHandler, config?: Partial<ApiRouteConfig>) =>
 
 export const PUT = (handler: ApiHandler, config?: Partial<ApiRouteConfig>) => 
   createApiRoute({ method: 'PUT', requireAuth: true, timeout: 60000, ...config }, handler);
+
+export const PATCH = (handler: ApiHandler, config?: Partial<ApiRouteConfig>) => 
+  createApiRoute({ method: 'PATCH', requireAuth: true, timeout: 60000, ...config }, handler);
 
 export const DELETE = (handler: ApiHandler, config?: Partial<ApiRouteConfig>) => 
   createApiRoute({ method: 'DELETE', requireAuth: true, timeout: 30000, ...config }, handler);

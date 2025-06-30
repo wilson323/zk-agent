@@ -1,6 +1,6 @@
-// @ts-nocheck
 import { type Observable, Subject } from "rxjs"
-import type { BaseEvent, RunAgentInput, Tool, Message, AgentDefinition } from "./types"
+import type { BaseEvent, RunAgentInput, Tool, Message } from "./types"
+import type { AgentDefinition } from "./protocol/types"
 
 /**
  * 标准AG-UI运行时实现
@@ -8,7 +8,7 @@ import type { BaseEvent, RunAgentInput, Tool, Message, AgentDefinition } from ".
  */
 export class StandardAgUIRuntime {
   private eventSubject = new Subject<BaseEvent>()
-  private state: Record<string, any> = {}
+  private state: Record<string, unknown> = {}
   private messages: Message[] = []
   private tools: Tool[] = []
   private agent: AgentDefinition | null = null

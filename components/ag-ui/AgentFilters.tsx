@@ -1,34 +1,3 @@
-// @ts-nocheck
-/**
- * @file components/ag-ui/AgentFilters.tsx
- * @description 智能体筛选器组件，提供类型、状态、标签等筛选功能
- * @author zk-agent开发团队
- * @lastUpdate 2024-12-19
- * @updateLog
- *   - 2024-12-19 初始创建智能体筛选器组件
- */
-
-'use client';
-
-import React, { useState } from 'react';
-import { AgentType, AgentStatus } from '@/types/agents';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Separator } from '@/components/ui/separator';
-import { 
-  FilterIcon, 
-  SortAscIcon, 
-  SortDescIcon, 
-  XIcon,
-  MessageCircleIcon,
-  ActivityIcon,
-  TrendingUpIcon,
-  UsersIcon
-} from 'lucide-react';
-
 interface AgentFiltersProps {
   filters: {
     type?: AgentType;

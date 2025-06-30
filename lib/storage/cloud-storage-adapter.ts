@@ -12,13 +12,8 @@ import { enhancedCacheManager } from '@/lib/cache/enhanced-cache-manager';
 
 const logger = new Logger('CloudStorageAdapter');
 
-// 云存储提供商枚举
-export enum CloudProvider {
-  AWS_S3 = 'aws-s3',
-  ALIYUN_OSS = 'aliyun-oss',
-  QCLOUD_COS = 'qcloud-cos',
-  LOCAL = 'local',
-}
+// 导入统一的云存储提供商枚举
+import { CloudProvider } from '@/lib/types/enums';
 
 // 存储配置接口
 interface StorageConfig {
@@ -57,17 +52,7 @@ interface DownloadOptions {
   responseContentDisposition?: string;
 }
 
-// 文件信息接口
-interface FileInfo {
-  key: string;
-  size: number;
-  lastModified: Date;
-  etag: string;
-  contentType?: string;
-  metadata?: Record<string, string>;
-  url?: string;
-  cdnUrl?: string;
-}
+import { FileInfo } from '../types/interfaces';
 
 // 上传结果接口
 interface UploadResult {
@@ -152,7 +137,7 @@ class AWSS3Client implements StorageClient {
 
       // 测试环境下返回模拟结果
       if (process.env.NODE_ENV === 'test' && this.s3Client.mockClient) {
-        await this.simulateNetworkDelay(50, 150);
+        // 移除模拟网络延迟
         return {
           key: options.key,
           url: `https://${this.config.bucket}.s3.${this.config.region}.amazonaws.com/${options.key}`,
@@ -188,7 +173,7 @@ class AWSS3Client implements StorageClient {
 
       // 测试环境下返回模拟结果
       if (process.env.NODE_ENV === 'test' && this.s3Client.mockClient) {
-        await this.simulateNetworkDelay(50, 150);
+        // 移除模拟网络延迟
         return Buffer.from(`Mock content for ${options.key}`);
       }
 
@@ -209,7 +194,7 @@ class AWSS3Client implements StorageClient {
       logger.info('Deleting file from AWS S3', { key });
       
       // 模拟AWS S3删除
-      await this.simulateNetworkDelay(50, 150);
+      // 移除模拟网络延迟
       
       logger.info('File deleted from AWS S3 successfully', { key });
 
@@ -230,7 +215,7 @@ class AWSS3Client implements StorageClient {
 
       // 测试环境下返回模拟结果
       if (process.env.NODE_ENV === 'test' && this.s3Client.mockClient) {
-        await this.simulateNetworkDelay(30, 100);
+        // 移除模拟网络延迟
         return Math.random() > 0.3; // 70%概率文件存在
       }
 
@@ -248,7 +233,7 @@ class AWSS3Client implements StorageClient {
 
   async getFileInfo(key: string): Promise<FileInfo> {
     try {
-      await this.simulateNetworkDelay(30, 120);
+      // 移除模拟网络延迟
 
       return {
         key,
@@ -273,7 +258,7 @@ class AWSS3Client implements StorageClient {
 
   async listFiles(prefix?: string, maxKeys: number = 1000): Promise<FileInfo[]> {
     try {
-      await this.simulateNetworkDelay(100, 300);
+      // 移除模拟网络延迟
 
       // 模拟文件列表
       const files: FileInfo[] = [];
@@ -305,7 +290,7 @@ class AWSS3Client implements StorageClient {
 
   async getSignedUrl(key: string, operation: 'get' | 'put', expiresIn: number = 3600): Promise<string> {
     try {
-      await this.simulateNetworkDelay(10, 50);
+      // 移除模拟网络延迟
 
       const timestamp = Date.now() + expiresIn * 1000;
       const signature = this.generateSignature(key, operation, timestamp);
@@ -324,7 +309,7 @@ class AWSS3Client implements StorageClient {
 
   async getStats(): Promise<StorageStats> {
     try {
-      await this.simulateNetworkDelay(50, 200);
+      // 移除模拟网络延迟
 
       return {
         totalFiles: Math.floor(Math.random() * 10000) + 1000,
@@ -356,10 +341,7 @@ class AWSS3Client implements StorageClient {
     return crypto.createHash('sha256').update(data).digest('hex').substring(0, 16);
   }
 
-  private async simulateNetworkDelay(min: number, max: number): Promise<void> {
-    const delay = Math.floor(Math.random() * (max - min + 1)) + min;
-    return new Promise(resolve => setTimeout(resolve, delay));
-  }
+  // 移除模拟网络延迟方法
 }
 
 // 阿里云OSS客户端实现
@@ -396,7 +378,7 @@ class AliyunOSSClient implements StorageClient {
         contentType: options.contentType,
       });
 
-      await this.simulateNetworkDelay(80, 400);
+      // 移除模拟网络延迟
 
       const etag = this.generateETag(buffer);
       const url = `https://${this.config.bucket}.${this.config.region}.aliyuncs.com/${options.key}`;
@@ -431,16 +413,20 @@ class AliyunOSSClient implements StorageClient {
         key: options.key,
       });
 
-      await this.simulateNetworkDelay(40, 180);
-      
-      const mockData = Buffer.from(`Mock OSS file content for ${options.key}`);
+      // 实际的阿里云OSS下载实现
+      if (!this.ossClient) {
+        throw new Error('OSS client not initialized');
+      }
+
+      const result = await this.ossClient.get(options.key);
+      const buffer = Buffer.from(result.content);
       
       logger.info('File downloaded from Aliyun OSS successfully', {
         key: options.key,
-        size: mockData.length,
+        size: buffer.length,
       });
 
-      return mockData;
+      return buffer;
 
     } catch (error) {
       logger.error('Aliyun OSS download failed', {
@@ -455,7 +441,11 @@ class AliyunOSSClient implements StorageClient {
     try {
       logger.info('Deleting file from Aliyun OSS', { key });
       
-      await this.simulateNetworkDelay(40, 120);
+      if (!this.ossClient) {
+        throw new Error('OSS client not initialized');
+      }
+
+      await this.ossClient.delete(key);
       
       logger.info('File deleted from Aliyun OSS successfully', { key });
 
@@ -470,10 +460,17 @@ class AliyunOSSClient implements StorageClient {
 
   async exists(key: string): Promise<boolean> {
     try {
-      await this.simulateNetworkDelay(15, 80);
-      return Math.random() > 0.15; // 85%概率存在
+      if (!this.ossClient) {
+        throw new Error('OSS client not initialized');
+      }
+
+      const result = await this.ossClient.head(key);
+      return !!result;
 
     } catch (error) {
+      if (error.code === 'NoSuchKey' || error.status === 404) {
+        return false;
+      }
       logger.error('Aliyun OSS exists check failed', {
         key,
         error: error.message,
@@ -484,14 +481,18 @@ class AliyunOSSClient implements StorageClient {
 
   async getFileInfo(key: string): Promise<FileInfo> {
     try {
-      await this.simulateNetworkDelay(25, 100);
+      if (!this.ossClient) {
+        throw new Error('OSS client not initialized');
+      }
 
+      const result = await this.ossClient.head(key);
+      
       return {
         key,
-        size: Math.floor(Math.random() * 1000000) + 1000,
-        lastModified: new Date(),
-        etag: this.generateETag(Buffer.from(key)),
-        contentType: 'application/octet-stream',
+        size: parseInt(result.headers['content-length'] || '0'),
+        lastModified: new Date(result.headers['last-modified']),
+        etag: result.headers.etag?.replace(/"/g, '') || '',
+        contentType: result.headers['content-type'] || 'application/octet-stream',
         url: `https://${this.config.bucket}.${this.config.region}.aliyuncs.com/${key}`,
         cdnUrl: this.config.enableCDN && this.config.cdnDomain 
           ? `https://${this.config.cdnDomain}/${key}`
@@ -509,7 +510,7 @@ class AliyunOSSClient implements StorageClient {
 
   async listFiles(prefix?: string, maxKeys: number = 1000): Promise<FileInfo[]> {
     try {
-      await this.simulateNetworkDelay(80, 250);
+      // 移除模拟网络延迟
 
       const files: FileInfo[] = [];
       const count = Math.min(maxKeys, Math.floor(Math.random() * 50) + 10);
@@ -540,7 +541,7 @@ class AliyunOSSClient implements StorageClient {
 
   async getSignedUrl(key: string, operation: 'get' | 'put', expiresIn: number = 3600): Promise<string> {
     try {
-      await this.simulateNetworkDelay(8, 40);
+      // 移除模拟网络延迟
 
       const timestamp = Date.now() + expiresIn * 1000;
       const signature = this.generateSignature(key, operation, timestamp);
@@ -559,7 +560,7 @@ class AliyunOSSClient implements StorageClient {
 
   async getStats(): Promise<StorageStats> {
     try {
-      await this.simulateNetworkDelay(40, 150);
+      // 移除模拟网络延迟
 
       return {
         totalFiles: Math.floor(Math.random() * 8000) + 800,
@@ -591,10 +592,7 @@ class AliyunOSSClient implements StorageClient {
     return crypto.createHash('sha256').update(data).digest('hex').substring(0, 16);
   }
 
-  private async simulateNetworkDelay(min: number, max: number): Promise<void> {
-    const delay = Math.floor(Math.random() * (max - min + 1)) + min;
-    return new Promise(resolve => setTimeout(resolve, delay));
-  }
+  // 移除模拟网络延迟方法
 }
 
 // 云存储适配器主类

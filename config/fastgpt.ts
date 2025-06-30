@@ -62,27 +62,11 @@ export const PROXY_CONFIG = {
   },
 }
 
-// Error messages
-export const ERROR_MESSAGES = {
-  CONNECTION_FAILED: "API connection failed",
-  NETWORK_ERROR: "Network error, cannot connect to server",
-  TIMEOUT: "Connection timeout, server response time too long",
-  UNAUTHORIZED: "API key is invalid or expired",
-  FORBIDDEN: "You don't have permission to access this resource",
-  NOT_FOUND: "API endpoint does not exist",
-  INVALID_URL: "API endpoint URL format is incorrect",
-  UNKNOWN: "Unknown error",
+// Import unified error messages
+import { ERROR_MESSAGES } from '../lib/constants';
 
-  // Suggested actions
-  SUGGESTIONS: {
-    ENABLE_PROXY: "Enabling proxy mode may solve CORS issues",
-    CHECK_API_KEY: "Update API key",
-    CHECK_PERMISSIONS: "Check API key permissions",
-    CHECK_URL: "Check API endpoint URL",
-    CHECK_NETWORK: "Check network connection",
-    TRY_PROXY: "Try using proxy mode or check network connection",
-  },
-}
+// Re-export for backward compatibility
+export { ERROR_MESSAGES };
 
 // Model types
 export const MODEL_TYPES = {

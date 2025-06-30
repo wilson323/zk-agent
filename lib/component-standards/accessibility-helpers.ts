@@ -3,7 +3,7 @@
  * 基于 WCAG 2.1 AA 标准和 WAI-ARIA 最佳实践
  */
 
-import React from 'react';
+import * as React from 'react';
 
 // =============================================================================
 // 类型定义
@@ -12,7 +12,7 @@ import React from 'react';
 /**
  * 焦点管理选项
  */
-interface FocusOptions {
+export interface FocusOptions {
   preventScroll?: boolean;
   restoreFocus?: boolean;
   trapFocus?: boolean;
@@ -22,7 +22,7 @@ interface FocusOptions {
 /**
  * 键盘导航配置
  */
-interface KeyboardNavigationConfig {
+export interface KeyboardNavigationConfig {
   enableArrowKeys?: boolean;
   enableHomeEnd?: boolean;
   enablePageUpDown?: boolean;
@@ -34,7 +34,7 @@ interface KeyboardNavigationConfig {
 /**
  * 屏幕阅读器公告选项
  */
-interface AnnouncementOptions {
+export interface AnnouncementOptions {
   priority?: 'polite' | 'assertive';
   delay?: number;
   clear?: boolean;
@@ -43,7 +43,7 @@ interface AnnouncementOptions {
 /**
  * 颜色对比度检查结果
  */
-interface ContrastResult {
+export interface ContrastResult {
   ratio: number;
   level: 'AA' | 'AAA' | 'fail';
   passes: boolean;
@@ -763,12 +763,7 @@ function luminanceToHex(luminance: number): string {
 // ARIA 属性工具
 // =============================================================================
 
-/**
- * 生成唯一的 ID
- */
-export function generateId(prefix: string = 'id'): string {
-  return `${prefix}-${Math.random().toString(36).substr(2, 9)}`;
-}
+import { generateId } from '../utils';
 
 /**
  * React Hook: 唯一 ID

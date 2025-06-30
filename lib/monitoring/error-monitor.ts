@@ -11,6 +11,7 @@ import {
   ErrorRecoveryRecommendation,
   generateId
 } from '../errors/agent-errors';
+import { rootCauseAnalyzer, RootCauseAnalysis } from './root-cause-analyzer';
 
 // 错误统计信息
 interface ErrorStats {
@@ -55,7 +56,7 @@ interface AlertEvent {
 }
 
 // 错误收集器
-class ErrorCollector {
+export class ErrorCollector {
   private errors: ErrorReport[] = [];
   private maxErrors = 10000;
   private trends: ErrorTrend[] = [];
@@ -750,6 +751,11 @@ export class ErrorMonitor {
       });
     }
     
+    // 异步执行根因分析
+    this.performRootCauseAnalysis(reportId).catch(err => {
+      console.error('Root cause analysis failed:', err);
+    });
+    
     return reportId;
   }
 
@@ -851,6 +857,53 @@ export class ErrorMonitor {
       this.monitoringInterval = null;
       console.log('错误监控已停止');
     }
+  }
+
+  /**
+   * 执行根因分析
+   */
+  private async performRootCauseAnalysis(reportId: string): Promise<RootCauseAnalysis | null> {
+    try {
+      const errorReport = this.collector.getErrorById(reportId);
+      if (!errorReport) {
+        console.warn(`Error report not found: ${reportId}`);
+        return null;
+      }
+
+      // 执行根因分析
+      const analysis = await rootCauseAnalyzer.analyzeRootCause(errorReport);
+      
+      console.log(`Root cause analysis completed for error ${reportId}:`, {
+        rootCause: analysis.rootCause,
+        confidence: analysis.confidence,
+        affectedUsers: analysis.impactAssessment.affectedUsers,
+        businessImpact: analysis.impactAssessment.businessImpact
+      });
+
+      return analysis;
+    } catch (error) {
+      console.error('Failed to perform root cause analysis:', error);
+      return null;
+    }
+  }
+
+  /**
+   * 获取根因分析结果
+   */
+  getRootCauseAnalysis(analysisId: string): RootCauseAnalysis | undefined {
+    return rootCauseAnalyzer.getAnalysis(analysisId);
+  }
+
+  /**
+   * 获取错误的根因分析
+   */
+  async getErrorRootCauseAnalysis(errorId: string): Promise<RootCauseAnalysis | null> {
+    const errorReport = this.collector.getErrorById(errorId);
+    if (!errorReport) {
+      return null;
+    }
+
+    return await rootCauseAnalyzer.analyzeRootCause(errorReport);
   }
 
   /**

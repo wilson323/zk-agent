@@ -5,8 +5,8 @@
  * @date 2024-12-19
  */
 
-import { AgentDefinition } from '../ag-ui/types'
-import { Agent } from '@prisma/client'
+import { AgentDefinition } from '../ag-ui/protocol/types'
+interface Agent { /* Placeholder for Prisma Agent type */ }
 
 /**
  * 智能体验证结果

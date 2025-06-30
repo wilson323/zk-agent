@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * @file 项目常量配置
  * @description 定义项目中使用的所有常量，包括API端点、配置参数等

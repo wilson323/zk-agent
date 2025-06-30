@@ -36,12 +36,19 @@ export * from './accessibility-helpers';
 export { accessibilityHelpers } from './accessibility-helpers';
 
 // 性能优化工具
-export * from './performance-optimizers';
-export { performanceOptimizers } from './performance-optimizers';
+export * from './performance-optimizers-types';
+export { performanceOptimizers } from './performance-optimizers.tsx';
 
 // =============================================================================
 // 统一接口
 // =============================================================================
+
+import { componentFactory } from './component-factory';
+import { designTokens } from './design-tokens';
+import { componentPatterns } from './component-patterns';
+import { validationSchemas } from './validation-schemas';
+import { accessibilityHelpers } from './accessibility-helpers';
+import { performanceOptimizers } from './performance-optimizers';
 
 /**
  * 组件标准库统一接口
@@ -124,7 +131,7 @@ export type {
   MemoryMonitorConfig,
   PerformanceMetrics,
   PerformanceOptimizers
-} from './performance-optimizers';
+} from './performance-optimizers.tsx';
 
 // =============================================================================
 // 版本信息

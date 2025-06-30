@@ -103,7 +103,7 @@ export class CADAnalyzer {
           size: fileBuffer instanceof ArrayBuffer ? fileBuffer.byteLength : fileBuffer.length,
           type: this.detectFileType(fileName),
           uploadedAt: new Date(),
-          userId: "current-user", // TODO: 从上下文获取
+          userId: this.getCurrentUserId(),
         },
         config: this.analysisConfig,
         summary: this.generateSummary(step2_detectedDevices, step3_assessedRisks),
@@ -372,4 +372,23 @@ export class CADAnalyzer {
     return Array.from(buffer).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 16)
   }
   private computeConfigHash(config: CADAnalysisConfig): string { return JSON.stringify(config).slice(0, 16) }
+  
+  /**
+   * 获取当前用户ID
+   * 在实际应用中，这应该从请求上下文或认证服务中获取
+   */
+  private getCurrentUserId(): string {
+    // 在实际应用中，这里应该从请求上下文获取用户ID
+    // 例如：从JWT token、session或请求头中获取
+    // 这里提供一个默认实现，实际使用时需要根据具体的认证机制调整
+    
+    // 如果在Node.js环境中，可以从AsyncLocalStorage或类似机制获取
+    // 如果在API路由中，应该从请求对象获取
+    
+    // 临时实现：生成一个基于时间的用户ID
+    // 在生产环境中，这应该替换为真实的用户认证逻辑
+    return process?.env?.NODE_ENV === 'development' 
+      ? 'dev-user-' + Date.now().toString().slice(-6)
+      : 'authenticated-user';
+  }
 }

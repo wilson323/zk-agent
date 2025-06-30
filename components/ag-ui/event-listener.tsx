@@ -6,15 +6,15 @@ import type { BaseEvent } from "@/lib/ag-ui/types"
 
 interface AgUIEventListenerProps {
   events: BaseEvent[]
-  onTextMessageContent?: (messageId: string, content: string) => void
-  onTextMessageEnd?: (messageId: string) => void
-  onToolCall?: (toolCallId: string, name: string, args: string) => void
-  onStateChange?: (state: Record<string, any>) => void
-  onSuggestedQuestions?: (questions: string[]) => void
-  onFeedbackResult?: (result: any) => void
-  onLongImageGenerated?: (imageUrl: string) => void
-  onBatchForwardResult?: (result: any) => void
-  onError?: (error: Error) => void
+  onTextMessageContent?: (_messageId: string, _content: string) => void
+  onTextMessageEnd?: (_messageId: string) => void
+  onToolCall?: (_toolCallId: string, _name: string, _args: string) => void
+  onStateChange?: (_state: Record<string, any>) => void
+  onSuggestedQuestions?: (_questions: string[]) => void
+  onFeedbackResult?: (_result: any) => void
+  onLongImageGenerated?: (_imageUrl: string) => void
+  onBatchForwardResult?: (_result: any) => void
+  onError?: (_error: Error) => void
 }
 
 export function AgUIEventListener({
@@ -86,7 +86,7 @@ export function AgUIEventListener({
             break
         }
       } catch (error) {
-        console.error("Error processing AG-UI event:", error)
+        // console.error("Error processing AG-UI event:", error)
       }
     }
 

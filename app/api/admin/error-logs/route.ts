@@ -5,25 +5,30 @@
  * @date 2025-06-25
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { createApiRoute, RouteConfigs, CommonValidations } from '@/lib/middleware/api-route-wrapper';
+import { NextRequest } from 'next/server';
+import { createApiRoute, RouteConfigs } from '@/lib/middleware/api-route-wrapper';
 import { ApiResponseWrapper } from '@/lib/utils/api-helper';
-import { verifyAdminAuth } from "@/lib/auth/middleware"
+import { verifyAdminAuth } from "@/lib/auth/middleware";
+import { ErrorCode } from '@/types/core';
 
 export const GET = createApiRoute(
   RouteConfigs.protectedGet(),
-  async (req: NextRequest, { params, validatedBody, validatedQuery, user, requestId }) => {
+  async (req: NextRequest, { validatedQuery }) => {
     // 验证管理员权限
     const authResult = await verifyAdminAuth(req);
     if (!authResult.success) {
-      return ApiResponseWrapper.error('权限不足', { status: 403 });
+      return ApiResponseWrapper.error(ErrorCode.AUTHORIZATION_ERROR,
+        '权限不足',
+        null,
+        403
+      );
     }
     
-      const url = new URL(req.url);
-      const search = validatedQuery?.search || "";
-      const level = validatedQuery?.level || "all";
-      const status = validatedQuery?.status || "all";
-      const limit = Number.parseInt(validatedQuery?.limit || "50");
+      const _url = new URL(req.url);
+      const search = validatedQuery?.['search'] || "";
+      const level = validatedQuery?.['level'] || "all";
+      const status = validatedQuery?.['status'] || "all";
+      const limit = Number.parseInt(validatedQuery?.['limit'] || "50");
     
         // 模拟错误日志数据
         const mockLogs = [

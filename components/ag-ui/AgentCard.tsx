@@ -10,12 +10,13 @@
 
 'use client';
 
-import React from 'react';
+import * as React from 'react';
 import { Agent, AgentType, AgentStatus } from '@/types/agents';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { formatNumber } from '@/lib/utils';
 import { 
   MessageCircleIcon, 
   StarIcon, 
@@ -62,16 +63,7 @@ export function AgentCard({
 }: AgentCardProps) {
   const TypeIcon = AgentTypeIcons[agent.type] || UsersIcon;
 
-  // 格式化数字显示
-  const formatNumber = (num: number): string => {
-    if (num >= 10000) {
-      return `${(num / 10000).toFixed(1)}万`;
-    }
-    if (num >= 1000) {
-      return `${(num / 1000).toFixed(1)}k`;
-    }
-    return num.toString();
-  };
+  // formatNumber函数已从@/lib/utils导入
 
   // 格式化响应时间
   const formatResponseTime = (ms: number): string => {
@@ -227,4 +219,4 @@ export function AgentCard({
       </CardFooter>
     </Card>
   );
-} 
+}

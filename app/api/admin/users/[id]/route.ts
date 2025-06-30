@@ -5,7 +5,6 @@
  * @date 2025-06-25
  */
 
-import { NextRequest } from 'next/server';
 import { createApiRoute, ApiResponseWrapper } from '@/lib/api/route-factory';
 import { z } from "zod"
 import { getUserById, updateUser, deleteUser } from '@/lib/services/user-service';
@@ -17,7 +16,7 @@ export const GET = createApiRoute({
   handler: async ({ req, params }) => {
     try {
       const currentUser = getCurrentUser(req);
-      if (!currentUser || currentUser.role !== "admin") {
+      if (!currentUser || currentUser['role'] !== "admin") {
         return ApiResponseWrapper.error(ErrorCode.AUTHORIZATION_ERROR, "权限不足", null);
       }
     
@@ -38,7 +37,7 @@ export const PUT = createApiRoute({
   handler: async ({ req, params }) => {
     try {
       const currentUser = getCurrentUser(req);
-      if (!currentUser || currentUser.role !== "admin") {
+      if (!currentUser || currentUser['role'] !== "admin") {
         return ApiResponseWrapper.error(ErrorCode.AUTHORIZATION_ERROR, "权限不足", null);
       }
     
@@ -53,9 +52,7 @@ export const PUT = createApiRoute({
       const { id } = await params;
     
       // 检查用户是否存在
-      const existingUser = await db?.user.findUnique({
-        where: { id },
-      });
+      const existingUser = await getUserById(id);
     
       if (!existingUser) {
         return ApiResponseWrapper.error(ErrorCode.NOT_FOUND, "用户不存在", null);
@@ -88,16 +85,14 @@ export const DELETE = createApiRoute({
   handler: async ({ req, params }) => {
     try {
       const currentUser = getCurrentUser(req);
-      if (!currentUser || currentUser.role !== "admin") {
+      if (!currentUser || currentUser['role'] !== "admin") {
         return ApiResponseWrapper.error(ErrorCode.AUTHORIZATION_ERROR, "权限不足", null);
       }
     
       const { id } = await params;
       
       // 检查用户是否存在
-      const existingUser = await db?.user.findUnique({
-        where: { id },
-      });
+      const existingUser = await getUserById(id);
     
       if (!existingUser) {
         return ApiResponseWrapper.error(ErrorCode.NOT_FOUND, "用户不存在", null);

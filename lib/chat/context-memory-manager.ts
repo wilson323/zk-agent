@@ -8,22 +8,7 @@
 
 import { AdvancedCacheManager } from '@/lib/cache/advanced-cache-manager'
 
-// 消息类型
-export interface ChatMessage {
-  id: string
-  role: 'user' | 'assistant' | 'system'
-  content: string
-  timestamp: Date
-  metadata?: {
-    isImportant?: boolean
-    isWelcome?: boolean
-    isSummary?: boolean
-    tokens?: number
-    model?: string
-    sessionId?: string
-    userId?: string
-  }
-}
+import { ChatMessage } from '../types/interfaces';
 
 // 上下文会话
 export interface ContextSession {

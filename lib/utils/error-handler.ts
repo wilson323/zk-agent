@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * @file 错误处理工具
  * @description 统一的错误处理、分类和日志记录
@@ -10,45 +9,21 @@ import { NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 import { ERROR_CODES } from '@/config/constants';
 import { log } from './logger';
-
-// 错误类型枚举
-export enum ErrorType {
-  VALIDATION = 'validation',
-  AUTHENTICATION = 'authentication',
-  AUTHORIZATION = 'authorization',
-  NOT_FOUND = 'not_found',
-  CONFLICT = 'conflict',
-  RATE_LIMIT = 'rate_limit',
-  EXTERNAL_SERVICE = 'external_service',
-  DATABASE = 'database',
-  FILE_SYSTEM = 'file_system',
-  NETWORK = 'network',
-  BUSINESS_LOGIC = 'business_logic',
-  SYSTEM = 'system',
-  UNKNOWN = 'unknown',
-}
-
-// 错误严重程度
-export enum ErrorSeverity {
-  LOW = 'low',
-  MEDIUM = 'medium',
-  HIGH = 'high',
-  CRITICAL = 'critical',
-}
+import { ErrorType, ErrorSeverity } from '../types/enums';
 
 // 应用错误接口
 export interface IAppError {
   type: ErrorType;
   code: string;
   message: string;
-  details?: any;
+  details?: Record<string, unknown>;
   statusCode: number;
   severity: ErrorSeverity;
   timestamp: Date;
   requestId?: string;
   userId?: string;
   stack?: string;
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
 }
 
 /**
@@ -62,8 +37,8 @@ export class AppError extends Error implements IAppError {
   public readonly timestamp: Date;
   public readonly requestId?: string;
   public readonly userId?: string;
-  public readonly details?: any;
-  public readonly context?: Record<string, any>;
+  public readonly details?: Record<string, unknown>;
+  public readonly context?: Record<string, unknown>;
 
   constructor(
     type: ErrorType,
@@ -71,8 +46,8 @@ export class AppError extends Error implements IAppError {
     message: string,
     statusCode: number = 500,
     severity: ErrorSeverity = ErrorSeverity.MEDIUM,
-    details?: any,
-    context?: Record<string, any>
+    details?: Record<string, unknown>,
+    context?: Record<string, unknown>
   ) {
     super(message);
     
@@ -95,7 +70,7 @@ export class AppError extends Error implements IAppError {
    * 设置请求ID
    */
   setRequestId(requestId: string): this {
-    (this as any).requestId = requestId;
+    (this as { requestId?: string }).requestId = requestId;
     return this;
   }
 
@@ -103,7 +78,7 @@ export class AppError extends Error implements IAppError {
    * 设置用户ID
    */
   setUserId(userId: string): this {
-    (this as any).userId = userId;
+    (this as { userId?: string }).userId = userId;
     return this;
   }
 
@@ -131,7 +106,7 @@ export class AppError extends Error implements IAppError {
  * 验证错误
  */
 export class ValidationError extends AppError {
-  constructor(message: string, details?: any, context?: Record<string, any>) {
+  constructor(message: string, details?: Record<string, unknown>, context?: Record<string, unknown>) {
     super(
       ErrorType.VALIDATION,
       ERROR_CODES.VALIDATION_REQUIRED_FIELD,
@@ -148,7 +123,7 @@ export class ValidationError extends AppError {
  * 认证错误
  */
 export class AuthenticationError extends AppError {
-  constructor(message: string = '认证失败', details?: any, context?: Record<string, any>) {
+  constructor(message: string = '认证失败', details?: Record<string, unknown>, context?: Record<string, unknown>) {
     super(
       ErrorType.AUTHENTICATION,
       ERROR_CODES.AUTH_INVALID_CREDENTIALS,
@@ -165,7 +140,7 @@ export class AuthenticationError extends AppError {
  * 授权错误
  */
 export class AuthorizationError extends AppError {
-  constructor(message: string = '权限不足', details?: any, context?: Record<string, any>) {
+  constructor(message: string = '权限不足', details?: Record<string, unknown>, context?: Record<string, unknown>) {
     super(
       ErrorType.AUTHORIZATION,
       ERROR_CODES.AUTH_INSUFFICIENT_PERMISSIONS,
@@ -182,7 +157,7 @@ export class AuthorizationError extends AppError {
  * 资源未找到错误
  */
 export class NotFoundError extends AppError {
-  constructor(resource: string = '资源', details?: any, context?: Record<string, any>) {
+  constructor(resource: string = '资源', details?: Record<string, unknown>, context?: Record<string, unknown>) {
     super(
       ErrorType.NOT_FOUND,
       ERROR_CODES.RESOURCE_NOT_FOUND,
@@ -199,7 +174,7 @@ export class NotFoundError extends AppError {
  * 冲突错误
  */
 export class ConflictError extends AppError {
-  constructor(message: string, details?: any, context?: Record<string, any>) {
+  constructor(message: string, details?: Record<string, unknown>, context?: Record<string, unknown>) {
     super(
       ErrorType.CONFLICT,
       ERROR_CODES.RESOURCE_ALREADY_EXISTS,
@@ -216,7 +191,7 @@ export class ConflictError extends AppError {
  * 速率限制错误
  */
 export class RateLimitError extends AppError {
-  constructor(message: string = '请求过于频繁', details?: any, context?: Record<string, any>) {
+  constructor(message: string = '请求过于频繁', details?: Record<string, unknown>, context?: Record<string, unknown>) {
     super(
       ErrorType.RATE_LIMIT,
       ERROR_CODES.RATE_LIMIT_EXCEEDED,
@@ -233,7 +208,7 @@ export class RateLimitError extends AppError {
  * 外部服务错误
  */
 export class ExternalServiceError extends AppError {
-  constructor(service: string, message: string, details?: any, context?: Record<string, any>) {
+  constructor(service: string, message: string, details?: Record<string, unknown>, context?: Record<string, unknown>) {
     super(
       ErrorType.EXTERNAL_SERVICE,
       ERROR_CODES.SERVICE_UNAVAILABLE,
@@ -250,7 +225,7 @@ export class ExternalServiceError extends AppError {
  * 数据库错误
  */
 export class DatabaseError extends AppError {
-  constructor(message: string, details?: any, context?: Record<string, any>) {
+  constructor(message: string, details?: Record<string, unknown>, context?: Record<string, unknown>) {
     super(
       ErrorType.DATABASE,
       ERROR_CODES.INTERNAL_SERVER_ERROR,
@@ -267,7 +242,7 @@ export class DatabaseError extends AppError {
  * 业务逻辑错误
  */
 export class BusinessLogicError extends AppError {
-  constructor(message: string, details?: any, context?: Record<string, any>) {
+  constructor(message: string, details?: Record<string, unknown>, context?: Record<string, unknown>) {
     super(
       ErrorType.BUSINESS_LOGIC,
       ERROR_CODES.OPERATION_FAILED,
@@ -310,7 +285,7 @@ export class ErrorHandler {
     if (error instanceof ZodError) {
       const validationError = new ValidationError(
         '数据验证失败',
-        error.errors,
+        { errors: error.errors },
         { zodError: true }
       );
       if (requestId) {validationError.setRequestId(requestId);}
@@ -414,7 +389,7 @@ export class ErrorHandler {
     // 生产环境下隐藏敏感信息
     const isProduction = process.env.NODE_ENV === 'production';
     
-    const responseBody: any = {
+    const responseBody: Record<string, unknown> = {
       error: {
         code: error.code,
         message: error.message,
@@ -425,14 +400,14 @@ export class ErrorHandler {
 
     // 开发环境下包含更多调试信息
     if (!isProduction) {
-      responseBody.error.details = error.details;
-      responseBody.error.stack = error.stack;
-      responseBody.error.requestId = error.requestId;
+      (responseBody.error as any).details = error.details;
+      (responseBody.error as any).stack = error.stack;
+      (responseBody.error as any).requestId = error.requestId;
     }
 
     // 对于验证错误，始终包含详细信息
     if (error.type === ErrorType.VALIDATION) {
-      responseBody.error.details = error.details;
+      (responseBody.error as any).details = error.details;
     }
 
     return NextResponse.json(responseBody, {
@@ -449,10 +424,10 @@ export class ErrorHandler {
   /**
    * 异步错误处理包装器
    */
-  static asyncHandler(
-    handler: (req: any, ...args: any[]) => Promise<NextResponse>
+  static asyncHandler<T extends unknown[]>(
+    handler: (req: { headers?: { get: (key: string) => string | null }; user?: { id: string } }, ...args: T) => Promise<NextResponse>
   ) {
-    return async (req: any, ...args: any[]): Promise<NextResponse> => {
+    return async (req: { headers?: { get: (key: string) => string | null }; user?: { id: string } }, ...args: T): Promise<NextResponse> => {
       try {
         return await handler(req, ...args);
       } catch (error) {
@@ -472,13 +447,13 @@ export class ErrorHandler {
  * 错误处理装饰器
  */
 export function handleErrors(
-  target: any,
+  target: unknown,
   propertyName: string,
   descriptor: PropertyDescriptor
 ): void {
   const method = descriptor.value;
 
-  descriptor.value = async function (...args: any[]) {
+  descriptor.value = async function (...args: unknown[]) {
     try {
       return await method.apply(this, args);
     } catch (error) {
@@ -491,17 +466,17 @@ export function handleErrors(
  * 便捷的错误创建函数
  */
 export const createError = {
-  validation: (message: string, details?: any) => new ValidationError(message, details),
-  authentication: (message?: string, details?: any) => new AuthenticationError(message, details),
-  authorization: (message?: string, details?: any) => new AuthorizationError(message, details),
-  notFound: (resource?: string, details?: any) => new NotFoundError(resource, details),
-  conflict: (message: string, details?: any) => new ConflictError(message, details),
-  rateLimit: (message?: string, details?: any) => new RateLimitError(message, details),
-  externalService: (service: string, message: string, details?: any) => 
+  validation: (message: string, details?: Record<string, unknown>) => new ValidationError(message, details),
+  authentication: (message?: string, details?: Record<string, unknown>) => new AuthenticationError(message, details),
+  authorization: (message?: string, details?: Record<string, unknown>) => new AuthorizationError(message, details),
+  notFound: (resource?: string, details?: Record<string, unknown>) => new NotFoundError(resource, details),
+  conflict: (message: string, details?: Record<string, unknown>) => new ConflictError(message, details),
+  rateLimit: (message?: string, details?: Record<string, unknown>) => new RateLimitError(message, details),
+  externalService: (service: string, message: string, details?: Record<string, unknown>) => 
     new ExternalServiceError(service, message, details),
-  database: (message: string, details?: any) => new DatabaseError(message, details),
-  businessLogic: (message: string, details?: any) => new BusinessLogicError(message, details),
-  system: (message: string, details?: any) => new AppError(
+  database: (message: string, details?: Record<string, unknown>) => new DatabaseError(message, details),
+  businessLogic: (message: string, details?: Record<string, unknown>) => new BusinessLogicError(message, details),
+  system: (message: string, details?: Record<string, unknown>) => new AppError(
     ErrorType.SYSTEM,
     ERROR_CODES.INTERNAL_SERVER_ERROR,
     message,
@@ -621,7 +596,7 @@ export function createStandardError(
 /**
  * 安全的错误转换为JSON
  */
-export function errorToJSON(error: unknown): Record<string, any> {
+export function errorToJSON(error: unknown): Record<string, unknown> {
   return {
     message: getErrorMessage(error),
     stack: getErrorStack(error),
@@ -629,4 +604,4 @@ export function errorToJSON(error: unknown): Record<string, any> {
     statusCode: getErrorStatusCode(error),
     type: error?.constructor?.name || 'Unknown',
   };
-} 
+}

@@ -1,5 +1,5 @@
-// @ts-nocheck
-import type { AgentDefinition, Tool } from "./types"
+import type { Tool } from "./types"
+import type { AgentDefinition } from "./protocol/types"
 
 /**
  * 标准AG-UI智能体管理器

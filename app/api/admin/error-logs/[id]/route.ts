@@ -5,18 +5,20 @@
  * @date 2025-06-25
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { createApiRoute, RouteConfigs, CommonValidations } from '@/lib/middleware/api-route-wrapper';
+import { NextRequest } from 'next/server';
+import { createApiRoute, RouteConfigs } from '@/lib/middleware/api-route-wrapper';
 import { ApiResponseWrapper } from '@/lib/utils/api-helper';
-import { verifyAdminAuth } from "@/lib/auth/middleware"
+
+import { verifyAdminAuth } from "@/lib/auth/middleware";
+import { ERROR_CODES } from '@/config/constants';
 
 export const DELETE = createApiRoute(
   RouteConfigs.protectedDelete(),
-  async (req: NextRequest, { params, validatedBody, validatedQuery, user, requestId }) => {
+  async (req: NextRequest, { params }) => {
     // 验证管理员权限
     const authResult = await verifyAdminAuth(req);
     if (!authResult.success) {
-      return ApiResponseWrapper.error('权限不足', { status: 403 });
+      return ApiResponseWrapper.error(ERROR_CODES.AUTH_INSUFFICIENT_PERMISSIONS, '权限不足', { status: 403 });
     }
 
     const { id: logId } = await params;

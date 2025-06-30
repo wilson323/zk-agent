@@ -241,23 +241,7 @@ export const useResponsive = (options: UseResponsiveOptions = {}): ResponsiveSta
   return state
 }
 
-// 防抖函数
-function debounce<T extends (..._args: any[]) => any>(
-  func: T,
-  wait: number
-): (..._args: Parameters<T>) => void {
-  let timeout: NodeJS.Timeout | null = null
-
-  return (..._args: Parameters<T>) => {
-    if (timeout) {
-      clearTimeout(timeout)
-    }
-
-    timeout = setTimeout(() => {
-      func(..._args)
-    }, wait)
-  }
-}
+import { debounce } from '../lib/utils/performance-utils';
 
 // 断点匹配Hook
 export const useBreakpoint = (breakpoint: Breakpoint): boolean => {

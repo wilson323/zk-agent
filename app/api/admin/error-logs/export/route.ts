@@ -6,12 +6,14 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createApiRoute, RouteConfigs } from '@/lib/middleware/api-route-wrapper';
-import { ApiResponseWrapper } from '@/lib/utils/api-helper';
+import { createApiRoute, RouteConfigs } from '../../../../../lib/middleware/api-route-wrapper';
+import { ApiResponseWrapper } from '../../../../../lib/utils/api-helper';
 import { verifyAdminAuth } from '../../../../../lib/auth/middleware';
-import { DatabaseService } from '../../../../../lib/database';
+import { productionDatabaseManager } from '../../../../../lib/database/production-database-manager';
 import { ErrorCode } from '../../../../../types/core';
-import logger from '../../../../../lib/utils/logger';
+import { Logger } from '../../../../../lib/utils/logger';
+
+const logger = new Logger('ExportErrorLogs');
 
 export const GET = createApiRoute(
   RouteConfigs.protectedGet(),
@@ -19,8 +21,7 @@ export const GET = createApiRoute(
     // 验证管理员权限
     const authResult = await verifyAdminAuth(req);
     if (!authResult.success) {
-      return ApiResponseWrapper.error(
-        ErrorCode.AUTHORIZATION_ERROR,
+      return ApiResponseWrapper.error(ErrorCode.AUTHORIZATION_ERROR,
         'Unauthorized access',
         null,
         403
@@ -41,7 +42,7 @@ export const GET = createApiRoute(
 
     try {
       // 从数据库获取错误日志
-      const prisma = DatabaseService.getInstance();
+      const prisma = enhancedDb.prisma;
       const errorLogs = await prisma.errorLog.findMany({
         orderBy: {
           createdAt: 'desc',
@@ -51,7 +52,7 @@ export const GET = createApiRoute(
 
       // 生成CSV数据
       const csvData = errorLogs
-        .map(log => {
+        .map((log: any) => {
           return [
             log.id,
             log.createdAt.toISOString(),
@@ -77,8 +78,7 @@ export const GET = createApiRoute(
       });
     } catch (error) {
       logger.error('Error exporting error logs:', error);
-      return ApiResponseWrapper.error(
-        ErrorCode.INTERNAL_SERVER_ERROR,
+      return ApiResponseWrapper.error(ErrorCode.INTERNAL_SERVER_ERROR,
         'Failed to export error logs',
         error,
         500

@@ -1,4 +1,5 @@
 // @ts-nocheck
+/// <reference lib="dom" />
 import { Observable, BehaviorSubject } from "rxjs"
 import { retry, catchError, timeout } from "rxjs/operators"
 import { v4 as uuidv4 } from "uuid"
@@ -12,13 +13,7 @@ export interface FastGPTConfig {
   retryDelay: number
 }
 
-export interface ChatMessage {
-  id: string
-  role: "user" | "assistant" | "system"
-  content: string
-  timestamp: Date
-  metadata?: Record<string, any>
-}
+import { ChatMessage } from '../types/interfaces';
 
 export interface ChatContext {
   sessionId: string
@@ -387,7 +382,7 @@ export class EnhancedFastGPTClient {
    * 通用请求方法，支持重试
    */
   private async makeRequest(endpoint: string, options: RequestInit): Promise<Response> {
-    let lastError: Error
+    let lastError: Error | undefined;
 
     for (let attempt = 0; attempt <= this.config.maxRetries; attempt++) {
       try {

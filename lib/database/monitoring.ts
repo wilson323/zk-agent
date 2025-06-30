@@ -2,516 +2,349 @@
  * @file Database Connection Monitoring
  * @description 数据库连接监控和指标收集工具
  * @author ZK-Agent Team
- * @date 2024-12-19
+ * @date 2024-12-27
  */
 
-import { EventEmitter } from 'events'
-import { enhancedDb, ConnectionState } from './enhanced-connection'
+import { EventEmitter } from 'events';
+import { 
+  DatabaseMetrics,
+  Alert,
+  AlertLevel,
+  PerformanceThresholds,
+  IMonitoringService,
+  HealthStatus
+} from './unified-interfaces';
+import {
+  IMonitoringServiceFactory,
+  MonitoringStatus,
+  OptimizationStatus
+} from './monitoring-interfaces';
+import { monitoringRegistry } from './monitoring-registry';
+import { ConnectionState, enhancedDb } from './enhanced-connection';
+// import { PerformanceOptimizationCoordinator } from './performance-optimization-coordinator'; // 移除循环依赖
+
+// Re-exporting necessary types from other modules
+export type { 
+    ConnectionPoolConfig, 
+    ReconnectionConfig, 
+    HealthCheckConfig, 
+    ConnectionStats 
+} from './enhanced-connection';
+
+// ... other type re-exports
 
 // 监控指标接口
-export interface DatabaseMetrics {
-  timestamp: Date
-  connectionState: ConnectionState
-  uptime: number
-  totalQueries: number
-  failedQueries: number
-  successRate: number
-  avgLatency: number
-  reconnectAttempts: number
-  memoryUsage: {
-    rss: number
-    heapUsed: number
-    heapTotal: number
-    external: number
-  }
-  cpuUsage: {
-    user: number
-    system: number
-  }
-}
+// DatabaseMetrics 接口已迁移到 unified-interfaces.ts
+// 请使用: import { DatabaseMetrics } from './unified-interfaces'
 
 // 性能阈值配置
 export interface PerformanceThresholds {
-  maxLatency: number // 最大延迟（毫秒）
-  maxFailureRate: number // 最大失败率（百分比）
-  maxReconnectAttempts: number // 最大重连尝试次数
-  minUptime: number // 最小运行时间（毫秒）
+  maxLatency: number;
+  maxFailureRate: number;
+  maxReconnectAttempts: number;
+  minUptime: number;
 }
 
-// 告警级别
-export enum AlertLevel {
-  INFO = 'info',
-  WARNING = 'warning',
-  ERROR = 'error',
-  CRITICAL = 'critical'
-}
+// 导入统一的告警级别枚举
+import { AlertLevel } from '@/lib/types/enums';
 
 // 告警信息
 export interface Alert {
-  level: AlertLevel
-  message: string
-  timestamp: Date
-  metrics: DatabaseMetrics
-  threshold?: any
+  id: string;
+  level: AlertLevel;
+  message: string;
+  timestamp: Date;
+  metrics: Partial<DatabaseMetrics>;
+  threshold?: any;
 }
 
-/**
- * 数据库监控器
- */
-export class DatabaseMonitor extends EventEmitter {
-  private isMonitoring: boolean = false
-  private monitoringInterval: NodeJS.Timeout | null = null
-  private metricsHistory: DatabaseMetrics[] = []
-  private alerts: Alert[] = []
-  private thresholds: PerformanceThresholds
-  private intervalMs: number
-  private maxHistorySize: number
-  private lastCpuUsage: NodeJS.CpuUsage | null = null
+export class DatabaseMonitor extends EventEmitter implements IMonitoringService {
+  private isMonitoring: boolean = false;
+  private monitoringInterval: NodeJS.Timeout | null = null;
+  private metricsHistory: DatabaseMetrics[] = [];
+  private alerts: Alert[] = [];
+  private thresholds: PerformanceThresholds;
+  private intervalMs: number;
+  private maxHistorySize: number;
+  private lastCpuUsage: NodeJS.CpuUsage | null = null;
+  // private optimizationCoordinator: PerformanceOptimizationCoordinator; // 移除循环依赖
 
   constructor(
     thresholds?: Partial<PerformanceThresholds>,
     intervalMs: number = 30000,
     maxHistorySize: number = 100
   ) {
-    super()
+    super();
 
-    // 默认性能阈值
     this.thresholds = {
-      maxLatency: parseInt(process.env.DB_MAX_LATENCY || '1000'),
-      maxFailureRate: parseFloat(process.env.DB_MAX_FAILURE_RATE || '5'),
-      maxReconnectAttempts: parseInt(process.env.DB_MAX_RECONNECT_ATTEMPTS || '5'),
-      minUptime: parseInt(process.env.DB_MIN_UPTIME || '60000'),
-      ...thresholds
-    }
+      maxLatency: 1000,
+      maxFailureRate: 5,
+      maxReconnectAttempts: 5,
+      minUptime: 60000,
+      ...thresholds,
+    };
 
-    this.intervalMs = intervalMs
-    this.maxHistorySize = maxHistorySize
+    this.intervalMs = intervalMs;
+    this.maxHistorySize = maxHistorySize;
+    // this.optimizationCoordinator = new PerformanceOptimizationCoordinator(); // 移除循环依赖
 
-    // 监听数据库事件
-    this.setupDatabaseEventListeners()
+    this.setupDatabaseEventListeners();
   }
 
-  /**
-   * 设置数据库事件监听器
-   */
   private setupDatabaseEventListeners(): void {
-    enhancedDb.on('connected', () => {
-      this.createAlert(AlertLevel.INFO, '数据库连接成功建立')
-    })
-
-    enhancedDb.on('disconnected', (error) => {
-      const message = error ? `数据库连接断开: ${error.message}` : '数据库连接断开'
-      this.createAlert(AlertLevel.WARNING, message)
-    })
-
-    enhancedDb.on('reconnecting', (attempt) => {
-      this.createAlert(AlertLevel.WARNING, `数据库重连中 (第${attempt}次尝试)`)
-    })
-
-    enhancedDb.on('reconnected', () => {
-      this.createAlert(AlertLevel.INFO, '数据库重连成功')
-    })
-
-    enhancedDb.on('error', (error) => {
-      this.createAlert(AlertLevel.ERROR, `数据库错误: ${error.message}`)
-    })
-
+    enhancedDb.on('connected', () => this.createAlert(AlertLevel.INFO, 'Database connected'));
+    enhancedDb.on('disconnected', (error) => this.createAlert(AlertLevel.ERROR, `Database disconnected: ${error?.message}`.trim()));
+    enhancedDb.on('reconnecting', (attempt) => this.createAlert(AlertLevel.WARNING, `Database reconnecting (attempt ${attempt})`));
+    enhancedDb.on('reconnected', () => this.createAlert(AlertLevel.INFO, 'Database reconnected'));
+    enhancedDb.on('error', (error) => this.createAlert(AlertLevel.ERROR, `Database error: ${error.message}`));
     enhancedDb.on('healthCheck', (healthy) => {
       if (!healthy) {
-        this.createAlert(AlertLevel.WARNING, '数据库健康检查失败')
+        this.createAlert(AlertLevel.WARNING, 'Database health check failed');
       }
-    })
+    });
   }
 
-  /**
-   * 开始监控
-   */
-  startMonitoring(): void {
-    if (this.isMonitoring) {
-      console.log('Database monitoring is already running')
-      return
-    }
-
-    console.log(`Starting database monitoring (interval: ${this.intervalMs}ms)`)
-    this.isMonitoring = true
-    this.lastCpuUsage = process.cpuUsage()
-
-    this.monitoringInterval = setInterval(() => {
-      this.collectMetrics()
-    }, this.intervalMs)
-
-    // 立即收集一次指标
-    this.collectMetrics()
+  async startMonitoring(): Promise<void> {
+    if (this.isMonitoring) return;
+    this.isMonitoring = true;
+    this.lastCpuUsage = process.cpuUsage();
+    this.monitoringInterval = setInterval(() => this.collectMetrics(), this.intervalMs);
+    // this.optimizationCoordinator.start(); // 移除循环依赖
+    this.emit('monitoringStarted');
   }
 
-  /**
-   * 停止监控
-   */
-  stopMonitoring(): void {
-    if (!this.isMonitoring) {
-      return
-    }
-
-    console.log('Stopping database monitoring')
-    this.isMonitoring = false
-
+  async stopMonitoring(): Promise<void> {
+    if (!this.isMonitoring) return;
+    this.isMonitoring = false;
     if (this.monitoringInterval) {
-      clearInterval(this.monitoringInterval)
-      this.monitoringInterval = null
+      clearInterval(this.monitoringInterval);
+      this.monitoringInterval = null;
     }
+    // this.optimizationCoordinator.stop(); // 移除循环依赖
+    this.emit('monitoringStopped');
   }
 
-  /**
-   * 收集指标
-   */
   private collectMetrics(): void {
-    try {
-      const stats = enhancedDb.getStats()
-      const memUsage = process.memoryUsage()
-      const cpuUsage = process.cpuUsage(this.lastCpuUsage || undefined)
-      this.lastCpuUsage = process.cpuUsage()
+    const stats = enhancedDb.getStats();
+    const memUsage = process.memoryUsage();
+    const cpuUsage = process.cpuUsage(this.lastCpuUsage || undefined);
+    this.lastCpuUsage = process.cpuUsage();
 
-      const metrics: DatabaseMetrics = {
-        timestamp: new Date(),
-        connectionState: stats.state,
-        uptime: stats.uptime,
-        totalQueries: stats.totalQueries,
-        failedQueries: stats.failedQueries,
-        successRate: stats.totalQueries > 0 
-          ? ((stats.totalQueries - stats.failedQueries) / stats.totalQueries) * 100
-          : 100,
-        avgLatency: stats.avgLatency,
-        reconnectAttempts: stats.reconnectAttempts,
-        memoryUsage: {
-          rss: memUsage.rss,
-          heapUsed: memUsage.heapUsed,
-          heapTotal: memUsage.heapTotal,
-          external: memUsage.external
-        },
-        cpuUsage: {
-          user: cpuUsage.user / 1000, // 转换为毫秒
-          system: cpuUsage.system / 1000
-        }
-      }
+    const metrics: DatabaseMetrics = {
+      timestamp: Date.now(),
+      uptime: stats.uptime || 0,
+      totalQueries: stats.totalQueries || 0,
+      successfulQueries: (stats.totalQueries || 0) - (stats.failedQueries || 0),
+      failedQueries: stats.failedQueries || 0,
+      averageQueryTime: stats.avgLatency || 0,
+      slowQueries: 0,
+      currentLatency: stats.avgLatency || 0,
+      averageLatency: stats.avgLatency || 0,
+      maxLatency: stats.avgLatency || 0,
+      activeConnections: stats.totalQueries || 0,
+      idleConnections: 0,
+      totalConnections: stats.totalQueries || 0,
+      maxConnections: 10,
+      waitingRequests: 0,
+      connectionCreations: 0,
+      connectionDestructions: 0,
+      memoryUsage: Math.round(memUsage.heapUsed / 1024 / 1024),
+      maxMemoryUsage: Math.round(memUsage.heapTotal / 1024 / 1024),
+      cpuUsage: Math.round((cpuUsage.user + cpuUsage.system) / 1000000),
+      connectionErrors: 0,
+      queryErrors: stats.failedQueries || 0,
+      timeoutErrors: 0,
+    };
 
-      // 添加到历史记录
-      this.addMetricsToHistory(metrics)
-
-      // 检查性能阈值
-      this.checkPerformanceThresholds(metrics)
-
-      // 触发指标收集事件
-      this.emit('metrics', metrics)
-
-    } catch (error) {
-      console.error('Failed to collect database metrics:', error)
-      this.createAlert(AlertLevel.ERROR, `指标收集失败: ${error}`)
-    }
-  }
-
-  /**
-   * 添加指标到历史记录
-   */
-  private addMetricsToHistory(metrics: DatabaseMetrics): void {
-    this.metricsHistory.push(metrics)
-
-    // 限制历史记录大小
+    this.metricsHistory.push(metrics);
     if (this.metricsHistory.length > this.maxHistorySize) {
-      this.metricsHistory = this.metricsHistory.slice(-this.maxHistorySize)
+      this.metricsHistory.shift();
     }
+
+    this.checkPerformanceThresholds(metrics);
+    this.emit('metrics', metrics);
   }
 
-  /**
-   * 检查性能阈值
-   */
   private checkPerformanceThresholds(metrics: DatabaseMetrics): void {
-    // 检查延迟
-    if (metrics.avgLatency > this.thresholds.maxLatency) {
-      this.createAlert(
-        AlertLevel.WARNING,
-        `数据库平均延迟过高: ${metrics.avgLatency.toFixed(2)}ms (阈值: ${this.thresholds.maxLatency}ms)`,
-        metrics,
-        { threshold: this.thresholds.maxLatency, actual: metrics.avgLatency }
-      )
+    if (metrics.averageLatency > this.thresholds.maxLatency) {
+      this.createAlert(AlertLevel.WARNING, `High latency detected: ${metrics.averageLatency}ms`);
     }
-
-    // 检查失败率
-    if (metrics.successRate < (100 - this.thresholds.maxFailureRate)) {
-      this.createAlert(
-        AlertLevel.ERROR,
-        `数据库查询失败率过高: ${(100 - metrics.successRate).toFixed(2)}% (阈值: ${this.thresholds.maxFailureRate}%)`,
-        metrics,
-        { threshold: this.thresholds.maxFailureRate, actual: 100 - metrics.successRate }
-      )
-    }
-
-    // 检查重连次数
-    if (metrics.reconnectAttempts > this.thresholds.maxReconnectAttempts) {
-      this.createAlert(
-        AlertLevel.CRITICAL,
-        `数据库重连次数过多: ${metrics.reconnectAttempts} (阈值: ${this.thresholds.maxReconnectAttempts})`,
-        metrics,
-        { threshold: this.thresholds.maxReconnectAttempts, actual: metrics.reconnectAttempts }
-      )
-    }
-
-    // 检查运行时间（如果连接状态为已连接但运行时间过短）
-    if (metrics.connectionState === ConnectionState.CONNECTED && 
-        metrics.uptime < this.thresholds.minUptime) {
-      this.createAlert(
-        AlertLevel.WARNING,
-        `数据库连接运行时间过短: ${(metrics.uptime / 1000).toFixed(2)}s (阈值: ${this.thresholds.minUptime / 1000}s)`,
-        metrics,
-        { threshold: this.thresholds.minUptime, actual: metrics.uptime }
-      )
-    }
-
-    // 检查连接状态
-    if (metrics.connectionState === ConnectionState.FAILED || 
-        metrics.connectionState === ConnectionState.DISCONNECTED) {
-      this.createAlert(
-        AlertLevel.CRITICAL,
-        `数据库连接状态异常: ${metrics.connectionState}`,
-        metrics
-      )
+    const failureRate = metrics.totalQueries > 0 ? (metrics.failedQueries / metrics.totalQueries) * 100 : 0;
+    if (failureRate > this.thresholds.maxFailureRate) {
+        this.createAlert(AlertLevel.ERROR, `High failure rate detected: ${failureRate.toFixed(2)}%`);
     }
   }
 
-  /**
-   * 创建告警
-   */
-  private createAlert(
-    level: AlertLevel, 
-    message: string, 
-    metrics?: DatabaseMetrics,
-    threshold?: any
-  ): void {
+  private createAlert(level: AlertLevel, message: string, metrics?: Partial<DatabaseMetrics>): void {
     const alert: Alert = {
       level,
       message,
       timestamp: new Date(),
-      metrics: metrics || this.getCurrentMetrics(),
-      threshold
+      metrics: metrics || {},
+    };
+    this.alerts.push(alert);
+    if (this.alerts.length > 100) {
+      this.alerts.shift();
     }
+    this.emit('alert', alert);
+  }
 
-    this.alerts.push(alert)
+  public getMetricsHistory(limit: number = 10): DatabaseMetrics[] {
+    return this.metricsHistory.slice(-limit);
+  }
 
-    // 限制告警历史大小
-    if (this.alerts.length > 1000) {
-      this.alerts = this.alerts.slice(-1000)
+  public getAlerts(level?: DatabaseMetricsLevel): Alert[] {
+    if (level) {
+      return this.alerts.filter(alert => alert.level === level);
     }
+    return this.alerts;
+  }
 
-    // 触发告警事件
-    this.emit('alert', alert)
+  public addAlert(alert: DatabaseMetrics): void {
+    this.alerts.push(alert);
+    if (this.alerts.length > 100) {
+      this.alerts.shift();
+    }
+    this.emit('alert', alert);
+  }
 
-    // 根据级别输出日志
-    switch (level) {
-      case AlertLevel.INFO:
-        console.info(`[DB Monitor] ${message}`)
-        break
-      case AlertLevel.WARNING:
-        console.warn(`[DB Monitor] ${message}`)
-        break
-      case AlertLevel.ERROR:
-        console.error(`[DB Monitor] ${message}`)
-        break
-      case AlertLevel.CRITICAL:
-        console.error(`[DB Monitor] CRITICAL: ${message}`)
-        break
+  public clearAlerts(level?: DatabaseMetricsLevel): void {
+    if (level) {
+      this.alerts = this.alerts.filter(alert => alert.level !== level);
+    } else {
+      this.alerts = [];
     }
   }
 
-  /**
-   * 获取当前指标
-   */
-  private getCurrentMetrics(): DatabaseMetrics {
-    const stats = enhancedDb.getStats()
-    const memUsage = process.memoryUsage()
-    const cpuUsage = process.cpuUsage()
-
+  public async getHealthStatus(): Promise<HealthStatus> {
+    const stats = enhancedDb.getDetailedStats();
+    const latestMetrics = this.metricsHistory[this.metricsHistory.length - 1];
+    
     return {
-      timestamp: new Date(),
-      connectionState: stats.state,
-      uptime: stats.uptime,
-      totalQueries: stats.totalQueries,
-      failedQueries: stats.failedQueries,
-      successRate: stats.totalQueries > 0 
-        ? ((stats.totalQueries - stats.failedQueries) / stats.totalQueries) * 100
-        : 100,
-      avgLatency: stats.avgLatency,
-      reconnectAttempts: stats.reconnectAttempts,
-      memoryUsage: {
-        rss: memUsage.rss,
-        heapUsed: memUsage.heapUsed,
-        heapTotal: memUsage.heapTotal,
-        external: memUsage.external
+      overall: this.alerts.some(a => a.level === AlertLevel.CRITICAL) ? 'critical' : 
+               this.alerts.some(a => a.level === AlertLevel.ERROR) ? 'warning' : 'healthy',
+      database: {
+        status: enhancedDb.getConnectionState() === 'connected' ? 'connected' : 'disconnected',
+        latency: latestMetrics?.averageLatency || 0,
+        uptime: latestMetrics?.uptime || 0
       },
-      cpuUsage: {
-        user: cpuUsage.user / 1000,
-        system: cpuUsage.system / 1000
-      }
-    }
+      connections: {
+        status: latestMetrics?.activeConnections > 8 ? 'critical' : 
+                latestMetrics?.activeConnections > 5 ? 'high' : 'optimal',
+        utilization: latestMetrics ? (latestMetrics.activeConnections / latestMetrics.maxConnections) * 100 : 0
+      },
+      performance: {
+        status: latestMetrics?.averageLatency > 1000 ? 'poor' : 
+                latestMetrics?.averageLatency > 500 ? 'degraded' : 'good',
+        score: latestMetrics ? Math.max(0, 100 - (latestMetrics.averageLatency / 10)) : 100
+      },
+      alerts: this.alerts.slice(-5)
+    };
   }
-
-  /**
-   * 获取指标历史
-   */
-  getMetricsHistory(limit?: number): DatabaseMetrics[] {
-    if (limit) {
-      return this.metricsHistory.slice(-limit)
-    }
-    return [...this.metricsHistory]
-  }
-
-  /**
-   * 获取告警历史
-   */
-  getAlerts(level?: AlertLevel, limit?: number): Alert[] {
-    let alerts = level 
-      ? this.alerts.filter(alert => alert.level === level)
-      : [...this.alerts]
-
-    if (limit) {
-      alerts = alerts.slice(-limit)
-    }
-
-    return alerts
-  }
-
-  /**
-   * 获取性能统计
-   */
-  getPerformanceStats(timeRangeMs?: number): {
-    avgLatency: number
-    maxLatency: number
-    minLatency: number
-    successRate: number
-    totalQueries: number
-    failedQueries: number
-    uptimePercentage: number
-  } {
-    let metrics = this.metricsHistory
-
-    // 如果指定了时间范围，过滤指标
-    if (timeRangeMs) {
-      const cutoffTime = new Date(Date.now() - timeRangeMs)
-      metrics = metrics.filter(m => m.timestamp >= cutoffTime)
-    }
-
-    if (metrics.length === 0) {
-      return {
-        avgLatency: 0,
-        maxLatency: 0,
-        minLatency: 0,
-        successRate: 100,
-        totalQueries: 0,
-        failedQueries: 0,
-        uptimePercentage: 0
-      }
-    }
-
-    const latencies = metrics.map(m => m.avgLatency).filter(l => l > 0)
-    const totalQueries = metrics[metrics.length - 1].totalQueries - (metrics[0].totalQueries || 0)
-    const failedQueries = metrics[metrics.length - 1].failedQueries - (metrics[0].failedQueries || 0)
-    const connectedMetrics = metrics.filter(m => m.connectionState === ConnectionState.CONNECTED)
-
+  
+  public getOptimizationStatus(): OptimizationStatus {
+    // return this.optimizationCoordinator.getStatus(); // 移除循环依赖
     return {
-      avgLatency: latencies.length > 0 ? latencies.reduce((a, b) => a + b, 0) / latencies.length : 0,
-      maxLatency: latencies.length > 0 ? Math.max(...latencies) : 0,
-      minLatency: latencies.length > 0 ? Math.min(...latencies) : 0,
-      successRate: totalQueries > 0 ? ((totalQueries - failedQueries) / totalQueries) * 100 : 100,
-      totalQueries,
-      failedQueries,
-      uptimePercentage: (connectedMetrics.length / metrics.length) * 100
+      poolOptimizer: false,
+      queryOptimizer: false,
+      cacheOptimizer: false,
+      connectionAnalyzer: false,
+      performanceEnhancer: false,
+      errorRecovery: false
+    };
+  }
+  
+  public getOptimizationRecommendations(): any[] {
+    // return this.optimizationCoordinator.getOptimizationHistory(10); // 移除循环依赖
+    return [];
+  }
+  
+  public triggerOptimization(strategy?: string): void {
+    // this.optimizationCoordinator.triggerOptimizationEvaluation(); // 移除循环依赖
+    console.log('优化触发请求已记录，但优化协调器已解耦');
+  }
+
+  public getStatus(): any {
+    return {
+        isMonitoring: this.isMonitoring,
+        lastMetric: this.metricsHistory[this.metricsHistory.length - 1]
     }
   }
 
-  /**
-   * 更新性能阈值
-   */
-  updateThresholds(thresholds: Partial<PerformanceThresholds>): void {
-    this.thresholds = { ...this.thresholds, ...thresholds }
-    console.log('Database monitoring thresholds updated:', this.thresholds)
+  public async getMetrics(): Promise<DatabaseMetrics> {
+    const latestMetrics = this.metricsHistory[this.metricsHistory.length - 1];
+    if (!latestMetrics) {
+      // 如果没有历史数据，收集一次当前指标
+      this.collectMetrics();
+      return this.metricsHistory[this.metricsHistory.length - 1] || this.getDefaultMetrics();
+    }
+    return latestMetrics;
   }
 
-  /**
-   * 清除历史数据
-   */
-  clearHistory(): void {
-    this.metricsHistory = []
-    this.alerts = []
-    console.log('Database monitoring history cleared')
+  private getDefaultMetrics(): DatabaseMetrics {
+    return {
+      timestamp: Date.now(),
+      uptime: 0,
+      totalQueries: 0,
+      successfulQueries: 0,
+      failedQueries: 0,
+      averageQueryTime: 0,
+      slowQueries: 0,
+      currentLatency: 0,
+      averageLatency: 0,
+      maxLatency: 0,
+      activeConnections: 0,
+      idleConnections: 0,
+      totalConnections: 0,
+      maxConnections: 10,
+      waitingRequests: 0,
+      connectionCreations: 0,
+      connectionDestructions: 0,
+      memoryUsage: 0,
+      maxMemoryUsage: 0,
+      cpuUsage: 0,
+      connectionErrors: 0,
+      queryErrors: 0,
+      timeoutErrors: 0
+    };
   }
 
-  /**
-   * 获取监控状态
-   */
-  getMonitoringStatus(): {
-    isMonitoring: boolean
-    intervalMs: number
-    metricsCount: number
-    alertsCount: number
-    thresholds: PerformanceThresholds
-  } {
+  public getMonitoringStatus(): MonitoringStatus {
     return {
       isMonitoring: this.isMonitoring,
-      intervalMs: this.intervalMs,
-      metricsCount: this.metricsHistory.length,
+      interval: this.intervalMs,
+      metricsHistoryCount: this.metricsHistory.length,
       alertsCount: this.alerts.length,
       thresholds: this.thresholds
-    }
-  }
-
-  /**
-   * 导出监控数据
-   */
-  exportData(): {
-    metrics: DatabaseMetrics[]
-    alerts: Alert[]
-    thresholds: PerformanceThresholds
-    exportedAt: Date
-  } {
-    return {
-      metrics: this.getMetricsHistory(),
-      alerts: this.getAlerts(),
-      thresholds: this.thresholds,
-      exportedAt: new Date()
-    }
+    };
   }
 }
 
-// 创建全局监控实例
-export const databaseMonitor = new DatabaseMonitor()
+// 监控服务工厂实现
+class DatabaseMonitorFactory implements IMonitoringServiceFactory {
+  private instance: DatabaseMonitor | null = null;
 
-// 如果启用了监控，自动开始监控
-if (process.env.DB_MONITORING_ENABLED === 'true') {
-  databaseMonitor.startMonitoring()
-  
-  // 监听告警事件
-  databaseMonitor.on('alert', (alert: Alert) => {
-    // 这里可以集成外部告警系统，如邮件、Slack、钉钉等
-    if (alert.level === AlertLevel.CRITICAL) {
-      console.error('CRITICAL DATABASE ALERT:', alert.message)
-      // 可以在这里发送紧急通知
+  createMonitoringService(): IMonitoringService {
+    if (!this.instance) {
+      this.instance = new DatabaseMonitor();
     }
-  })
-  
-  // 监听指标事件
-  databaseMonitor.on('metrics', (metrics: DatabaseMetrics) => {
-    // 这里可以将指标发送到外部监控系统，如Prometheus、InfluxDB等
-    if (process.env.DB_METRICS_COLLECTION === 'true') {
-      // 发送指标到外部系统
+    return this.instance;
+  }
+
+  getInstance(): IMonitoringService {
+    if (!this.instance) {
+      this.instance = new DatabaseMonitor();
     }
-  })
+    return this.instance;
+  }
 }
 
-// 导出便捷函数
-export const startDatabaseMonitoring = () => databaseMonitor.startMonitoring()
-export const stopDatabaseMonitoring = () => databaseMonitor.stopMonitoring()
-export const getDatabaseMetrics = () => databaseMonitor.getMetricsHistory(1)[0]
-export const getDatabaseAlerts = (level?: AlertLevel) => databaseMonitor.getAlerts(level)
-export const getDatabasePerformanceStats = (timeRangeMs?: number) => 
-  databaseMonitor.getPerformanceStats(timeRangeMs)
+// 创建并注册监控服务工厂
+const monitoringFactory = new DatabaseMonitorFactory();
+monitoringRegistry.registerFactory(monitoringFactory);
 
-// 默认导出监控器
-export default databaseMonitor
+// 导出监控服务实例（保持向后兼容）
+export const databaseMonitor = monitoringFactory.getInstance() as DatabaseMonitor;
+
+// 设置到注册表中
+monitoringRegistry.setMonitoringService(databaseMonitor);

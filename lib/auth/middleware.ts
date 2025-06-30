@@ -8,14 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { verify } from 'jsonwebtoken'
-
-// 用户角色枚举
-export enum UserRole {
-  USER = 'user',
-  ADMIN = 'admin',
-  PREMIUM = 'premium',
-  SUPER_ADMIN = 'super_admin'
-}
+import { UserRole } from '../types/enums'
 
 // 认证结果接口
 export interface AuthResult {

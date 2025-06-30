@@ -5,9 +5,11 @@
  * @date 2025-06-25
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { createApiRoute, RouteConfigs, CommonValidations } from '@/lib/middleware/api-route-wrapper';
+import { NextRequest, NextResponse as _NextResponse } from 'next/server';
+
 import { ApiResponseWrapper } from '@/lib/utils/api-helper';
+import { ErrorCode } from '@/types/core';
+import { createApiRoute, RouteConfigs } from '@/lib/middleware/api-route-wrapper';
 import { verifyAdminAuth } from "@/lib/auth/middleware"
 
 export const GET = createApiRoute(
@@ -17,11 +19,16 @@ export const GET = createApiRoute(
       // 验证管理员权限
       const authResult = await verifyAdminAuth(req);
       if (!authResult.success) {
-        return ApiResponseWrapper.error('权限不足', 403);
+        return ApiResponseWrapper.error(
+          ErrorCode.AUTHORIZATION_ERROR,
+          '权限不足',
+          null,
+          403
+        );
       }
     
-      const url = new URL(req.url);
-      const timeRange = validatedQuery?.range || "24h";
+      const _url = new URL(req.url);
+      const _timeRange = validatedQuery?.range || "24h";
       const province = validatedQuery?.province || "all";
     
         // 模拟IP统计数据
@@ -104,13 +111,13 @@ export const GET = createApiRoute(
             trend: "stable",
           },
           { province: "河南", city: "郑州市", count: 123, percentage: 1.5, coordinates: [113.6254, 34.7466], trend: "up" },
-        ] as const
+        ]
     
         // 根据省份筛选
         const filteredLocations =
           province === "all" ? mockLocations : mockLocations.filter((loc) => loc.province === province)
     
-        const totalIPs = filteredLocations.reduce((sum, loc) => sum + loc.count, 0)
+        const totalIPs = filteredLocations.reduce((sum, loc) => sum + (loc.count as number), 0)
         const uniqueIPs = Math.floor(totalIPs * 0.75) // 假设75%是独立IP
     
         const ipStats = {
@@ -122,7 +129,12 @@ export const GET = createApiRoute(
     
       return ApiResponseWrapper.success(ipStats);
     } catch (error) {
-      return ApiResponseWrapper.error('获取IP统计失败', 500);
+      return ApiResponseWrapper.error(
+        ErrorCode.INTERNAL_SERVER_ERROR,
+        '获取IP统计失败',
+        null,
+        500
+      );
     }
   }
 );

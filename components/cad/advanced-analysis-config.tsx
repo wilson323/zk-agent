@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
-import type { CADAnalysisConfig } from "@/types/cad"
+import type { CADAnalysisConfig, DEFAULT_CAD_ANALYSIS_CONFIG } from "@/lib/cad/constants"
 
 interface AdvancedAnalysisConfigProps {
   config: CADAnalysisConfig
@@ -18,8 +18,8 @@ interface AdvancedAnalysisConfigProps {
   onClose: () => void
 }
 
-export function AdvancedAnalysisConfig({ config, onConfigChange, onClose }: AdvancedAnalysisConfigProps) {
-  const [localConfig, setLocalConfig] = useState<CADAnalysisConfig>(config)
+export function AdvancedAnalysisConfig({ config: _config, onConfigChange, onClose }: AdvancedAnalysisConfigProps) {
+  const [localConfig, setLocalConfig] = useState<CADAnalysisConfig>(_config)
 
   const handleConfigUpdate = (updates: Partial<CADAnalysisConfig>) => {
     const newConfig = { ...localConfig, ...updates }
@@ -32,20 +32,7 @@ export function AdvancedAnalysisConfig({ config, onConfigChange, onClose }: Adva
   }
 
   const handleReset = () => {
-    const defaultConfig: CADAnalysisConfig = {
-      enableStructureAnalysis: true,
-      enableDeviceDetection: true,
-      enableRiskAssessment: true,
-      enableComplianceCheck: true,
-      detectionSensitivity: "medium",
-      riskThreshold: "balanced",
-      complianceStandards: ["GB50348-2018", "GA/T75-1994"],
-      generateReport: true,
-      reportFormat: "pdf",
-      includeImages: true,
-      includeRecommendations: true,
-    }
-    setLocalConfig(defaultConfig)
+    setLocalConfig(DEFAULT_CAD_ANALYSIS_CONFIG)
   }
 
   return (

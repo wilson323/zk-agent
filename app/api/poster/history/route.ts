@@ -6,22 +6,24 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createApiRoute, RouteConfigs, CommonValidations } from '@/lib/middleware/api-route-wrapper';
+import { createApiRoute, RouteConfigs } from '@/lib/middleware/api-route-wrapper';
 import { ApiResponseWrapper } from '@/lib/utils/api-helper';
+import { ErrorCode } from '@/types/core';
 import { PosterDatabase } from "@/lib/database/poster-db"
 
 export const GET = createApiRoute(
   RouteConfigs.publicGet(),
-  async (req: NextRequest, { params, validatedBody, validatedQuery, user, requestId }) => {
+  async (_req: NextRequest, { params, validatedBody, validatedQuery, user, requestId }) => {
     try {
-      const { searchParams } = new URL(req.url);
       const userId = validatedQuery?.userId;
       const limit = Number.parseInt(validatedQuery?.limit || "20");
   
       if (!userId) {
         return ApiResponseWrapper.error(
+          ErrorCode.VALIDATION_ERROR,
           "用户ID不能为空",
-          { status: 400 }
+          null,
+          400
         );
       }
   
@@ -33,10 +35,11 @@ export const GET = createApiRoute(
       });
     } catch (error) {
       return ApiResponseWrapper.error(
+        ErrorCode.INTERNAL_SERVER_ERROR,
         "Internal server error",
-        { status: 500 }
+        null,
+        500
       );
     }
   }
 );
-

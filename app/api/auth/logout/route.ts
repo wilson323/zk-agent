@@ -8,8 +8,7 @@
 import { NextRequest } from 'next/server';
 import { createApiRoute, RouteConfigs } from '@/lib/middleware/api-route-wrapper';
 import { ApiResponseWrapper } from '@/lib/utils/api-helper';
-import prisma from "@/lib/database/connection"
-import { ErrorCode } from '@/types/core';
+import { prisma } from "@/lib/database/connection"
 
 export const POST = createApiRoute(
   RouteConfigs.protectedPost(),
@@ -28,10 +27,10 @@ export const POST = createApiRoute(
             },
           },
         })
-        .catch((error) => {
+        .catch((error: any) => {
           console.error("Failed to log logout:", error);
         });
-    } else if (!prisma) {
+    } else if (!enhancedDb) {
       console.warn("Database connection not available for logout logging");
     }
 

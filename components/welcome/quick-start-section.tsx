@@ -8,49 +8,7 @@
 
 "use client"
 
-import { memo, useCallback } from 'react'
-import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { ArrowRight, Bot, Zap, Palette, MessageSquare, FileText, Sparkles } from 'lucide-react'
-
-// 快速开始项目数据
-const quickStartItems = [
-  {
-    icon: Bot,
-    title: '智能对话',
-    description: '与AI助手进行自然语言对话，获得专业的问题解答和建议。支持多轮对话、上下文理解和个性化回复。',
-    href: '/chat',
-    badge: '热门',
-    badgeVariant: 'default' as const,
-    iconColor: 'text-blue-600',
-    bgColor: 'bg-blue-50 dark:bg-blue-900/20',
-    features: ['多轮对话', '上下文理解', '个性化回复']
-  },
-  {
-    icon: Zap,
-    title: 'CAD分析',
-    description: '上传CAD文件，获得专业的工程分析和优化建议。支持多种文件格式，提供详细的分析报告。',
-    href: '/cad-analyzer',
-    badge: '专业',
-    badgeVariant: 'secondary' as const,
-    iconColor: 'text-purple-600',
-    bgColor: 'bg-purple-50 dark:bg-purple-900/20',
-    features: ['多格式支持', '专业分析', '优化建议']
-  },
-  {
-    icon: Palette,
-    title: '海报生成',
-    description: '使用AI技术快速生成专业的海报和设计作品。提供多种模板和自定义选项，满足各种设计需求。',
-    href: '/poster-generator',
-    badge: '创意',
-    badgeVariant: 'outline' as const,
-    iconColor: 'text-green-600',
-    bgColor: 'bg-green-50 dark:bg-green-900/20',
-    features: ['多种模板', 'AI生成', '自定义设计']
-  }
-] as const
+import { QUICK_START_ITEMS, QUICK_STATS_ITEMS } from "@/lib/welcome/constants"
 
 // 快速开始卡片组件
 const QuickStartCard = memo<{

@@ -5,42 +5,32 @@
  * @date 2025-06-25
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { createApiRoute, RouteConfigs, CommonValidations } from '@/lib/middleware/api-route-wrapper';
+import { NextRequest } from 'next/server';
+import { createApiRoute, RouteConfigs } from '@/lib/middleware/api-route-wrapper';
+import { aiModelManager } from '@/lib/ai-models/model-manager';
 import { ApiResponseWrapper } from '@/lib/utils/api-helper';
-import { aiModelManager } from "@/lib/ai-models/model-manager"
+import { ErrorCode } from '@/types/core';
 
 export const GET = createApiRoute(
-  RouteConfigs.publicGet(),
-  async (req: NextRequest, { params, validatedBody, validatedQuery, user, requestId }) => {
+  RouteConfigs.protectedGet(),
+  async (_req, { params }) => {
     try {
       const routeParams = await params;
+      const model = await aiModelManager.getModel(routeParams.id);
       
-      const model = aiModelManager.getModel(routeParams.id);
-    
-      if (!model) {
-        return ApiResponseWrapper.error(
-          "Model not found",
-          { status: 404 }
-        );
-      }
-    
       return ApiResponseWrapper.success({
         success: true,
         data: model,
       });
     } catch (error) {
-      return ApiResponseWrapper.error(
-        "Failed to get AI model",
-        { status: 500 }
-      );
+      return ApiResponseWrapper.error(ErrorCode.NOT_FOUND, 'AI model not found', null, 404);
     }
   }
 );
 
 export const PUT = createApiRoute(
-  { method: 'PUT', requireAuth: true, timeout: 60000 },
-  async (req: NextRequest, { params, validatedBody, validatedQuery, user, requestId }) => {
+  RouteConfigs.protectedPut(),
+  async (req: NextRequest, { validatedBody, validatedQuery, user, requestId, params }) => {
     try {
       const routeParams = await params;
       const data = await req.json();
@@ -53,17 +43,14 @@ export const PUT = createApiRoute(
         message: "Model updated successfully",
       });
     } catch (error) {
-      return ApiResponseWrapper.error(
-        "Failed to update AI model",
-        { status: 400 }
-      );
+      return ApiResponseWrapper.error(ErrorCode.VALIDATION_ERROR, 'Failed to update AI model', null, 400);
     }
   }
 );
 
 export const DELETE = createApiRoute(
-  { method: 'DELETE', requireAuth: true, timeout: 60000 },
-  async (req: NextRequest, { params, validatedBody, validatedQuery, user, requestId }) => {
+  RouteConfigs.protectedDelete(),
+  async (req: NextRequest, { validatedBody, validatedQuery, user, requestId, params }) => {
     try {
       const routeParams = await params;
       
@@ -74,10 +61,7 @@ export const DELETE = createApiRoute(
         message: "Model deleted successfully",
       });
     } catch (error) {
-      return ApiResponseWrapper.error(
-        "Failed to delete AI model",
-        { status: 400 }
-      );
+      return ApiResponseWrapper.error(ErrorCode.VALIDATION_ERROR, 'Failed to delete AI model', null, 400);
     }
   }
 );

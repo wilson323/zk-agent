@@ -6,17 +6,7 @@ import { Button } from "@/components/ui/button"
 import { ArrowRight, Bot } from "lucide-react"
 import { motion } from "framer-motion"
 
-interface Agent {
-  id: string
-  name: string
-  description: string
-  icon: any
-  color: string
-  bgColor: string
-  textColor: string
-  borderColor: string
-  features: string[]
-}
+import type { Agent } from "@/types/agent"
 
 interface AgentCarouselProps {
   agents: Agent[]

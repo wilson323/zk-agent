@@ -30,7 +30,7 @@ const shareUpdateSchema = z.object({
  */
 export const GET = createApiRoute(
   RouteConfigs.protectedGet(),
-  async (req: NextRequest, { user, requestId }) => {
+  async (_req: NextRequest, { user, requestId }) => {
     try {
       const shares = await enhancedShareManager.getUserShares(user.id);
       
@@ -52,7 +52,7 @@ export const GET = createApiRoute(
  */
 export const POST = createApiRoute(
   RouteConfigs.protectedPost({ body: shareRequestSchema }),
-  async (req: NextRequest, { validatedBody, user, requestId }) => {
+  async (_req: NextRequest, { validatedBody, user, requestId }) => {
     try {
       const share = await enhancedShareManager.createShare({
         ...validatedBody,

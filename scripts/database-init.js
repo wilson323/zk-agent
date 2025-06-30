@@ -8,7 +8,7 @@
 const { Pool } = require('pg');
 const fs = require('fs').promises;
 const path = require('path');
-const { getDatabaseConfig, validateDatabaseConfig } = require('../config/database.config');
+const { getCurrentConfig, validateDatabaseConfig } = require('../lib/database/database.config');
 const { healthChecker } = require('../lib/database/connection-health');
 
 /**

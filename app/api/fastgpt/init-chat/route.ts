@@ -5,16 +5,15 @@
  * @date 2025-06-25
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { createApiRoute, RouteConfigs, CommonValidations } from '@/lib/middleware/api-route-wrapper';
+import { createApiRoute } from '@/lib/middleware/api-route';
 import { ApiResponseWrapper } from '@/lib/utils/api-helper';
+import { RouteConfigs } from '@/lib/middleware/route-configs';
 
 export const POST = createApiRoute(
   RouteConfigs.protectedPost(),
-  async (req: NextRequest, { params, validatedBody, validatedQuery, user, requestId }) => {
+  async ({ validatedBody }) => {
     try {
-      const body = await req.json()
-      const { model, agent_id, knowledge_id, user: userParam, baseUrl, useProxy } = body
+      const { model, agent_id, knowledge_id, user: userParam, baseUrl, useProxy } = _validatedBody
     
       // Use server-side environment variable for API key
       const apiKey = process.env.FASTGPT_API_KEY

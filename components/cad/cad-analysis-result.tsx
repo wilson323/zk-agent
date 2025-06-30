@@ -12,7 +12,7 @@ import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
 import { motion } from "framer-motion"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import * as THREE from "three"
+import { exportCADAnalysis, shareCADAnalysis, advancedExportCADAnalysis } from "@/lib/cad/analysis-api"
 
 interface CADAnalysisResultProps {
   result: any
@@ -24,14 +24,14 @@ export function CADAnalysisResult({ result, className }: CADAnalysisResultProps)
 
   // 在组件顶部添加新的状态管理：
   const [selectedDevice, setSelectedDevice] = useState<string | null>(null)
-  const [filterCategory, setFilterCategory] = useState<string>("all")
-  const [sortBy, setSortBy] = useState<"name" | "risk" | "category">("name")
-  const [showOnlyIssues, setShowOnlyIssues] = useState(false)
+  const [_filterCategory, setFilterCategory] = useState<string>("all")
+  const [_sortBy, setSortBy] = useState<"name" | "risk" | "category">("name")
+  const [_showOnlyIssues, setShowOnlyIssues] = useState(false)
 
   // 在组件顶部添加新的状态
-  const [view3D, setView3D] = useState(false)
+  const [_view3D, setView3D] = useState(false)
   // const [selectedDevice, setSelectedDevice] = useState<string | null>(null) // 已经存在
-  const [filterOptions, setFilterOptions] = useState({
+  const [_filterOptions, setFilterOptions] = useState({
     category: "all",
     severity: "all",
     status: "all",
@@ -41,9 +41,9 @@ export function CADAnalysisResult({ result, className }: CADAnalysisResultProps)
 
   // 1. 在组件顶部添加新的状态管理：
 
-  const [performanceMetrics, setPerformanceMetrics] = useState<any>(null)
-  const [comparisonMode, setComparisonMode] = useState(false)
-  const [exportOptions, setExportOptions] = useState({
+  const [_performanceMetrics, setPerformanceMetrics] = useState<any>(null)
+  const [_comparisonMode, setComparisonMode] = useState(false)
+  const [_exportOptions, setExportOptions] = useState({
     format: "pdf",
     sections: ["summary", "devices", "risks"],
     includeCharts: true,
@@ -102,178 +102,26 @@ export function CADAnalysisResult({ result, className }: CADAnalysisResultProps)
     // 可以添加一个复制成功的提示
   }
 
-  const downloadReport = () => {
-    // 实际应用中应该生成并下载报告
-    console.log("下载报告")
-  }
-
-  const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case "high":
-        return "text-destructive"
-      case "medium":
-        return "text-amber-500"
-      case "low":
-        return "text-emerald-500"
-      default:
-        return "text-muted-foreground"
-    }
-  }
-
-  const getSeverityBadge = (severity: string) => {
-    switch (severity) {
-      case "high":
-        return "bg-destructive/10 text-destructive hover:bg-destructive/20"
-      case "medium":
-        return "bg-amber-500/10 text-amber-500 hover:bg-amber-500/20"
-      case "low":
-        return "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20"
-      default:
-        return ""
-    }
-  }
-
-  // 添加3D视图切换
-  const toggle3DView = () => {
-    setView3D(!view3D)
-  }
-
-  // 添加设备选择处理
-  const handleDeviceSelect = (deviceId: string) => {
-    setSelectedDevice(deviceId)
-    // 在3D视图中高亮显示选中的设备
-  }
-
-  const reset3DView = () => {
-    console.log("重置3D视角")
-  }
-
-  const export3DView = () => {
-    console.log("导出3D视图")
-  }
-
-  const rotate3DView = (axis: string) => {
-    console.log(`绕${axis}轴旋转3D视图`)
-  }
-
-  const exportFilteredData = () => {
-    console.log("导出筛选后的数据")
-  }
-
-  const handleExport = async (format: "pdf" | "excel" | "json") => {
-    try {
-      const response = await fetch("/api/cad/export", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          resultId: result.id,
-          format,
-          sections: ["summary", "devices", "risks", "recommendations"],
-        }),
-      })
-
-      if (!response.ok) {throw new Error("导出失败")}
-
-      const blob = await response.blob()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = url
-      a.download = `cad-analysis-${Date.now()}.${format}`
-      a.click()
-      URL.revokeObjectURL(url)
-    } catch (error) {
-      console.error("导出失败:", error)
-    }
+  const downloadReport = async (format: "pdf" | "excel" | "json") => {
+    const result = await exportCADAnalysis(analysisData.id, format)
+    // Handle toast messages based on result.success
   }
 
   const handleShare = async () => {
-    try {
-      const response = await fetch("/api/sharing/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "cad_analysis",
-          data: result,
-          permissions: { view: true, download: false },
-          expiresIn: 7 * 24 * 60 * 60 * 1000, // 7天
-        }),
-      })
-
-      const { shareUrl } = await response.json()
-      await navigator.clipboard.writeText(shareUrl)
-      // 显示成功提示
-    } catch (error) {
-      console.error("分享失败:", error)
-    }
-  }
-
-  const handle3DViewToggle = () => {
-    setView3D(!view3D)
-
-    if (!view3D) {
-      // 初始化3D场景
-      initializeThreeJSScene()
-    }
-  }
-
-  const initializeThreeJSScene = () => {
-    // Three.js场景初始化逻辑
-    const scene = new THREE.Scene()
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
-    const renderer = new THREE.WebGLRenderer()
-
-    // 添加设备模型到场景
-    result.devices?.forEach((device) => {
-      const geometry = new THREE.BoxGeometry(1, 1, 1)
-      const material = new THREE.MeshBasicMaterial({ color: getDeviceColor(device.category) })
-      const cube = new THREE.Mesh(geometry, material)
-
-      cube.position.set(device.location.x / 1000, device.location.y / 1000, device.location.z / 1000)
-
-      scene.add(cube)
-    })
-  }
-
-  const getDeviceColor = (category: string) => {
-    switch (category) {
-      case "surveillance":
-        return 0x00ff00 // Green
-      case "access_control":
-        return 0xff0000 // Red
-      case "fire_safety":
-        return 0x0000ff // Blue
-      default:
-        return 0xffffff // White
+    const result = await shareCADAnalysis(analysisData)
+    if (result.success) {
+      // Show success toast
+    } else {
+      // Show error toast
     }
   }
 
   const handleAdvancedExport = async () => {
-    try {
-      const response = await fetch("/api/cad/export/advanced", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          resultId: result.id,
-          options: exportOptions,
-          customizations: {
-            branding: true,
-            watermark: false,
-            compression: "high",
-          },
-        }),
-      })
-
-      if (!response.ok) {throw new Error("高级导出失败")}
-
-      const blob = await response.blob()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = url
-      a.download = `advanced-cad-analysis-${Date.now()}.${exportOptions.format}`
-      a.click()
-      URL.revokeObjectURL(url)
-    } catch (error) {
-      console.error("高级导出失败:", error)
+    const result = await advancedExportCADAnalysis(analysisData.id, _exportOptions)
+    if (result.success) {
+      // Show success toast
+    } else {
+      // Show error toast
     }
   }
 

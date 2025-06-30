@@ -12,9 +12,7 @@ import { Separator } from "@/components/ui/separator"
 import { History, GitBranch, Eye, RotateCcw, Calendar, User, FileText, Tag, Loader2, Archive } from "lucide-react"
 import { versionManager, type VersionHistory, type ContentVersion } from "@/lib/versioning/version-manager"
 import { useToast } from "@/hooks/use-toast"
-import { cn } from "@/lib/utils"
-import { formatDistanceToNow } from "date-fns"
-import { zhCN } from "date-fns/locale"
+import { formatFileSize, getVersionTypeIcon, getVersionTypeBadge } from "@/lib/versioning/utils"
 
 interface VersionHistoryDialogProps {
   contentId: string
@@ -451,13 +449,4 @@ export function VersionStats({ userId, className }: VersionStatsProps) {
       </div>
     </div>
   )
-}
-
-// 格式化文件大小的辅助函数
-function formatFileSize(bytes: number): string {
-  if (bytes === 0) {return "0 B"}
-  const k = 1024
-  const sizes = ["B", "KB", "MB", "GB"]
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return Number.parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i]
 }

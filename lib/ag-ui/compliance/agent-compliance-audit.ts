@@ -60,6 +60,39 @@ export class AgentComplianceAudit {
   }
 
   /**
+   * 执行单个智能体的合规性审计
+   */
+  async performAudit(agentId: string, options: { type?: string; detailed?: boolean } = {}): Promise<ComplianceReport> {
+    const { type = 'conversation', detailed = true } = options
+
+    try {
+      let report: ComplianceReport
+
+      switch (type) {
+        case 'conversation':
+          report = await this.auditConversationAgent()
+          break
+        case 'cad':
+          report = await this.auditCADAgent()
+          break
+        case 'poster':
+          report = await this.auditPosterAgent()
+          break
+        default:
+          throw new Error(`Unsupported agent type: ${type}`)
+      }
+
+      // 存储报告
+      this.reports.set(agentId, report)
+
+      return report
+    } catch (error) {
+      console.error(`Error performing audit for agent ${agentId}:`, error)
+      throw error
+    }
+  }
+
+  /**
    * 审计对话智能体
    */
   private async auditConversationAgent(): Promise<ComplianceReport> {

@@ -6,38 +6,30 @@
  * @date 2024-12-19
  */
 
-// 缓存配置接口
-export interface CacheConfig {
-  maxSize: number
-  ttl: number // 生存时间（毫秒）
-  checkPeriod: number // 检查周期（毫秒）
-  enableCompression: boolean
-  enableSerialization: boolean
-  evictionPolicy: 'lru' | 'lfu' | 'ttl' | 'fifo'
-}
+// 导入统一的缓存类型定义
+import {
+  CacheItem,
+  CacheConfig,
+  CacheStats,
+  CacheStrategy,
+  ICacheManager
+} from '../shared/cache-types';
 
-// 缓存项接口
-export interface CacheItem<T = any> {
-  key: string
-  value: T
-  createdAt: number
-  lastAccessed: number
-  accessCount: number
-  ttl?: number
-  size: number
-  tags?: string[]
-}
+// 重新导出统一的类型定义（保持向后兼容）
+export {
+  CacheItem,
+  CacheConfig,
+  CacheStats,
+  CacheStrategy,
+  ICacheManager
+} from '../shared/cache-types';
 
-// 缓存统计接口
-export interface CacheStats {
-  hits: number
-  misses: number
-  sets: number
-  deletes: number
-  evictions: number
-  hitRate: number
-  size: number
-  maxSize: number
+// 保持向后兼容的类型别名
+export type AdvancedCacheItem<T = any> = CacheItem<T>;
+export type AdvancedCacheConfig = CacheConfig;
+export type AdvancedCacheStats = CacheStats;
+
+export interface AdvancedCacheStatsExtended extends CacheStats {
   memoryUsage: number
 }
 
@@ -508,4 +500,4 @@ export const defaultCacheManager = new AdvancedCacheManager({
 })
 
 // 导出类型
-export type { CacheConfig, CacheItem, CacheStats, CacheEventType, CacheEventListener } 
+export type { CacheConfig, CacheItem, CacheStats, CacheEventType, CacheEventListener }

@@ -1,13 +1,14 @@
 /**
  * @file fastgpt\feedback\route.ts
- * @description Migrated API route with global error handling
+ * @description FastGPT feedback API route
  * @author ZK-Agent Team
  * @date 2025-06-25
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { createApiRoute, RouteConfigs, CommonValidations } from '@/lib/middleware/api-route-wrapper';
+import { NextRequest } from 'next/server';
+import { createApiRoute, RouteConfigs } from '@/lib/middleware/api-route-wrapper';
 import { ApiResponseWrapper } from '@/lib/utils/api-helper';
+import { ErrorCode } from '@/types/core';
 
 export const POST = createApiRoute(
   RouteConfigs.protectedPost(),
@@ -17,7 +18,9 @@ export const POST = createApiRoute(
       
       if (!messageId || !rating) {
         return ApiResponseWrapper.error(
+          ErrorCode.VALIDATION_ERROR,
           'Missing required fields: messageId and rating',
+          null,
           400
         );
       }
@@ -25,7 +28,9 @@ export const POST = createApiRoute(
       // 检查环境变量
       if (!process.env.FASTGPT_API_URL || !process.env.FASTGPT_API_KEY) {
         return ApiResponseWrapper.error(
+          ErrorCode.EXTERNAL_SERVICE_ERROR,
           'FastGPT API configuration missing',
+          null,
           500
         );
       }
@@ -47,7 +52,9 @@ export const POST = createApiRoute(
       if (!response.ok) {
         const errorData = await response.json();
         return ApiResponseWrapper.error(
+          ErrorCode.EXTERNAL_SERVICE_ERROR,
           errorData.message || 'Submit feedback failed',
+          null,
           response.status
         );
       }
@@ -57,10 +64,11 @@ export const POST = createApiRoute(
     } catch (error) {
       console.error('FastGPT feedback error:', error);
       return ApiResponseWrapper.error(
+        ErrorCode.INTERNAL_SERVER_ERROR,
         'Internal server error',
+        null,
         500
       );
     }
   }
 );
-

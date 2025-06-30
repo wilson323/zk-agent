@@ -5,7 +5,8 @@
  * @date 2025-01-27
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
+import type { MockedFunction } from 'jest-mock';
 import { NextRequest } from 'next/server';
 import { POST as chatHandler } from '@/app/api/fastgpt/chat/route';
 import { POST as testConnectionHandler } from '@/app/api/fastgpt/test-connection/route';
@@ -14,17 +15,19 @@ import { POST as initChatHandler } from '@/app/api/fastgpt/init-chat/route';
 import { POST as feedbackHandler } from '@/app/api/fastgpt/feedback/route';
 import { GlobalErrorHandler } from '@/lib/middleware/global-error-handler';
 
+// Mock fetch globally
+global.fetch = jest.fn() as MockedFunction<typeof fetch>;
+
 describe('FastGPT API Routes Error Handling', () => {
   let errorHandler: GlobalErrorHandler;
 
   beforeEach(() => {
     errorHandler = GlobalErrorHandler.getInstance();
-    (errorHandler as any).reset?.();
-    vi.clearAllMocks();
+    jest.clearAllMocks();
   });
 
   afterEach(() => {
-    (errorHandler as any).reset?.();
+    // Clean up test state
   });
 
   describe('Chat Route (/api/fastgpt/chat)', () => {
@@ -74,7 +77,8 @@ describe('FastGPT API Routes Error Handling', () => {
 
     it('should handle FastGPT API timeout error', async () => {
       // Mock fetch to simulate timeout
-      global.fetch = vi.fn().mockImplementation(() => 
+      const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
+      mockFetch.mockImplementation(() => 
         new Promise((_, reject) => 
           setTimeout(() => reject(new Error('Request timeout')), 100)
         )
@@ -98,7 +102,8 @@ describe('FastGPT API Routes Error Handling', () => {
 
     it('should handle FastGPT API rate limit error', async () => {
       // Mock fetch to simulate rate limit
-      global.fetch = vi.fn().mockResolvedValue({
+      const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
+      mockFetch.mockResolvedValue({
         ok: false,
         status: 429,
         json: () => Promise.resolve({ error: 'Rate limit exceeded' })
@@ -122,7 +127,8 @@ describe('FastGPT API Routes Error Handling', () => {
 
     it('should handle FastGPT API server error', async () => {
       // Mock fetch to simulate server error
-      global.fetch = vi.fn().mockResolvedValue({
+      const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
+      mockFetch.mockResolvedValue({
         ok: false,
         status: 500,
         json: () => Promise.resolve({ error: 'Internal server error' })
@@ -183,7 +189,8 @@ describe('FastGPT API Routes Error Handling', () => {
 
     it('should handle connection refused error', async () => {
       // Mock fetch to simulate connection refused
-      global.fetch = vi.fn().mockRejectedValue(new Error('ECONNREFUSED'));
+      const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
+      mockFetch.mockRejectedValue(new Error('ECONNREFUSED'));
 
       const request = new NextRequest('http://localhost:3000/api/fastgpt/test-connection', {
         method: 'POST',
@@ -206,11 +213,11 @@ describe('FastGPT API Routes Error Handling', () => {
   describe('Health Route (/api/fastgpt/health)', () => {
     it('should handle service unavailable error', async () => {
       // Mock fetch to simulate service unavailable
-      global.fetch = vi.fn().mockResolvedValue({
+      global.fetch = jest.fn().mockResolvedValue({
         ok: false,
         status: 503,
         json: () => Promise.resolve({ error: 'Service unavailable' })
-      } as Response);
+      }) as Response;
 
       const request = new NextRequest('http://localhost:3000/api/fastgpt/health', {
         method: 'GET'
@@ -280,7 +287,7 @@ describe('FastGPT API Routes Error Handling', () => {
   describe('Error Recovery and Retry Logic', () => {
     it('should implement exponential backoff for retries', async () => {
       let callCount = 0;
-      global.fetch = vi.fn().mockImplementation(() => {
+      global.fetch = jest.fn().mockImplementation(() => {
         callCount++;
         if (callCount < 3) {
           return Promise.reject(new Error('Temporary failure'));
@@ -288,8 +295,8 @@ describe('FastGPT API Routes Error Handling', () => {
         return Promise.resolve({
           ok: true,
           json: () => Promise.resolve({ success: true })
-        } as Response);
-      });
+        });
+      }) as MockedFunction<typeof fetch>;
 
       const request = new NextRequest('http://localhost:3000/api/fastgpt/chat', {
         method: 'POST',
@@ -307,7 +314,7 @@ describe('FastGPT API Routes Error Handling', () => {
 
     it('should fallback to cached response on API failure', async () => {
       // Mock persistent API failure
-      global.fetch = vi.fn().mockRejectedValue(new Error('API unavailable'));
+      global.fetch = jest.fn().mockRejectedValue(new Error('API unavailable')) as MockedFunction<typeof fetch>;
 
       const request = new NextRequest('http://localhost:3000/api/fastgpt/chat', {
         method: 'POST',
@@ -334,7 +341,7 @@ describe('FastGPT API Routes Error Handling', () => {
 
       try {
         // Mock persistent failures
-        global.fetch = vi.fn().mockRejectedValue(new Error('API failure'));
+        global.fetch = jest.fn().mockRejectedValue(new Error('API failure')) as MockedFunction<typeof fetch>;
 
         // Trigger multiple failures
         for (let i = 0; i < 3; i++) {

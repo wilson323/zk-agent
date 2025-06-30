@@ -92,9 +92,75 @@ export class PosterGenerator {
     optimized += ", high quality, professional design, clean composition"
 
     // 如果启用AI优化，可以调用AI服务进一步优化
-    // TODO: 实现AI提示词优化
+    if (this.config.enableAIOptimization) {
+      try {
+        optimized = await this.optimizePromptWithAI(optimized);
+      } catch (error) {
+        console.warn('AI提示词优化失败，使用基础优化结果:', error);
+      }
+    }
 
     return optimized
+  }
+
+  /**
+   * 使用AI服务优化提示词
+   */
+  private async optimizePromptWithAI(prompt: string): Promise<string> {
+    try {
+      // 这里可以集成各种AI服务来优化提示词
+      // 例如：OpenAI GPT、Claude、或自定义的提示词优化模型
+      
+      // 模拟AI优化过程
+      const optimizationRules = [
+        // 添加艺术风格描述
+        { pattern: /poster/gi, replacement: 'professional poster design' },
+        { pattern: /image/gi, replacement: 'high-quality visual artwork' },
+        // 增强色彩描述
+        { pattern: /color/gi, replacement: 'vibrant color palette' },
+        // 添加构图建议
+        { pattern: /layout/gi, replacement: 'balanced composition with golden ratio' },
+      ];
+      
+      let optimized = prompt;
+      
+      // 应用优化规则
+      optimizationRules.forEach(rule => {
+        optimized = optimized.replace(rule.pattern, rule.replacement);
+      });
+      
+      // 添加AI增强的艺术指导
+      const aiEnhancements = [
+        'photorealistic rendering',
+        'studio lighting',
+        'professional typography',
+        'award-winning design',
+        'trending on design platforms'
+      ];
+      
+      // 随机选择1-2个增强描述
+      const selectedEnhancements = aiEnhancements
+        .sort(() => 0.5 - Math.random())
+        .slice(0, Math.floor(Math.random() * 2) + 1);
+      
+      optimized += ', ' + selectedEnhancements.join(', ');
+      
+      // 在实际应用中，这里应该调用真实的AI API
+      // 例如：
+      // const response = await fetch('/api/ai/optimize-prompt', {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({ prompt: optimized })
+      // });
+      // const result = await response.json();
+      // return result.optimizedPrompt;
+      
+      return optimized;
+    } catch (error) {
+      console.error('AI提示词优化失败:', error);
+      // 如果AI优化失败，返回原始提示词
+      return prompt;
+    }
   }
 
   /**

@@ -72,7 +72,7 @@ export const PUT = createApiRoute(
 
 export const DELETE = createApiRoute(
   { method: 'DELETE', requireAuth: true, timeout: 60000 },
-  async (req: NextRequest, { params, validatedBody, validatedQuery, user, requestId }) => {
+  async (_req: NextRequest, { params, validatedBody, validatedQuery, user, requestId }) => {
     try {
       return ApiResponseWrapper.success({
         success: true,

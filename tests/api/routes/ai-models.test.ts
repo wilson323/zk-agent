@@ -4,9 +4,10 @@
  */
 
 import { NextRequest } from 'next/server';
-import { GET, POST, PUT, DELETE } from '@/app/api/ai-models/route';
+import { GET, POST } from '@/app/api/ai-models/route';
 import { GlobalErrorHandler } from '@/lib/middleware/global-error-handler';
 import { AgentError, AgentErrorType, ErrorSeverity } from '@/lib/errors/agent-errors';
+import type { MockedFunction } from 'jest-mock';
 
 // Mock dependencies
 jest.mock('../../../lib/services/ai-model-manager', () => ({

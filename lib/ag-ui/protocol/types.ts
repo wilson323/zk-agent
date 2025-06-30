@@ -2,52 +2,37 @@
 /**
  * AG-UI协议标准类型定义
  * 严格遵循 https://github.com/ag-ui-protocol/ag-ui 规范
+ * @deprecated 请使用 ../../shared/ag-ui-types.ts 中的统一类型定义
  */
 
-// 基础事件接口
-export interface BaseEvent {
-  type: string
-  timestamp: number
-}
+// 重新导出统一的类型定义
+export {
+  BaseEvent,
+  RunStartedEvent,
+  RunFinishedEvent,
+  RunErrorEvent,
+  RunCancelledEvent,
+  TextMessageStartEvent,
+  TextMessageContentEvent,
+  TextMessageEndEvent,
+  ToolCallStartEvent,
+  ToolCallEndEvent,
+  AgUiEvent,
+  EventHandler,
+  AgUiEventEmitter,
+  AG_UI_PROTOCOL_VERSION
+} from '../../shared/ag-ui-types';
 
-// 运行相关事件
-export interface RunStartedEvent extends BaseEvent {
-  type: "run-started"
-  threadId: string
-  runId: string
-}
+// 协议特定的类型别名（保持向后兼容）
+export type { BaseEvent as ProtocolBaseEvent } from '../../shared/ag-ui-types';
+export type { RunStartedEvent as ProtocolRunStartedEvent } from '../../shared/ag-ui-types';
+export type { RunFinishedEvent as ProtocolRunFinishedEvent } from '../../shared/ag-ui-types';
+export type { RunErrorEvent as ProtocolRunErrorEvent } from '../../shared/ag-ui-types';
+export type { TextMessageStartEvent as ProtocolTextMessageStartEvent } from '../../shared/ag-ui-types';
+export type { TextMessageContentEvent as ProtocolTextMessageContentEvent } from '../../shared/ag-ui-types';
+export type { TextMessageEndEvent as ProtocolTextMessageEndEvent } from '../../shared/ag-ui-types';
 
-export interface RunFinishedEvent extends BaseEvent {
-  type: "run-finished"
-  threadId: string
-  runId: string
-}
-
-export interface RunErrorEvent extends BaseEvent {
-  type: "run-error"
-  threadId: string
-  runId: string
-  error: {
-    message: string
-    code?: string
-    details?: any
-  }
-}
-
-// 消息相关事件
-export interface TextMessageStartEvent extends BaseEvent {
-  type: "text-message-start"
-  messageId: string
-  role: "user" | "assistant" | "system"
-}
-
-export interface TextMessageContentEvent extends BaseEvent {
-  type: "text-message-content"
-  messageId: string
-  delta: string
-}
-
-export interface TextMessageEndEvent extends BaseEvent {
+export interface TextMessageEndEventProtocol extends BaseEvent {
   type: "text-message-end"
   messageId: string
 }

@@ -5,12 +5,14 @@
  * @date 2025-05-25
  */
 
+const { validateEnvVar } = require('../utils/env-validator');
+
 const databaseConfig = {
-  // 生产数据库配置 (zkagent1)
+  // 生产数据库配置
   production: {
     host: validateEnvVar('DB_HOST', 'localhost'),
     port: parseInt(validateEnvVar('DB_PORT', '5432')),
-    database: validateEnvVar('DB_NAME', 'zkagent_dev'),
+    database: validateEnvVar('DB_NAME', 'zk-agent'),
     username: validateEnvVar('DB_USER', 'postgres'),
     password: validateEnvVar('DB_PASSWORD', '123456'),
     dialect: 'postgresql',
@@ -29,7 +31,7 @@ const databaseConfig = {
       cert: process.env.DB_SSL_CERT,
       key: process.env.DB_SSL_KEY
     } : false,
-    connectionString: process.env.DATABASE_URL || 'postgresql://postgres:123456@localhost:5432/zkagent1',
+    connectionString: process.env.DATABASE_URL || 'postgresql://postgres:123456@localhost:5432/zk-agent',
     // 连接超时和重试配置
     connectTimeout: parseInt(process.env.DB_CONNECT_TIMEOUT) || 20000,
     requestTimeout: parseInt(process.env.DB_REQUEST_TIMEOUT) || 15000,
@@ -42,42 +44,46 @@ const databaseConfig = {
     }
   },
 
-  // 测试数据库配置 (zkagent2)
+  // 测试数据库配置
   test: {
-    host: 'localhost',
-    port: 5432,
-    database: 'zkagent2',
-    username: 'postgres',
-    password: '123456',
+    host: validateEnvVar('DB_HOST_TEST', 'localhost'),
+    port: parseInt(validateEnvVar('DB_PORT_TEST', '5432')),
+    database: validateEnvVar('DB_NAME_TEST', 'zk-agent-test'),
+    username: validateEnvVar('DB_USER_TEST', 'postgres'),
+    password: validateEnvVar('DB_PASSWORD_TEST', '123456'),
     dialect: 'postgresql',
     logging: false,
     pool: {
-      max: 10,
-      min: 2,
-      acquire: 30000,
-      idle: 10000
+      max: parseInt(process.env.DB_POOL_MAX) || 10,
+      min: parseInt(process.env.DB_POOL_MIN) || 2,
+      acquire: parseInt(process.env.DB_POOL_ACQUIRE) || 30000,
+      idle: parseInt(process.env.DB_POOL_IDLE) || 10000
     },
-    ssl: false,
-    connectionString: 'postgresql://postgres:123456@localhost:5432/zkagent2'
+    ssl: process.env.DB_SSL === 'true' ? {
+      rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false'
+    } : false,
+    connectionString: process.env.DATABASE_URL_TEST || 'postgresql://postgres:123456@localhost:5432/zk-agent-test'
   },
 
   // 开发环境配置
   development: {
-    host: 'localhost',
-    port: 5432,
-    database: 'zkagent_dev',
-    username: 'postgres',
-    password: '123456',
+    host: validateEnvVar('DB_HOST', 'localhost'),
+    port: parseInt(validateEnvVar('DB_PORT', '5432')),
+    database: validateEnvVar('DB_NAME', 'zk-agent'),
+    username: validateEnvVar('DB_USER', 'postgres'),
+    password: validateEnvVar('DB_PASSWORD', '123456'),
     dialect: 'postgresql',
-    logging: console.log,
+    logging: process.env.VERBOSE_LOGGING === 'true' ? console.log : false,
     pool: {
-      max: 5,
-      min: 1,
-      acquire: 30000,
-      idle: 10000
+      max: parseInt(process.env.DB_POOL_MAX) || 5,
+      min: parseInt(process.env.DB_POOL_MIN) || 1,
+      acquire: parseInt(process.env.DB_POOL_ACQUIRE) || 30000,
+      idle: parseInt(process.env.DB_POOL_IDLE) || 10000
     },
-    ssl: false,
-    connectionString: 'postgresql://postgres:123456@localhost:5432/zkagent_dev'
+    ssl: process.env.DB_SSL === 'true' ? {
+      rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false'
+    } : false,
+    connectionString: process.env.DATABASE_URL || 'postgresql://postgres:123456@localhost:5432/zk-agent'
   }
 };
 

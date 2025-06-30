@@ -1,5 +1,4 @@
 /* eslint-disable */
-// @ts-nocheck
 /**
  * @file Performance Optimization Index
  * @description 性能优化模块统一导出
@@ -8,10 +7,12 @@
  */
 
 // Bundle分析器
-export { BundleAnalyzer as any, bundleAnalyzer as any } from './bundle-analyzer'
+export { BundleAnalyzer, bundleAnalyzer } from './bundle-analyzer'
+import { bundleAnalyzer } from './bundle-analyzer'
 
 // 内存优化器
-export { MemoryOptimizer as any, memoryOptimizer as any } from './memory-optimizer'
+export { MemoryOptimizer, memoryOptimizer } from './memory-optimizer'
+import { memoryOptimizer } from './memory-optimizer'
 
 // 性能监控类型
 export interface PerformanceMetrics {
@@ -64,31 +65,62 @@ export const PERFORMANCE_THRESHOLDS: any = {
 // 性能优化工具集合
 export class PerformanceToolkit {
   /**
-   * 获取综合性能评分
+   * Memory score thresholds and corresponding scores
+   */
+  private static readonly MEMORY_SCORE_RULES = [
+    { threshold: 100, score: 50 },
+    { threshold: 50, score: 75 },
+    { threshold: 25, score: 90 }
+  ] as const;
+
+  private static readonly MB_IN_BYTES = 1024 * 1024;
+  private static readonly DEFAULT_SCORE = 100;
+
+  /**
+   * Calculate memory score based on usage
+   */
+  private static getMemoryScore(usedBytes?: number): number {
+    if (usedBytes == null || usedBytes < 0 || isNaN(usedBytes)) {
+      return this.DEFAULT_SCORE;
+    }
+    
+    const usageMB = usedBytes / this.MB_IN_BYTES;
+    
+    for (const rule of this.MEMORY_SCORE_RULES) {
+      if (usageMB > rule.threshold) {
+        return rule.score;
+      }
+    }
+    
+    return this.DEFAULT_SCORE;
+  }
+
+  /**
+   * Get overall performance score
    */
   static async getOverallScore(): Promise<number> {
     try {
-      // Bundle分析评分
-      const bundleScore: any = bundleAnalyzer.getPerformanceScore()
+      // Bundle size score
+      const bundleScore: number = bundleAnalyzer?.getPerformanceScore() ?? this.DEFAULT_SCORE;
       
-      // 内存使用评分
-      const memoryReport: any = memoryOptimizer.getMemoryReport()
-      let memoryScore: any = 100
+      // Memory usage score
+      const memoryReport = memoryOptimizer?.getMemoryReport() ?? { current: null };
+      const memoryScore: number = memoryReport.current?.usedJSHeapSize !== undefined
+        ? this.getMemoryScore(memoryReport.current.usedJSHeapSize)
+        : this.DEFAULT_SCORE;
       
-      if (memoryReport.current) {
-        const usageMB: any = memoryReport.current.usedJSHeapSize / (1024 * 1024)
-        if (usageMB > 100) memoryScore = 50
-        else if (usageMB > 50) memoryScore = 75
-        else if (usageMB > 25) memoryScore = 90
+      // Web Vitals score
+      let webVitalsScore: number = this.DEFAULT_SCORE;
+      try {
+        webVitalsScore = await this.getWebVitalsScore();
+      } catch (error) {
+        console.warn('Failed to get Web Vitals score:', error);
       }
       
-      // Web Vitals评分（模拟）
-      const webVitalsScore: any = await this.getWebVitalsScore()
+      // Weighted average
+      const overallScore: number = (bundleScore * 0.3 + memoryScore * 0.3 + webVitalsScore * 0.4);
       
-      // 加权平均
-      const overallScore: any = (bundleScore * 0.3 + memoryScore * 0.3 + webVitalsScore * 0.4)
-      
-      return Math.round(overallScore)
+      return Math.round(overallScore);
     } catch (error) {
       console.error('获取性能评分失败:', error)
       return 0
@@ -165,7 +197,7 @@ export class PerformanceToolkit {
           
           // 获取Paint指标
           const paintEntries: any = performance.getEntriesByType('paint')
-          const fcpEntry: any = paintEntries.find(entry => entry.name === 'first-contentful-paint')
+          const fcpEntry: any = paintEntries.find((entry: any) => entry.name === 'first-contentful-paint')
           if (fcpEntry) {
             metrics.fcp = fcpEntry.startTime
           }
@@ -226,8 +258,8 @@ export class PerformanceToolkit {
    */
   static async generatePerformanceReport(): Promise<string> {
     const overallScore: any = await this.getOverallScore()
-    const bundleAnalysis: any = bundleAnalyzer.getCurrentAnalysis()
-    const memoryReport: any = memoryOptimizer.getMemoryReport()
+    const bundleAnalysis: any = bundleAnalyzer?.getCurrentAnalysis() || {}
+    const memoryReport: any = memoryOptimizer?.getMemoryReport() || { current: null, peak: null }
     const webVitals: any = await this.collectWebVitals()
     
     let report: any = `
@@ -251,8 +283,8 @@ ${bundleAnalysis ? `
 
 ## 内存使用
 ${memoryReport.current ? `
-- **当前使用**: ${memoryOptimizer.formatMemorySize(memoryReport.current.usedJSHeapSize)}
-- **峰值使用**: ${memoryReport.peak ? memoryOptimizer.formatMemorySize(memoryReport.peak.usedJSHeapSize) : 'N/A'}
+- **当前使用**: ${memoryOptimizer?.formatMemorySize(memoryReport.current.usedJSHeapSize) || 'N/A'}
+- **峰值使用**: ${memoryReport.peak ? memoryOptimizer?.formatMemorySize(memoryReport.peak.usedJSHeapSize) || 'N/A' : 'N/A'}
 - **趋势**: ${memoryReport.trend === 'increasing' ? '📈 增长' : memoryReport.trend === 'decreasing' ? '📉 下降' : '➡️ 稳定'}
 - **优化建议**: ${memoryReport.optimizations.length}项
 ` : '- 内存监控数据不可用'}
@@ -277,4 +309,4 @@ ${overallScore >= 90 ? '🟢 优秀 (90-100分)' :
 }
 
 // 导出性能工具包
-export { PerformanceToolkit as any } 
+export { PerformanceToolkit as any }

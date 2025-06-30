@@ -2,51 +2,36 @@
 /**
  * AG-UI协议完整类型定义
  * 包含所有可能的协议特性，为未来扩展做准备
+ * @deprecated 请使用 ../../shared/ag-ui-types.ts 中的统一类型定义
  */
 
-// 基础协议版本
-export const AG_UI_PROTOCOL_VERSION = "1.0.0"
+// 重新导出统一的类型定义
+export {
+  BaseEvent,
+  RunStartedEvent,
+  RunFinishedEvent,
+  RunErrorEvent,
+  RunCancelledEvent,
+  TextMessageStartEvent,
+  TextMessageContentEvent,
+  TextMessageEndEvent,
+  ToolCallStartEvent,
+  ToolCallEndEvent,
+  AgUiEvent,
+  EventHandler,
+  AgUiEventEmitter,
+  AG_UI_PROTOCOL_VERSION,
+  RunConfig
+} from '../../shared/ag-ui-types';
 
-// 扩展事件类型
-export interface BaseEvent {
-  type: string
-  timestamp: number
-  id?: string
-  source?: string
-  metadata?: Record<string, any>
-}
+// 完整协议特定的类型别名（保持向后兼容）
+export type { BaseEvent as CompleteBaseEvent } from '../../shared/ag-ui-types';
+export type { RunStartedEvent as CompleteRunStartedEvent } from '../../shared/ag-ui-types';
+export type { RunFinishedEvent as CompleteRunFinishedEvent } from '../../shared/ag-ui-types';
+export type { RunErrorEvent as CompleteRunErrorEvent } from '../../shared/ag-ui-types';
+export type { RunCancelledEvent as CompleteRunCancelledEvent } from '../../shared/ag-ui-types';
 
-// 运行生命周期事件
-export interface RunStartedEvent extends BaseEvent {
-  type: "run-started"
-  threadId: string
-  runId: string
-  agentId?: string
-  config?: RunConfig
-}
-
-export interface RunFinishedEvent extends BaseEvent {
-  type: "run-finished"
-  threadId: string
-  runId: string
-  duration?: number
-  tokensUsed?: number
-  cost?: number
-}
-
-export interface RunErrorEvent extends BaseEvent {
-  type: "run-error"
-  threadId: string
-  runId: string
-  error: {
-    code: string
-    message: string
-    details?: any
-    stack?: string
-  }
-}
-
-export interface RunCancelledEvent extends BaseEvent {
+export interface RunCancelledEventComplete extends BaseEvent {
   type: "run-cancelled"
   threadId: string
   runId: string

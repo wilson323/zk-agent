@@ -4,11 +4,7 @@ import path from "path"
 import fs from "fs/promises"
 import os from "os"
 
-interface ChatMessage {
-  role: "user" | "assistant" | "system"
-  content: string
-  timestamp?: number
-}
+import { ChatMessage } from '../types/interfaces';
 
 export async function generateImageFromChat(
   messages: ChatMessage[],

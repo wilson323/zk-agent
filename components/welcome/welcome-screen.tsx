@@ -1,58 +1,7 @@
 // @ts-nocheck
 "use client"
 
-import { useState, useEffect, useRef } from "react"
-import { Button } from "@/components/ui/button"
-import { ArrowRight, MessageSquare, Zap, FileText, Palette } from "lucide-react"
-import { motion, AnimatePresence } from "framer-motion"
-import { BackgroundEffects } from "./background-effects"
-import { MascotAnimation } from "./mascot-animation"
-import { AgentCarousel } from "./agent-carousel"
-
-type WelcomeScreenProps = {
-  onGetStarted?: () => void
-  onAgentSelect?: (agentType: string) => void
-  isDarkMode: boolean
-  toggleTheme: () => void
-  isAgentSquare?: boolean
-}
-
-// 三大智能体配置 - 对话智能体放中间
-const agents = [
-  {
-    id: "cad-analyzer",
-    name: "CAD解读智能体",
-    description: "多格式文件上传、结构识别、设备统计、风险评估",
-    icon: FileText,
-    color: "from-emerald-500 via-green-500 to-teal-500",
-    bgColor: "bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20",
-    textColor: "text-emerald-600 dark:text-emerald-400",
-    borderColor: "border-emerald-200 dark:border-emerald-800",
-    features: ["多格式CAD解析", "结构智能识别", "设备统计分析", "风险评估报告"],
-  },
-  {
-    id: "conversation",
-    name: "对话智能体",
-    description: "多轮对话、文件上传、上下文记忆、专业问答",
-    icon: MessageSquare,
-    color: "from-blue-500 via-indigo-500 to-purple-500",
-    bgColor: "bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20",
-    textColor: "text-blue-600 dark:text-blue-400",
-    borderColor: "border-blue-200 dark:border-blue-800",
-    features: ["多轮智能对话", "文件上传分析", "上下文记忆", "专业领域问答"],
-  },
-  {
-    id: "poster-generator",
-    name: "海报设计智能体",
-    description: "创意输入、风格选择、实时预览、多格式导出",
-    icon: Palette,
-    color: "from-purple-500 via-pink-500 to-rose-500",
-    bgColor: "bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20",
-    textColor: "text-purple-600 dark:text-purple-400",
-    borderColor: "border-purple-200 dark:border-purple-800",
-    features: ["AI创意设计", "多风格选择", "实时预览", "高质量导出"],
-  },
-]
+import { useDevicePerformance } from "@/hooks/use-device-performance"
 
 export function WelcomeScreen({
   onGetStarted,
@@ -63,21 +12,8 @@ export function WelcomeScreen({
 }: WelcomeScreenProps) {
   const [animationStep, setAnimationStep] = useState(0)
   const [hoverButton, setHoverButton] = useState(false)
-  const [isLowEndDevice, setIsLowEndDevice] = useState(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
-
-  // 检测设备性能
-  useEffect(() => {
-    const checkDevicePerformance = () => {
-      const hardwareConcurrency = navigator.hardwareConcurrency || 2
-      const deviceMemory = (navigator as any).deviceMemory || 4
-      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-      const isLowEnd = hardwareConcurrency <= 2 || deviceMemory <= 2 || isMobile
-      setIsLowEndDevice(isLowEnd)
-    }
-
-    checkDevicePerformance()
-  }, [])
+  const isLowEndDevice = useDevicePerformance()
 
   useEffect(() => {
     audioRef.current = new Audio("/sounds/welcome.mp3")

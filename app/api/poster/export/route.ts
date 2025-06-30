@@ -6,13 +6,13 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createApiRoute, RouteConfigs, CommonValidations } from '@/lib/middleware/api-route-wrapper';
+import { createApiRoute, RouteConfigs } from '@/lib/middleware/api-route-wrapper';
 import { ApiResponseWrapper } from '@/lib/utils/api-helper';
 
 export const POST = createApiRoute(
   RouteConfigs.protectedPost(),
   async (req: NextRequest, { params, validatedBody, validatedQuery, user, requestId }) => {
-    const { imageUrl, format, options } = await req.json();
+    const { imageUrl, format, options: _options } = await req.json();
     
     // 验证参数
     if (!imageUrl) {

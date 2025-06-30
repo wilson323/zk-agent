@@ -5,22 +5,23 @@
  * @date 2025-06-25
  */
 
-import { db } from '@/lib/database';
+import { db, enhancedDb, dbTransaction } from '../database/enhanced-database-manager';
 import { z } from 'zod';
+import type { HealthCheckResult } from '../types/health';
 
 // Zod a validation schema for creating a user
 const createUserSchema = z.object({
   email: z.string().email(),
   name: z.string().optional(),
   avatar: z.string().optional(),
-  role: z.enum(['user', 'admin']).optional(),
+  role: z.enum(['USER', 'ADMIN']).optional(),
 });
 
 // Zod a validation schema for updating a user
 const updateUserSchema = z.object({
   name: z.string().optional(),
   avatar: z.string().optional(),
-  role: z.enum(['user', 'admin']).optional(),
+  role: z.enum(['USER', 'ADMIN']).optional(),
   status: z.enum(['ACTIVE', 'INACTIVE', 'DELETED']).optional(),
 });
 
@@ -76,6 +77,7 @@ export const createUser = async (data: z.infer<typeof createUserSchema>) => {
     data: {
       ...data,
       email: email.toLowerCase(),
+      password: 'placeholder', // Add a placeholder password
     },
   });
 
@@ -128,29 +130,31 @@ export const getUserById = async (id: string) => {
  * @returns {Promise<object>} The updated user.
  */
 export const updateUser = async (id: string, data: z.infer<typeof updateUserSchema>) => {
-  const updatedUser = await db?.user.update({
-    where: { id },
-    data: {
-      ...data,
-      updatedAt: new Date(),
-    },
-    select: {
-      id: true,
-      email: true,
-      name: true,
-      avatar: true,
-      role: true,
-      status: true,
-      emailVerified: true,
-      emailVerifiedAt: true,
-      lastLoginAt: true,
-      loginCount: true,
-      createdAt: true,
-      updatedAt: true,
-    },
-  });
-  return updatedUser;
-};
+    return dbTransaction(async (prisma) => {
+      const updatedUser = await prisma.user.update({
+        where: { id },
+        data: {
+          ...data,
+          updatedAt: new Date(),
+        },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          avatar: true,
+          role: true,
+          status: true,
+          emailVerified: true,
+          emailVerifiedAt: true,
+          lastLoginAt: true,
+          loginCount: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+      return updatedUser;
+    });
+  };
 
 /**
  * Deletes a user by their ID (soft delete).
@@ -159,11 +163,31 @@ export const updateUser = async (id: string, data: z.infer<typeof updateUserSche
  * @returns {Promise<void>}
  */
 export const deleteUser = async (id: string) => {
-  await db?.user.update({
-    where: { id },
-    data: {
-      status: 'DELETED',
-      updatedAt: new Date(),
-    },
+  return dbTransaction(async (prisma) => {
+    await prisma.user.update({
+      where: { id },
+      data: {
+        status: 'DELETED',
+        updatedAt: new Date(),
+      },
+    });
   });
 };
+
+export const checkHealth = async (): Promise<HealthCheckResult> => {
+    try {
+      await enhancedDb.prisma.$queryRaw`SELECT 1`;
+      return {
+        status: 'UP',
+        timestamp: new Date(),
+        details: { database: 'Connected' },
+      };
+    } catch (error: any) {
+      return {
+        status: 'DOWN',
+        timestamp: new Date(),
+        details: { database: 'Disconnected' },
+        error: error.message,
+      };
+    }
+  };

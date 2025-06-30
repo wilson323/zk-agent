@@ -5,84 +5,58 @@
  * @date 2025-06-25
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { createApiRoute, RouteConfigs, CommonValidations } from '@/lib/middleware/api-route-wrapper';
+import { NextRequest } from 'next/server';
+import { createApiRoute, RouteConfigs } from '@/lib/middleware/api-route-wrapper';
 import { ApiResponseWrapper } from '@/lib/utils/api-helper';
-import { AgentComplianceAudit } from "@/lib/ag-ui/compliance/agent-compliance-audit"
+import { UnifiedErrorCode } from '@/types/core/unified-error-codes';
+import { AgentComplianceAudit } from '@/lib/ag-ui/compliance/agent-compliance-audit';
 
-export const GET = createApiRoute(
-  RouteConfigs.publicGet(),
-  async (req: NextRequest, { params, validatedBody, validatedQuery, user, requestId }) => {
-    const auditor = new AgentComplianceAudit();
-    const auditResult = await auditor.auditAllAgents();
-  
-    return ApiResponseWrapper.success({
-      success: true,
-      data: auditResult,
-    });
-  }
-);
-
+/**
+ * POST /api/ag-ui/compliance/audit
+ * 执行代理合规审计
+ */
 export const POST = createApiRoute(
   RouteConfigs.protectedPost(),
   async (req: NextRequest, { params, validatedBody, validatedQuery, user, requestId }) => {
-    const body = await req.json();
-    const { agentTypes, includeDetails = true } = body;
-  
-    const auditor = new AgentComplianceAudit();
-  
-    if (agentTypes && Array.isArray(agentTypes)) {
-      // 审计指定的智能体类型
-      const results = [];
-  
-      for (const agentType of agentTypes) {
-        let report;
-        switch (agentType) {
-          case "conversation":
-            // 这里可以添加特定的审计逻辑
-            break;
-          case "cad":
-            // 这里可以添加特定的审计逻辑
-            break;
-          case "poster":
-            // 这里可以添加特定的审计逻辑
-            break;
-          default:
-            continue;
-        }
-  
-        if (report) {
-          results.push(report);
-        }
+    try {
+      const { agentId, auditConfig } = await req.json();
+      
+      // 实现合规审计逻辑
+      const audit = new AgentComplianceAudit();
+      
+      // 验证输入参数
+      if (!agentId) {
+        return ApiResponseWrapper.error(UnifiedErrorCode.VALIDATION_ERROR, 'Agent ID is required', { status: 400 });
       }
-  
-      return ApiResponseWrapper.success({
-        success: true,
-        data: {
-          timestamp: Date.now(),
-          totalAgents: results.length,
-          reports: includeDetails
-            ? results
-            : results.map((r) => ({ agentId: r.agentId, isCompliant: r.isCompliant, overallScore: r.overallScore })),
-        },
+      
+      // 执行合规审计
+      const result = await audit.performAudit(agentId, {
+        checkSecurity: auditConfig?.checkSecurity ?? true,
+        checkPerformance: auditConfig?.checkPerformance ?? true,
+        checkCompliance: auditConfig?.checkCompliance ?? true,
+        checkDataPrivacy: auditConfig?.checkDataPrivacy ?? true,
+        generateReport: auditConfig?.generateReport ?? true,
+        ...auditConfig
       });
-    } else {
-      // 审计所有智能体
-      const auditResult = await auditor.auditAllAgents();
-  
-      return ApiResponseWrapper.success({
-        success: true,
-        data: includeDetails
-          ? auditResult
-          : {
-              timestamp: auditResult.timestamp,
-              totalAgents: auditResult.totalAgents,
-              compliantAgents: auditResult.compliantAgents,
-              overallScore: auditResult.overallScore,
-              isCompliant: auditResult.isCompliant,
-              recommendations: auditResult.recommendations,
-            },
+      
+      // 记录审计日志
+      console.log(`Compliance audit completed for agent ${agentId}:`, {
+        score: result.overallScore,
+        // issues: result.issues?.length || 0,
+        timestamp: new Date().toISOString()
       });
+      
+      return ApiResponseWrapper.success(result);
+    } catch (error) {
+      console.error('Error performing compliance audit:', error);
+      return ApiResponseWrapper.error(
+        UnifiedErrorCode.INTERNAL_SERVER_ERROR,
+        'Failed to perform compliance audit',
+        { 
+          status: 500,
+          details: error instanceof Error ? error.message : 'Unknown error'
+        }
+      );
     }
   }
 );

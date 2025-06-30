@@ -15,6 +15,7 @@ export interface ConnectionPoolConfig {
   maxConnections: number
   minConnections: number
   acquireTimeoutMillis: number
+  createTimeoutMillis?: number
   idleTimeoutMillis: number
   evictionRunIntervalMillis: number
   connectTimeoutMillis: number
@@ -86,8 +87,7 @@ export class EnhancedDatabaseConnection extends EventEmitter {
     reconnection: ReconnectionConfig
     healthCheck: HealthCheckConfig
   }
-  private poolConfig: Partial<PoolConfiguration> = {}
-  private recoveryConfig: Partial<RecoveryConfiguration> = {}
+  
 
   constructor(
     poolConfig?: Partial<ConnectionPoolConfig>,
@@ -559,7 +559,7 @@ export class EnhancedDatabaseConnection extends EventEmitter {
   async updateConfiguration(config: Partial<PoolConfiguration>): Promise<void> {
     try {
       console.log('Updating database configuration:', config)
-      this.poolConfig = { ...this.poolConfig, ...config }
+      this.config.pool = { ...this.config.pool, ...config }
       
       // 在实际实现中，这里应该重新初始化连接池
       // 由于Prisma的限制，我们只能记录配置变更
@@ -574,8 +574,8 @@ export class EnhancedDatabaseConnection extends EventEmitter {
   /**
    * 更新恢复配置
    */
-  updateRecoveryConfiguration(config: Partial<RecoveryConfiguration>): void {
-    this.recoveryConfig = { ...this.recoveryConfig, ...config }
+  updateRecoveryConfiguration(config: Partial<ReconnectionConfig>): void {
+    this.config.reconnection = { ...this.config.reconnection, ...config }
     console.log('Recovery configuration updated:', config)
     this.emit('recoveryConfigurationUpdated', { config, timestamp: new Date() })
   }
@@ -584,12 +584,12 @@ export class EnhancedDatabaseConnection extends EventEmitter {
    * 获取当前配置
    */
   getConfiguration(): {
-    pool: Partial<PoolConfiguration>
-    recovery: Partial<RecoveryConfiguration>
+    pool: Partial<ConnectionPoolConfig>
+    recovery: Partial<ReconnectionConfig>
   } {
     return {
-      pool: { ...this.poolConfig },
-      recovery: { ...this.recoveryConfig }
+      pool: { ...this.config.pool },
+      recovery: { ...this.config.reconnection }
     }
   }
 
@@ -605,8 +605,8 @@ export class EnhancedDatabaseConnection extends EventEmitter {
    */
   getDetailedStats(): ConnectionStats & {
     configuration: {
-      pool: Partial<PoolConfiguration>
-      recovery: Partial<RecoveryConfiguration>
+      pool: Partial<ConnectionPoolConfig>
+      recovery: Partial<ReconnectionConfig>
     }
     performance: {
       successRate: number
@@ -684,21 +684,18 @@ export class EnhancedDatabaseConnection extends EventEmitter {
   }
 }
 
-// 全局增强数据库连接实例
-export const enhancedDb = new EnhancedDatabaseConnection()
-
 // 初始化监控和优化模块
 if (process.env.DB_MONITORING_ENABLED === 'true') {
   // 延迟导入以避免循环依赖
   import('./monitoring').then(({ databaseMonitor }) => {
-    databaseMonitor.start()
+    databaseMonitor.startMonitoring()
     console.log('Database monitoring started')
   }).catch(console.error)
 }
 
 if (process.env.DB_POOL_OPTIMIZATION_ENABLED === 'true') {
   import('./pool-optimizer').then(({ poolOptimizer }) => {
-    poolOptimizer.start()
+    poolOptimizer.startOptimization()
     console.log('Database pool optimization started')
   }).catch(console.error)
 }
@@ -709,6 +706,9 @@ if (process.env.DB_ERROR_RECOVERY_ENABLED === 'true') {
     console.log('Database error recovery started')
   }).catch(console.error)
 }
+
+// 全局增强数据库连接实例
+export const enhancedDb = new EnhancedDatabaseConnection()
 
 // 导出便捷方法
 export const connectDatabase = () => enhancedDb.connect()

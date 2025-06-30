@@ -1,4 +1,5 @@
-// @ts-nocheck
+
+/// <reference lib="dom" />
 import axios from "axios"
 import { DEFAULT_API_CONFIG, STORAGE_KEYS, PROXY_CONFIG, ERROR_MESSAGES, MODEL_TYPES } from "@/config/fastgpt"
 // This is a client-side file, so we don't use any sensitive environment variables here

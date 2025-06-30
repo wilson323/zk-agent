@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { ThumbsUp, ThumbsDown, RefreshCw } from "lucide-react"
 import { useFastGPT } from "@/contexts/FastGPTContext"
-import { Skeleton } from "@/components/ui/skeleton"
+import { fetchFeedback } from "@/lib/admin/feedback-api"
 
 export function UserFeedback() {
   const { applications, isLoading } = useFastGPT()
@@ -18,46 +18,15 @@ export function UserFeedback() {
   // 模拟获取反馈数据
   const loadFeedback = async () => {
     setIsLoadingFeedback(true)
-
     try {
-      // 这里应该是实际的API调用，但FastGPT API可能没有直接的反馈API
-      // 所以我们模拟一些数据
-      const mockFeedback = [
-        {
-          id: "1",
-          appId: applications[0]?.id || "app1",
-          appName: applications[0]?.name || "默认智能体",
-          messageId: "msg1",
-          messageContent: "如何重置我的密码？",
-          responseContent: "要重置密码，请前往登录页面并点击&quot;忘记密码&quot;...",
-          type: "like",
-          timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
-        },
-        {
-          id: "2",
-          appId: applications[0]?.id || "app1",
-          appName: applications[0]?.name || "默认智能体",
-          messageId: "msg2",
-          messageContent: "你们的产品与竞争对手相比太贵了。",
-          responseContent: "我理解您对价格的担忧。我们提供的高级功能可以证明成本是合理的...",
-          type: "dislike",
-          timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-        },
-        {
-          id: "3",
-          appId: applications[1]?.id || "app2",
-          appName: applications[1]?.name || "销售助手",
-          messageId: "msg3",
-          messageContent: "小型企业最适合哪种方案？",
-          responseContent: "对于小型企业，我推荐我们的商业专业版，其中包括...",
-          type: "like",
-          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-        },
-      ]
-
-      setFeedback(mockFeedback)
+      const result = await fetchFeedback(applications)
+      if (result.success && result.data) {
+        setFeedback(result.data)
+      } else {
+        // Handle error, maybe show a toast
+      }
     } catch (error) {
-      console.error("获取反馈数据失败:", error)
+      // console.error("获取反馈数据失败:", error)
     } finally {
       setIsLoadingFeedback(false)
     }
@@ -67,7 +36,7 @@ export function UserFeedback() {
     if (applications.length > 0) {
       loadFeedback()
     }
-  }, [applications])
+  }, [applications, loadFeedback])
 
   const filteredFeedback = filter === "all" ? feedback : feedback.filter((item) => item.appId === filter)
 

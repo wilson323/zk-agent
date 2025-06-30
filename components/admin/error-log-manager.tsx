@@ -18,7 +18,7 @@ import {
   Trash2,
   CheckCircle,
 } from "lucide-react"
-import { motion } from "framer-motion"
+import { fetchErrorLogs, markErrorAsResolved, deleteErrorLog, exportErrorLogs } from "@/lib/admin/error-log-api"
 
 interface ErrorLog {
   id: string
@@ -49,113 +49,50 @@ export function ErrorLogManager() {
   const [selectedLog, setSelectedLog] = useState<ErrorLog | null>(null)
 
   const fetchLogs = async () => {
-    try {
-      setIsLoading(true)
-      const params = new URLSearchParams({
-        search: searchTerm,
-        level: levelFilter,
-        status: statusFilter,
-        limit: "50",
-      })
-
-      const response = await fetch(`/api/admin/error-logs?${params}`)
-      if (response.ok) {
-        const data = await response.json()
-        setLogs(data.logs)
-        setStats(data.stats)
-      }
-    } catch (error) {
-      console.error("获取错误日志失败:", error)
-    } finally {
-      setIsLoading(false)
+    setIsLoading(true)
+    const result = await fetchErrorLogs(searchTerm, levelFilter, statusFilter)
+    if (result.success && result.data) {
+      setLogs(result.data.logs)
+      setStats(result.data.stats)
+    } else {
+      // Handle error, maybe show a toast
     }
+    setIsLoading(false)
   }
 
   const markAsResolved = async (logId: string) => {
-    try {
-      const response = await fetch(`/api/admin/error-logs/${logId}/resolve`, {
-        method: "PATCH",
-      })
-      if (response.ok) {
-        setLogs(logs.map((log) => (log.id === logId ? { ...log, resolved: true } : log)))
-      }
-    } catch (error) {
-      console.error("标记错误为已解决失败:", error)
+    const result = await markErrorAsResolved(logId)
+    if (result.success) {
+      setLogs(logs.map((log) => (log.id === logId ? { ...log, resolved: true } : log)))
+    } else {
+      // Handle error
     }
   }
 
   const deleteLog = async (logId: string) => {
-    try {
-      const response = await fetch(`/api/admin/error-logs/${logId}`, {
-        method: "DELETE",
-      })
-      if (response.ok) {
-        setLogs(logs.filter((log) => log.id !== logId))
-        setSelectedLog(null)
-      }
-    } catch (error) {
-      console.error("删除错误日志失败:", error)
+    const result = await deleteErrorLog(logId)
+    if (result.success) {
+      setLogs(logs.filter((log) => log.id !== logId))
+      setSelectedLog(null)
+    } else {
+      // Handle error
     }
   }
 
   const exportLogs = async () => {
-    try {
-      const params = new URLSearchParams({
-        search: searchTerm,
-        level: levelFilter,
-        status: statusFilter,
-        format: "csv",
-      })
-
-      const response = await fetch(`/api/admin/error-logs/export?${params}`)
-      if (response.ok) {
-        const blob = await response.blob()
-        const url = window.URL.createObjectURL(blob)
-        const a = document.createElement("a")
-        a.href = url
-        a.download = `error-logs-${new Date().toISOString().split("T")[0]}.csv`
-        document.body.appendChild(a)
-        a.click()
-        window.URL.revokeObjectURL(url)
-        document.body.removeChild(a)
-      }
-    } catch (error) {
-      console.error("导出错误日志失败:", error)
+    const result = await exportErrorLogs(searchTerm, levelFilter, statusFilter)
+    if (result.success) {
+      // Toast success message if needed
+    } else {
+      // Toast error message
     }
   }
 
   useEffect(() => {
     fetchLogs()
-  }, [searchTerm, levelFilter, statusFilter])
+  }, [searchTerm, levelFilter, statusFilter, fetchLogs])
 
-  const getLevelIcon = (level: string) => {
-    switch (level) {
-      case "INFO":
-        return <Info className="h-4 w-4 text-blue-600" />
-      case "WARN":
-        return <AlertTriangle className="h-4 w-4 text-yellow-600" />
-      case "ERROR":
-        return <AlertCircle className="h-4 w-4 text-red-600" />
-      case "FATAL":
-        return <XCircle className="h-4 w-4 text-red-800" />
-      default:
-        return <Info className="h-4 w-4 text-gray-600" />
-    }
-  }
-
-  const getLevelBadge = (level: string) => {
-    const variants = {
-      INFO: "bg-blue-100 text-blue-800",
-      WARN: "bg-yellow-100 text-yellow-800",
-      ERROR: "bg-red-100 text-red-800",
-      FATAL: "bg-red-200 text-red-900",
-    }
-    return (
-      <Badge variant="secondary" className={variants[level as keyof typeof variants] || "bg-gray-100 text-gray-800"}>
-        {level}
-      </Badge>
-    )
-  }
+  import { getLevelIcon, getLevelBadge } from "@/lib/admin/error-log-utils"
 
   return (
     <motion.div
@@ -190,53 +127,33 @@ export function ErrorLogManager() {
       {/* 统计概览 */}
       {stats && (
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <AlertCircle className="h-4 w-4 text-gray-600" />
-                <span className="text-sm font-medium">总错误数</span>
-              </div>
-              <div className="text-2xl font-bold mt-1">{stats.total.toLocaleString()}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <XCircle className="h-4 w-4 text-red-600" />
-                <span className="text-sm font-medium">未解决</span>
-              </div>
-              <div className="text-2xl font-bold mt-1 text-red-600">{stats.unresolved.toLocaleString()}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-green-600" />
-                <span className="text-sm font-medium">已解决</span>
-              </div>
-              <div className="text-2xl font-bold mt-1 text-green-600">{stats.resolved.toLocaleString()}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                <span className="text-sm font-medium">今日新增</span>
-              </div>
-              <div className="text-2xl font-bold mt-1">{stats.todayCount.toLocaleString()}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <Info className="h-4 w-4 text-blue-600" />
-                <span className="text-sm font-medium">解决率</span>
-              </div>
-              <div className="text-2xl font-bold mt-1">
-                {stats.total > 0 ? ((stats.resolved / stats.total) * 100).toFixed(1) : 0}%
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard
+            title="总错误数"
+            icon={AlertCircle}
+            value={stats.total.toLocaleString()}
+          />
+          <StatCard
+            title="未解决"
+            icon={XCircle}
+            value={stats.unresolved.toLocaleString()}
+            badgeColorClass="text-red-600"
+          />
+          <StatCard
+            title="已解决"
+            icon={CheckCircle}
+            value={stats.resolved.toLocaleString()}
+            badgeColorClass="text-green-600"
+          />
+          <StatCard
+            title="今日新增"
+            icon={AlertTriangle}
+            value={stats.todayCount.toLocaleString()}
+          />
+          <StatCard
+            title="解决率"
+            icon={Info}
+            value={`${stats.total > 0 ? ((stats.resolved / stats.total) * 100).toFixed(1) : 0}%`}
+          />
         </div>
       )}
 

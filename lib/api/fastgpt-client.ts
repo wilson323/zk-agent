@@ -1,3 +1,4 @@
+/// <reference lib="dom" />
 // @ts-nocheck
 /**
  * FastGPT API Client
@@ -56,6 +57,11 @@ class FastGPTClient {
         ...options.headers,
       },
     })
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorBody}`);
+    }
 
     return response
   }

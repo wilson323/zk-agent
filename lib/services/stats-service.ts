@@ -5,7 +5,7 @@
  * @date 2025-06-25
  */
 
-import { db } from '@/lib/database';
+import { db } from '../database/enhanced-database-manager';
 import { NextRequest } from 'next/server';
 
 /**
@@ -93,7 +93,7 @@ export const getStatsSummary = async ({
       _count: { id: true },
       orderBy: { _count: { id: 'desc' } },
     }),
-    db?.usageStats.groupBy({
+    enhancedDb.prisma.usageStats.groupBy({
       by: ['userId'],
       where,
       _count: { id: true },

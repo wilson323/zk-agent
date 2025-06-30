@@ -10,7 +10,7 @@
 const { spawn, exec } = require('child_process');
 const fs = require('fs');
 const path = require('path');
-const { getDatabaseUrl, validateDatabaseConfig } = require('../config/database.config');
+const { getDatabaseUrl, validateDatabaseConfig } = require('../lib/database/database.config');
 
 class AutomatedTestRunner {
   constructor() {

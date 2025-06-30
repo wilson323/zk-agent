@@ -2,7 +2,7 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { Sparkles, Zap } from "lucide-react"
+import { AnimatedOrb } from "@/components/common/animated-orb"
 import Image from "next/image"
 
 interface MascotAnimationProps {
@@ -45,51 +45,7 @@ export function MascotAnimation({ animationStep }: MascotAnimationProps) {
 
       {/* 能量环效果 */}
       {animationStep >= 2 && (
-        <>
-          <motion.div
-            className="absolute inset-0 rounded-full border-2 border-[#6cb33f]/30"
-            animate={{
-              scale: [1, 1.2, 1],
-              opacity: [0.5, 0.8, 0.5],
-            }}
-            transition={{
-              repeat: Number.POSITIVE_INFINITY,
-              duration: 3,
-              ease: "easeInOut",
-            }}
-          />
-          <motion.div
-            className="absolute -top-2 -right-2 text-yellow-400"
-            animate={{
-              scale: [1, 1.2, 1],
-              rotate: [0, 180, 360],
-              opacity: [0.7, 1, 0.7],
-            }}
-            transition={{
-              repeat: Number.POSITIVE_INFINITY,
-              duration: 2,
-              ease: "easeInOut",
-            }}
-          >
-            <Sparkles className="h-6 w-6" />
-          </motion.div>
-          <motion.div
-            className="absolute -bottom-2 -left-2 text-blue-400"
-            animate={{
-              scale: [1, 1.3, 1],
-              rotate: [360, 180, 0],
-              opacity: [0.7, 1, 0.7],
-            }}
-            transition={{
-              repeat: Number.POSITIVE_INFINITY,
-              duration: 2.5,
-              ease: "easeInOut",
-              delay: 0.5,
-            }}
-          >
-            <Zap className="h-5 w-5" />
-          </motion.div>
-        </>
+        <AnimatedOrb color1="#6cb33f" color2="yellow-400" />
       )}
     </motion.div>
   )

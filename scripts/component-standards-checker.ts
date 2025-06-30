@@ -622,7 +622,11 @@ class ComponentStandardsChecker {
 
     props.forEach(prop => {
       if (ts.isJsxAttribute(prop) && prop.name) {
-        attributes.push(prop.name.text);
+        if (ts.isIdentifier(prop.name)) {
+          attributes.push(prop.name.text);
+        } else if (ts.isJsxNamespacedName(prop.name)) {
+          attributes.push(`${prop.name.namespace.text}:${prop.name.name.text}`);
+        }
       }
     });
 
@@ -715,10 +719,10 @@ class ComponentStandardsChecker {
     console.log('\n');
   }
 
-  private getScoreColor(score: number): string {
+  private getScoreColor(score: number): (text: string) => string {
     if (score >= 90) return chalk.green;
     if (score >= 80) return chalk.yellow;
-    if (score >= 70) return chalk.orange;
+    if (score >= 70) return chalk.red; // orange is not available, using red
     return chalk.red;
   }
 

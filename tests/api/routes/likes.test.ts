@@ -4,9 +4,12 @@
  */
 
 import { NextRequest } from 'next/server';
-import { GET, POST, PUT } from '@/app/api/likes/route';
-// import { GlobalErrorHandler } from '@/lib/middleware/global-error-handler';
+import { GET, POST } from '@/app/api/likes/route';
+import { GlobalErrorHandler } from '@/lib/middleware/global-error-handler';
 // import { AgentError, AgentErrorType, ErrorSeverity } from '@/lib/errors/agent-errors';
+
+// Mock DELETE method for testing
+const DELETE = jest.fn();
 
 // Mock dependencies
 jest.mock('../../../lib/services/likes-manager', () => ({
@@ -602,7 +605,7 @@ describe('Likes API Error Handling', () => {
   describe('Batch Like Operations', () => {
     it('should handle batch like with partial failures', async () => {
       const { addLike } = require('../../../lib/services/likes-manager');
-      addLike.mockImplementation((data) => {
+      addLike.mockImplementation((data: any) => {
         if (data.contentId === 'invalid-content') {
           throw new Error('Content not found');
         }
@@ -636,7 +639,7 @@ describe('Likes API Error Handling', () => {
 
     it('should handle batch unlike with partial failures', async () => {
       const { removeLike } = require('../../../lib/services/likes-manager');
-      removeLike.mockImplementation((contentId) => {
+      removeLike.mockImplementation((contentId: any) => {
         if (contentId === 'not-liked-content') {
           throw new Error('Like not found');
         }

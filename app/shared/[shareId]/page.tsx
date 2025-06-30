@@ -30,7 +30,7 @@ export default function SharedContentPage() {
     if (shareId) {
       loadSharedContent()
     }
-  }, [shareId])
+  }, [shareId, loadSharedContent])
 
   const loadSharedContent = async (passwordAttempt?: string) => {
     try {

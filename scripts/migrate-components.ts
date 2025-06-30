@@ -310,7 +310,7 @@ class ComponentMigrator {
     visit(sourceFile);
 
     if (componentInfo) {
-      componentInfo.complexity = complexity;
+      (componentInfo as ComponentInfo).complexity = complexity;
     }
 
     return componentInfo;

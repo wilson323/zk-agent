@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils"
 import { useMobile } from "@/hooks/use-mobile"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { CADFileUploader } from "@/components/cad/cad-file-uploader"
+import { FileUploader } from "@/components/common/file-uploader" // Import FileUploader
 
 type ChatInputProps = {
   onSubmit: (message: string) => void
@@ -22,12 +23,10 @@ export function ChatInput({ onSubmit, isLoading, isMuted }: ChatInputProps) {
   const [input, setInput] = useState("")
   const [isRecording, setIsRecording] = useState(false)
   const [recordingTime, setRecordingTime] = useState(0)
-  const [showFileUpload, setShowFileUpload] = useState(false)
   const [showCADUpload, setShowCADUpload] = useState(false)
   const [attachments, setAttachments] = useState<File[]>([])
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const recordingInterval = useRef<NodeJS.Timeout | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const isMobile = useMobile()
 
   // Auto-adjust height
@@ -113,36 +112,27 @@ export function ChatInput({ onSubmit, isLoading, isMuted }: ChatInputProps) {
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
   }
 
-  // Handle file selection
-  const handleFileSelect = () => {
-    fileInputRef.current?.click()
-  }
-
-  // Handle file change
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const files = Array.from(e.target.files)
-
-      // Check if any CAD files are selected
+  // Handle file change from FileUploader
+  const handleFileChange = (files: File[]) => {
+    if (files.length > 0) {
       const cadFiles = files.filter((file) => {
         const ext = file.name.split(".").pop()?.toLowerCase()
         return ext === "dxf" || ext === "dwg" || ext === "step" || ext === "stp" || ext === "iges" || ext === "igs"
       })
 
       if (cadFiles.length > 0) {
-        // If CAD files are selected, open CAD upload dialog
         setShowCADUpload(true)
       } else {
-        // Otherwise, add files as regular attachments
-        setAttachments((prev) => [...prev, ...files])
+        setAttachments(files)
       }
+    } else {
+      setAttachments([])
     }
   }
 
   // Handle CAD file processed
   const handleCADFileProcessed = (fileData: any) => {
     setShowCADUpload(false)
-    // Add a message about the CAD file
     setInput((prev) => prev + `\n\n我上传了一个CAD文件 "${fileData.name}"，请帮我分析一下这个文件。`)
   }
 
@@ -233,15 +223,24 @@ export function ChatInput({ onSubmit, isLoading, isMuted }: ChatInputProps) {
                 >
                   <ImageIcon className="h-4 w-4" />
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 rounded-full text-gray-500 hover:text-primary-500"
-                  onClick={handleFileSelect}
+                {/* Use FileUploader for file selection */}
+                <FileUploader
+                  onFilesChange={handleFileChange}
+                  allowedFileTypes={[
+                    ".pdf", ".doc", ".docx", ".txt", ".jpg", ".jpeg", ".png", ".gif",
+                    ".dxf", ".dwg", ".step", ".stp", ".iges", ".igs", ".stl"
+                  ]} // Example allowed types
+                  maxFileSize={20} // Example max file size
+                  multiple={true}
                 >
-                  <Paperclip className="h-4 w-4" />
-                  <input type="file" ref={fileInputRef} className="hidden" multiple onChange={handleFileChange} />
-                </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-full text-gray-500 hover:text-primary-500"
+                  >
+                    <Paperclip className="h-4 w-4" />
+                  </Button>
+                </FileUploader>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -282,7 +281,7 @@ export function ChatInput({ onSubmit, isLoading, isMuted }: ChatInputProps) {
             <DialogTitle>上传CAD文件</DialogTitle>
           </DialogHeader>
           <CADFileUploader
-            onFileProcessed={handleCADFileProcessed}
+            onAnalysisComplete={handleCADFileProcessed}
             maxFileSize={50}
             allowedFileTypes={[".dxf", ".dwg", ".step", ".stp", ".iges", ".igs"]}
           />

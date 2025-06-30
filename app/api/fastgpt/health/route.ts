@@ -1,17 +1,18 @@
 /**
  * @file fastgpt\health\route.ts
- * @description Migrated API route with global error handling
+ * @description FastGPT health check API route
  * @author ZK-Agent Team
  * @date 2025-06-25
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { createApiRoute, RouteConfigs, CommonValidations } from '@/lib/middleware/api-route-wrapper';
+import { NextRequest } from 'next/server';
+import { createApiRoute, RouteConfigs } from '@/lib/middleware/api-route-wrapper';
 import { ApiResponseWrapper } from '@/lib/utils/api-helper';
+import { ErrorCode } from '@/types/core';
 
 export const GET = createApiRoute(
   RouteConfigs.publicGet(),
-  async (req: NextRequest, { params, validatedBody, validatedQuery, user, requestId }) => {
+  async (_req: NextRequest, { params, validatedBody, validatedQuery, user, requestId }) => {
     try {
       const startTime = Date.now();
       
@@ -21,7 +22,9 @@ export const GET = createApiRoute(
   
       if (!apiKey) {
         return ApiResponseWrapper.error(
+          ErrorCode.EXTERNAL_SERVICE_ERROR,
           'API key not configured',
+          null,
           500
         );
       }
@@ -48,26 +51,27 @@ export const GET = createApiRoute(
         });
       } else {
         return ApiResponseWrapper.error(
+          ErrorCode.EXTERNAL_SERVICE_ERROR,
           `API returned ${response.status}: ${response.statusText}`,
-          503,
           {
             status: 'unhealthy',
             latency,
             timestamp: new Date().toISOString(),
-          }
+          },
+          503
         );
       }
     } catch (error) {
       console.error('FastGPT health check error:', error);
       return ApiResponseWrapper.error(
+        ErrorCode.INTERNAL_SERVER_ERROR,
         'Health check failed',
-        500,
         {
           status: 'error',
           timestamp: new Date().toISOString(),
-        }
+        },
+        500
       );
     }
   }
 );
-

@@ -8,18 +8,7 @@
 
 import { http, HttpResponse } from 'msw'
 
-// 聊天消息类型
-interface ChatMessage {
-  id: string
-  role: 'user' | 'assistant' | 'system'
-  content: string
-  timestamp: Date
-  metadata?: {
-    model?: string
-    tokens?: number
-    responseTime?: number
-  }
-}
+import { ChatMessage } from '../../types/interfaces';
 
 // 聊天会话类型
 interface ChatSession {
@@ -296,4 +285,4 @@ export const chatHandlers = [
       }
     })
   })
-] 
+]

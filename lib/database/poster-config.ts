@@ -3,10 +3,8 @@
  * 海报配置数据库操作
  */
 
-import { PrismaClient } from "@prisma/client"
+import { enhancedDb, dbTransaction } from "@/lib/database"
 import type { PosterStyle, ColorPalette, PosterSize, SecurityTemplate, IndustryConfig } from "@/types/poster"
-
-const prisma = new PrismaClient()
 
 export class PosterConfigDB {
   /**
@@ -193,7 +191,7 @@ export class PosterConfigDB {
    */
   static async getIndustryConfig(industry: string): Promise<IndustryConfig | null> {
     try {
-      const config = await prisma.industryConfig.findUnique({
+      const config = await enhancedDb.prisma.industryConfig.findUnique({
         where: { industry },
         include: {
           recommendedStyles: true,

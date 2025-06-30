@@ -445,7 +445,7 @@ export class DatabaseErrorRecovery extends EventEmitter {
         await this.sleep(delay)
         
         // 尝试执行健康检查
-        const isHealthy = await enhancedDb.performHealthCheck()
+        const isHealthy = await enhancedDb.forceHealthCheck()
         if (isHealthy) {
           console.log(`Retry strategy succeeded on attempt ${attempts}`)
           return { success: true, attempts }
@@ -481,7 +481,7 @@ export class DatabaseErrorRecovery extends EventEmitter {
       await enhancedDb.connect()
       
       // 验证连接
-      const isHealthy = await enhancedDb.performHealthCheck()
+      const isHealthy = await enhancedDb.forceHealthCheck()
       if (isHealthy) {
         console.log('Database reconnection successful')
         return { success: true, attempts }

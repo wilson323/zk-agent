@@ -6,6 +6,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals'
+import type { MockedFunction, MockedClass } from 'jest-mock'
 import { 
   EnhancedDatabaseConnection, 
   ConnectionState,
@@ -20,11 +21,11 @@ import { PrismaClient } from '@prisma/client'
 
 // 模拟Prisma客户端
 jest.mock('@prisma/client')
-const MockedPrismaClient = PrismaClient as jest.MockedClass<typeof PrismaClient>
+const MockedPrismaClient = PrismaClient as MockedClass<typeof PrismaClient>
 
 describe('增强数据库连接管理器测试', () => {
   let connection: EnhancedDatabaseConnection
-  let mockPrismaClient: jest.Mocked<PrismaClient>
+  let mockPrismaClient: any
 
   beforeEach(() => {
     // 重置所有模拟

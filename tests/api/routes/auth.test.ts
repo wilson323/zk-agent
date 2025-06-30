@@ -20,12 +20,12 @@ describe('Auth API Routes Error Handling', () => {
 
   beforeEach(() => {
     errorHandler = GlobalErrorHandler.getInstance();
-    errorHandler.reset();
     vi.clearAllMocks();
   });
 
   afterEach(() => {
-    errorHandler.reset();
+    // 清理测试状态
+    vi.clearAllMocks();
   });
 
   describe('Login Route (/api/auth/login)', () => {
@@ -79,13 +79,8 @@ describe('Auth API Routes Error Handling', () => {
 
     it('should handle database connection error', async () => {
       // Mock database error
-      vi.mock('@/lib/database/connection', () => ({
-        default: {
-          user: {
-            findUnique: vi.fn().mockRejectedValue(new Error('Database connection failed'))
-          }
-        }
-      }));
+      const db = require('@/lib/database/connection').default;
+      (db.user.findUnique as jest.Mock).mockRejectedValue(new Error('Database connection failed'));
 
       const request = new NextRequest('http://localhost:3000/api/auth/login', {
         method: 'POST',
@@ -241,8 +236,8 @@ describe('Auth API Routes Error Handling', () => {
 
     it('should trigger circuit breaker on repeated failures', async () => {
       // Configure low threshold for testing
-      const originalThreshold = errorHandler['errorThreshold'];
-      errorHandler['errorThreshold'] = 2;
+      const originalThreshold = (errorHandler as any).errorThreshold;
+      Object.defineProperty(errorHandler, 'errorThreshold', { value: 2, writable: true, configurable: true });
 
       try {
         // Trigger multiple errors to exceed threshold
@@ -256,7 +251,7 @@ describe('Auth API Routes Error Handling', () => {
 
         expect(errorHandler.isCircuitBreakerOpen()).toBe(true);
       } finally {
-        errorHandler['errorThreshold'] = originalThreshold;
+        Object.defineProperty(errorHandler, 'errorThreshold', { value: originalThreshold, writable: true, configurable: true });
       }
     });
   });

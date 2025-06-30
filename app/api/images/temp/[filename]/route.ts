@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createApiRoute, RouteConfigs, CommonValidations } from '@/lib/middleware/api-route-wrapper';
+import { createApiRoute, RouteConfigs } from '@/lib/middleware/api-route-wrapper';
 import { ApiResponseWrapper } from '@/lib/utils/api-helper';
 import fs from "fs/promises"
 import path from "path"
@@ -14,7 +14,7 @@ import os from "os"
 
 export const GET = createApiRoute(
   RouteConfigs.publicGet(),
-  async (req: NextRequest, { params, validatedBody, validatedQuery, user, requestId }) => {
+  async (_req: NextRequest, { validatedBody, validatedQuery, user, requestId, params }) => {
     try {
       const filename = params.filename as string
       

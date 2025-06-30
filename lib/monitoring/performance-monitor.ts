@@ -6,6 +6,43 @@
  */
 
 import { EventEmitter } from 'events'
+import * as client from 'prom-client'
+
+// Prometheus Metrics
+const httpRequestDurationMicroseconds = new client.Histogram({
+  name: 'http_request_duration_ms',
+  help: 'Duration of HTTP requests in ms',
+  labelNames: ['method', 'route', 'code'],
+  buckets: [0.1, 5, 15, 50, 100, 200, 300, 400, 500, 1000, 2000, 5000]
+})
+
+const httpRequestsTotal = new client.Counter({
+  name: 'http_requests_total',
+  help: 'Total number of HTTP requests',
+  labelNames: ['method', 'route', 'code']
+})
+
+const processCpuUsage = new client.Gauge({
+  name: 'process_cpu_usage_percent',
+  help: 'CPU usage of the process in percent',
+})
+
+const processMemoryUsage = new client.Gauge({
+  name: 'process_memory_usage_bytes',
+  help: 'Memory usage of the process in bytes',
+  labelNames: ['type']
+})
+
+const activeConnections = new client.Gauge({
+  name: 'active_connections',
+  help: 'Number of active connections',
+})
+
+const errorCount = new client.Counter({
+  name: 'application_error_total',
+  help: 'Total number of application errors',
+  labelNames: ['type']
+})
 
 // 性能指标接口
 export interface PerformanceMetrics {
@@ -121,6 +158,10 @@ export class PerformanceMonitor extends EventEmitter {
     this.metrics.push(metric)
     this.emit('metricRecorded', metric)
 
+    // Prometheus metrics
+    httpRequestDurationMicroseconds.labels(method, endpoint, statusCode.toString()).observe(responseTime)
+    httpRequestsTotal.labels(method, endpoint, statusCode.toString()).inc()
+
     // 检查是否需要告警
     if (responseTime > this.alertConfig.responseTimeThreshold) {
       this.emit('alert', {
@@ -203,7 +244,7 @@ export class PerformanceMonitor extends EventEmitter {
         m.method,
         m.statusCode,
         m.responseTime,
-        m.memoryUsage.used,
+        m.memoryUsage.heapUsed,
         m.cpuUsage.user + m.cpuUsage.system,
         m.activeConnections,
         m.errorCount
@@ -222,6 +263,13 @@ export class PerformanceMonitor extends EventEmitter {
     const memoryUsage = process.memoryUsage()
     const cpuUsage = process.cpuUsage()
 
+    processCpuUsage.set(this.getCpuUsagePercent())
+    processMemoryUsage.labels('rss').set(memoryUsage.rss)
+    processMemoryUsage.labels('heapTotal').set(memoryUsage.heapTotal)
+    processMemoryUsage.labels('heapUsed').set(memoryUsage.heapUsed)
+    processMemoryUsage.labels('external').set(memoryUsage.external)
+    activeConnections.set(this.getActiveConnections())
+
     this.emit('systemMetrics', {
       timestamp: new Date(),
       memoryUsage,
@@ -237,6 +285,7 @@ export class PerformanceMonitor extends EventEmitter {
     const stats = this.getStats(300000) // 最近5分钟
 
     if (stats.errorRate > this.alertConfig.errorRateThreshold) {
+      errorCount.labels('high_error_rate').inc()
       this.emit('alert', {
         type: 'HIGH_ERROR_RATE',
         message: `High error rate detected: ${stats.errorRate.toFixed(2)}%`,
@@ -245,6 +294,7 @@ export class PerformanceMonitor extends EventEmitter {
     }
 
     if (stats.memoryUsagePercent > this.alertConfig.memoryUsageThreshold) {
+      errorCount.labels('high_memory_usage').inc()
       this.emit('alert', {
         type: 'HIGH_MEMORY_USAGE',
         message: `High memory usage detected: ${stats.memoryUsagePercent.toFixed(2)}%`,
@@ -253,6 +303,7 @@ export class PerformanceMonitor extends EventEmitter {
     }
 
     if (stats.cpuUsagePercent > this.alertConfig.cpuUsageThreshold) {
+      errorCount.labels('high_cpu_usage').inc()
       this.emit('alert', {
         type: 'HIGH_CPU_USAGE',
         message: `High CPU usage detected: ${stats.cpuUsagePercent.toFixed(2)}%`,

@@ -40,17 +40,17 @@ import {
 } from "lucide-react"
 import { useFastGPT } from "@/contexts/FastGPTContext"
 import type { FastGPTApp, FastGPTModel, VoiceModel } from "@/types/fastgpt"
-import FastGPTApi from "@/lib/api/fastgpt"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { motion, AnimatePresence } from "framer-motion"
 import { useToast } from "@/hooks/use-toast"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { STORAGE_KEYS, isApiConfigured } from "@/lib/utils"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { AvatarColorPicker } from "@/components/admin/avatar-color-picker"
 import { generateAvatarColor } from "@/lib/utils/avatar-utils"
+import { checkAuthentication } from "@/lib/admin/agent-api"
+import { fetchModels, addAgent, updateAgent, deleteAgent, toggleAgentStatus, checkAuthentication } from "@/lib/admin/agent-api"
 
 type AgentFormProps = {
   initialData?: FastGPTApp
@@ -80,7 +80,7 @@ function AgentForm({ initialData, onSubmit, onCancel, models, voiceModels, isLoa
       useProxy: initialData?.config?.useProxy === undefined ? true : initialData?.config?.useProxy, // 默认开启代理
     },
   })
-  const [activeTab, setActiveTab] = useState("basic")
+  const [_activeTab, setActiveTab] = useState("basic")
   const [copied, setCopied] = useState(false)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -520,41 +520,20 @@ export function NewAgentModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
 
   const handleAddAgent = async (agent: Omit<FastGPTApp, "id" | "createdAt" | "updatedAt">) => {
     try {
-      const LOCAL_STORAGE_KEYS = {
-        AGENTS: "ai_chat_agents",
+      const result = await addAgent(agent)
+      if (result.success) {
+        onClose()
+        toast({
+          title: "智能体创建成功",
+          description: `${agent.name} 已成功添加到您的智能体列表`,
+        })
+      } else {
+        toast({
+          title: "添加智能体失败",
+          description: result.error || "无法创建新智能体，请稍后重试",
+          variant: "destructive",
+        })
       }
-
-      const agentsStr = localStorage.getItem(LOCAL_STORAGE_KEYS.AGENTS)
-      const agents = agentsStr ? JSON.parse(agentsStr) : []
-
-      if (!agent.config.avatarColor) {
-        agent.config.avatarColor = generateAvatarColor(agent.name)
-      }
-
-      const id = `agent_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
-      const now = new Date().toISOString()
-
-      const newAgent = {
-        ...agent,
-        id,
-        createdAt: now,
-        updatedAt: now,
-      }
-
-      agents.push(newAgent)
-      localStorage.setItem(LOCAL_STORAGE_KEYS.AGENTS, JSON.stringify(agents))
-
-      const adminAgentsStr = localStorage.getItem("admin_agents")
-      const adminAgents = adminAgentsStr ? JSON.parse(adminAgentsStr) : []
-      adminAgents.push(newAgent)
-      localStorage.setItem("admin_agents", JSON.stringify(adminAgents))
-
-      onClose()
-
-      toast({
-        title: "智能体创建成功",
-        description: `${agent.name} 已成功添加到您的智能体列表`,
-      })
     } catch (error) {
       console.error("添加智能体失败:", error)
       toast({
@@ -609,12 +588,18 @@ export function AgentList() {
     const getModels = async () => {
       try {
         setIsLoadingModels(true)
-
-        // Check if we can access the API before making requests
-        // This prevents redirects to login page
-        const apiConfigured = isApiConfigured()
-        if (!apiConfigured) {
-          console.log("API not configured, using default models")
+        const result = await fetchModels()
+        if (result.success && result.data) {
+          setModels(result.data.models)
+          setVoiceModels(result.data.voiceModels)
+          setIsInitialized(true)
+        } else {
+          toast({
+            title: "Failed to get model list",
+            description: result.error || "Unable to get available AI model list, using default models",
+            variant: "destructive",
+          })
+          // Set to empty array to prevent errors
           setModels([
             { id: "default-model", name: "Default Model", available: true },
             { id: "gpt-3.5-turbo", name: "GPT-3.5 Turbo", available: true },
@@ -625,36 +610,7 @@ export function AgentList() {
             { id: "male-voice", name: "Male Voice", gender: "male" },
             { id: "female-voice", name: "Female Voice", gender: "female" },
           ])
-          return
         }
-
-        // Only fetch models if API is configured
-        const modelList = await FastGPTApi.getModels()
-        setModels(Array.isArray(modelList) ? modelList : [])
-
-        // Get voice models
-        const voiceModelList = await FastGPTApi.getVoiceModels()
-        setVoiceModels(Array.isArray(voiceModelList) ? voiceModelList : [])
-
-        setIsInitialized(true)
-      } catch (error) {
-        console.error("Failed to get model list:", error)
-        toast({
-          title: "Failed to get model list",
-          description: "Unable to get available AI model list, using default models",
-          variant: "destructive",
-        })
-        // Set to empty array to prevent errors
-        setModels([
-          { id: "default-model", name: "Default Model", available: true },
-          { id: "gpt-3.5-turbo", name: "GPT-3.5 Turbo", available: true },
-          { id: "gpt-4", name: "GPT-4", available: true },
-        ])
-        setVoiceModels([
-          { id: "default-voice", name: "Default Voice", gender: "female" },
-          { id: "male-voice", name: "Male Voice", gender: "male" },
-          { id: "female-voice", name: "Female Voice", gender: "female" },
-        ])
       } finally {
         setIsLoadingModels(false)
       }
@@ -702,7 +658,6 @@ export function AgentList() {
 
   const handleAddAgent = async (agent: Omit<FastGPTApp, "id" | "createdAt" | "updatedAt">) => {
     try {
-      // Check authentication first
       if (!checkAuthentication()) {
         toast({
           title: "Authentication Required",
@@ -711,50 +666,21 @@ export function AgentList() {
         })
         return
       }
-
-      // 直接使用FastGPT上下文中的方法
-      const LOCAL_STORAGE_KEYS = {
-        AGENTS: "ai_chat_agents",
+      const result = await addAgent(agent)
+      if (result.success) {
+        await fetchApplications()
+        setIsAddDialogOpen(false)
+        toast({
+          title: "智能体创建成功",
+          description: `${agent.name} 已成功添加到您的智能体列表`,
+        })
+      } else {
+        toast({
+          title: "添加智能体失败",
+          description: result.error || "无法创建新智能体，请稍后重试",
+          variant: "destructive",
+        })
       }
-
-      // 获取现有智能体
-      const agentsStr = localStorage.getItem(LOCAL_STORAGE_KEYS.AGENTS)
-      const agents = agentsStr ? JSON.parse(agentsStr) : []
-
-      // Inside handleAddAgent, before creating the new agent:
-      if (!agent.config.avatarColor) {
-        agent.config.avatarColor = generateAvatarColor(agent.name)
-      }
-
-      // 创建新智能体
-      const id = `agent_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
-      const now = new Date().toISOString()
-
-      const newAgent = {
-        ...agent,
-        id,
-        createdAt: now,
-        updatedAt: now,
-      }
-
-      // 添加到列表并保存
-      agents.push(newAgent)
-      localStorage.setItem(LOCAL_STORAGE_KEYS.AGENTS, JSON.stringify(agents))
-
-      // 保存到管理员配置
-      const adminAgentsStr = localStorage.getItem("admin_agents")
-      const adminAgents = adminAgentsStr ? JSON.parse(adminAgentsStr) : []
-      adminAgents.push(newAgent)
-      localStorage.setItem("admin_agents", JSON.stringify(adminAgents))
-
-      // 刷新应用列表
-      await fetchApplications()
-      setIsAddDialogOpen(false)
-
-      toast({
-        title: "智能体创建成功",
-        description: `${agent.name} 已成功添加到您的智能体列表`,
-      })
     } catch (error) {
       console.error("添加智能体失败:", error)
       toast({
@@ -767,7 +693,6 @@ export function AgentList() {
 
   const handleEditAgent = async (updatedAgent: FastGPTApp) => {
     try {
-      // Check authentication first
       if (!checkAuthentication()) {
         toast({
           title: "Authentication Required",
@@ -776,71 +701,21 @@ export function AgentList() {
         })
         return
       }
-
-      const LOCAL_STORAGE_KEYS = {
-        AGENTS: "ai_chat_agents",
+      const result = await updateAgent(updatedAgent)
+      if (result.success) {
+        await fetchApplications()
+        setIsEditDialogOpen(false)
+        toast({
+          title: "智能体更新成功",
+          description: `${updatedAgent.name} 已成功更新`,
+        })
+      } else {
+        toast({
+          title: "更新智能体失败",
+          description: result.error || "无法更新智能体信息，请稍后重试",
+          variant: "destructive",
+        })
       }
-
-      // 获取现有智能体
-      const agentsStr = localStorage.getItem(LOCAL_STORAGE_KEYS.AGENTS)
-      const agents = agentsStr ? JSON.parse(agentsStr) : []
-
-      // Similarly, in handleEditAgent, if the avatar color is being removed, generate one:
-      // Inside handleEditAgent, before updating the agent:
-      if (!updatedAgent.config.avatarColor) {
-        updatedAgent.config.avatarColor = generateAvatarColor(updatedAgent.name)
-      }
-
-      // 查找并更新智能体
-      const index = agents.findIndex((a) => a.id === updatedAgent.id)
-
-      if (index !== -1) {
-        agents[index] = {
-          ...agents[index],
-          ...updatedAgent,
-          config: {
-            ...agents[index].config,
-            ...updatedAgent.config,
-          },
-          updatedAt: new Date().toISOString(),
-        }
-
-        // 保存更新后的列表
-        localStorage.setItem(LOCAL_STORAGE_KEYS.AGENTS, JSON.stringify(agents))
-
-        // 更新管理员配置
-        const adminAgentsStr = localStorage.getItem("admin_agents")
-        const adminAgents = adminAgentsStr ? JSON.parse(adminAgentsStr) : []
-        const adminIndex = adminAgents.findIndex((a) => a.id === updatedAgent.id)
-
-        if (adminIndex !== -1) {
-          adminAgents[adminIndex] = {
-            ...adminAgents[adminIndex],
-            ...updatedAgent,
-            config: {
-              ...adminAgents[adminIndex].config,
-              ...updatedAgent.config,
-            },
-            updatedAt: new Date().toISOString(),
-          }
-        } else {
-          adminAgents.push({
-            ...updatedAgent,
-            updatedAt: new Date().toISOString(),
-          })
-        }
-
-        localStorage.setItem("admin_agents", JSON.stringify(adminAgents))
-      }
-
-      // 刷新应用列表
-      await fetchApplications()
-      setIsEditDialogOpen(false)
-
-      toast({
-        title: "智能体更新成功",
-        description: `${updatedAgent.name} 已成功更新`,
-      })
     } catch (error) {
       console.error("更新智能体失败:", error)
       toast({
@@ -853,7 +728,6 @@ export function AgentList() {
 
   const handleDeleteAgent = async (id: string) => {
     try {
-      // Check authentication first
       if (!checkAuthentication()) {
         toast({
           title: "Authentication Required",
@@ -862,36 +736,20 @@ export function AgentList() {
         })
         return
       }
-
-      const LOCAL_STORAGE_KEYS = {
-        AGENTS: "ai_chat_agents",
+      const result = await deleteAgent(id)
+      if (result.success) {
+        await fetchApplications()
+        toast({
+          title: "智能体已删除",
+          description: "智能体已成功从您的列表中移除",
+        })
+      } else {
+        toast({
+          title: "删除智能体失败",
+          description: result.error || "无法删除智能体，请稍后重试",
+          variant: "destructive",
+        })
       }
-
-      // 获取现有智能体
-      const agentsStr = localStorage.getItem(LOCAL_STORAGE_KEYS.AGENTS)
-      const agents = agentsStr ? JSON.parse(agentsStr) : []
-
-      // 过滤掉要删除的智能体
-      const filteredAgents = agents.filter((agent) => agent.id !== id)
-
-      // 保存更新后的列表
-      localStorage.setItem(LOCAL_STORAGE_KEYS.AGENTS, JSON.stringify(filteredAgents))
-
-      // 更新管理员配置
-      const adminAgentsStr = localStorage.getItem("admin_agents")
-      if (adminAgentsStr) {
-        const adminAgents = JSON.parse(adminAgentsStr)
-        const filteredAdminAgents = adminAgents.filter((agent) => agent.id !== id)
-        localStorage.setItem("admin_agents", JSON.stringify(filteredAdminAgents))
-      }
-
-      // 刷新应用列表
-      await fetchApplications()
-
-      toast({
-        title: "智能体已删除",
-        description: "智能体已成功从您的列表中移除",
-      })
     } catch (error) {
       console.error("删除智能体失败:", error)
       toast({
@@ -907,35 +765,20 @@ export function AgentList() {
     if (!agent) {return}
 
     try {
-      const LOCAL_STORAGE_KEYS = {
-        AGENTS: "ai_chat_agents",
+      const result = await toggleAgentStatus(id, status)
+      if (result.success) {
+        await fetchApplications()
+        toast({
+          title: status === "active" ? "智能体已启用" : "智能体已禁用",
+          description: status === "active" ? "智能体现在可供用户使用" : "智能体已被禁用，用户将无法访问",
+        })
+      } else {
+        toast({
+          title: "更新状态失败",
+          description: result.error || "无法更新智能体状态，请稍后重试",
+          variant: "destructive",
+        })
       }
-
-      // 获取现有智能体
-      const agentsStr = localStorage.getItem(LOCAL_STORAGE_KEYS.AGENTS)
-      const agents = agentsStr ? JSON.parse(agentsStr) : []
-
-      // 查找并更新智能体状态
-      const index = agents.findIndex((a) => a.id === id)
-
-      if (index !== -1) {
-        agents[index] = {
-          ...agents[index],
-          status,
-          updatedAt: new Date().toISOString(),
-        }
-
-        // 保存更新后的列表
-        localStorage.setItem(LOCAL_STORAGE_KEYS.AGENTS, JSON.stringify(agents))
-      }
-
-      // 刷新应用列表
-      await fetchApplications()
-
-      toast({
-        title: status === "active" ? "智能体已启用" : "智能体已禁用",
-        description: status === "active" ? "智能体现在可供用户使用" : "智能体已被禁用，用户将无法访问",
-      })
     } catch (error) {
       console.error("更新智能体状态失败:", error)
       toast({
@@ -1032,22 +875,11 @@ export function AgentList() {
             重试加载
           </Button>
         </div>
-        <Card className="backdrop-blur-md bg-white/90 dark:bg-gray-800/90 border-red-200 dark:border-red-900 shadow-md">
-          <CardContent className="flex flex-col items-center justify-center h-40 p-6">
-            <p className="text-red-500 dark:text-red-400 mb-4">加载智能体列表时出错</p>
-            <p className="text-gray-500 dark:text-gray-400 mb-4 text-center">
-              应用列表数据格式不正确。这可能是由于API返回了意外的数据格式或网络错误。
-            </p>
-            <Button
-              variant="outline"
-              onClick={() => {
-                fetchApplications()
-              }}
-            >
-              重新加载
-            </Button>
-          </CardContent>
-        </Card>
+        <ErrorState
+          title="加载智能体列表时出错"
+          description="应用列表数据格式不正确。这可能是由于API返回了意外的数据格式或网络错误。"
+          onRetry={fetchApplications}
+        />
       </div>
     )
   }

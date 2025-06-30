@@ -12,120 +12,10 @@ import { memo, useCallback } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ArrowRight, Users, Star, TrendingUp, Sparkles } from 'lucide-react'
-
-// 信任指标数据
-const trustMetrics = [
-  {
-    icon: Users,
-    label: '活跃用户',
-    value: '10,000+',
-    color: 'text-blue-600'
-  },
-  {
-    icon: Star,
-    label: '用户评分',
-    value: '4.8/5',
-    color: 'text-yellow-500'
-  },
-  {
-    icon: TrendingUp,
-    label: '可用性',
-    value: '99.9%',
-    color: 'text-green-600'
-  }
-] as const
-
-// 信任指标组件
-const TrustMetric = memo<{
-  icon: React.ComponentType<{ className?: string }>
-  label: string
-  value: string
-  color: string
-}>(({ icon: Icon, label, value, color }) => (
-  <div className="flex items-center gap-x-2 group">
-    <Icon className={`h-4 w-4 ${color} group-hover:scale-110 transition-transform duration-200`} />
-    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-      {value}
-    </span>
-    <span className="text-sm text-gray-500 dark:text-gray-400">
-      {label}
-    </span>
-  </div>
-))
-
-TrustMetric.displayName = 'TrustMetric'
-
-// CTA按钮组件
-const CTAButtons = memo(() => {
-  const handleStartChat = useCallback(() => {
-    // 可以添加埋点统计
-    if (typeof window !== 'undefined' && window.gtag) {
-      window.gtag('event', 'click', {
-        event_category: 'CTA',
-        event_label: 'Start Chat'
-      })
-    }
-  }, [])
-
-  const handleBrowseAgents = useCallback(() => {
-    // 可以添加埋点统计
-    if (typeof window !== 'undefined' && window.gtag) {
-      window.gtag('event', 'click', {
-        event_category: 'CTA',
-        event_label: 'Browse Agents'
-      })
-    }
-  }, [])
-
-  return (
-    <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-      <Button 
-        asChild 
-        size="lg" 
-        className="h-12 px-8 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
-        onClick={handleStartChat}
-      >
-        <Link href="/chat" className="group">
-          开始对话
-          <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform duration-200" />
-        </Link>
-      </Button>
-      
-      <Button 
-        asChild 
-        variant="outline" 
-        size="lg" 
-        className="h-12 px-8 border-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-200"
-        onClick={handleBrowseAgents}
-      >
-        <Link href="/agents">
-          浏览智能体
-        </Link>
-      </Button>
-    </div>
-  )
-})
-
-CTAButtons.displayName = 'CTAButtons'
-
-// 背景装饰组件
-const BackgroundDecorations = memo(() => (
-  <>
-    {/* 网格背景 */}
-    <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] dark:bg-grid-slate-700/25" />
-    
-    {/* 渐变光晕 */}
-    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 bg-gradient-to-r from-blue-400/20 to-purple-400/20 rounded-full blur-3xl" />
-    <div className="absolute bottom-0 right-1/4 w-72 h-72 bg-gradient-to-r from-green-400/20 to-blue-400/20 rounded-full blur-3xl" />
-    
-    {/* 浮动装饰元素 */}
-    <div className="absolute top-20 left-10 w-4 h-4 bg-blue-500/30 rounded-full animate-pulse" />
-    <div className="absolute top-40 right-20 w-6 h-6 bg-purple-500/30 rounded-full animate-pulse delay-1000" />
-    <div className="absolute bottom-40 left-20 w-3 h-3 bg-green-500/30 rounded-full animate-pulse delay-2000" />
-  </>
-))
-
-BackgroundDecorations.displayName = 'BackgroundDecorations'
+import { TRUST_METRICS } from '@/lib/welcome/constants'
+import { TrustMetric } from '@/components/common/trust-metric'
+import { CTAButtons } from '@/components/common/cta-buttons'
+import { BackgroundDecorations } from '@/components/common/background-decorations'
 
 // 主英雄区域组件
 const HeroSection = memo(() => {
@@ -163,7 +53,7 @@ const HeroSection = memo(() => {
           
           {/* 信任指标 */}
           <div className="mt-16 flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-8 text-sm">
-            {trustMetrics.map((metric, index) => (
+            {TRUST_METRICS.map((metric, index) => (
               <TrustMetric key={index} {...metric} />
             ))}
           </div>

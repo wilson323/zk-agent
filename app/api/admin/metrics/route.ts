@@ -5,9 +5,12 @@
  * @date 2025-06-25
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { createApiRoute, RouteConfigs, CommonValidations } from '@/lib/middleware/api-route-wrapper';
+import { NextRequest } from 'next/server';
+import { createApiRoute, RouteConfigs } from '@/lib/middleware/api-route-wrapper';
 import { ApiResponseWrapper } from '@/lib/utils/api-helper';
+import { ErrorCode } from '@/types/core';
+import { ErrorCode } from '@/types/core';
+import { ErrorCode } from '@/types/core';
 import { verifyAdminAuth } from "@/lib/auth/middleware"
 import os from "os"
 
@@ -66,12 +69,12 @@ async function getUserInfo() {
 
 export const GET = createApiRoute(
   RouteConfigs.protectedGet(),
-  async (req: NextRequest, { params, validatedBody, validatedQuery, user, requestId }) => {
+  async (req: NextRequest, { params: params, validatedBody: validatedBody, validatedQuery: validatedQuery, user: user, requestId: requestId }) => {
     try {
       // 验证管理员权限
       const authResult = await verifyAdminAuth(req);
       if (!authResult.success) {
-        return ApiResponseWrapper.error('权限不足', 403);
+        return ApiResponseWrapper.error(ErrorCode.AUTHORIZATION_ERROR, '权限不足', null, 403);
       }
     
       // 获取系统指标
@@ -114,7 +117,7 @@ export const GET = createApiRoute(
     
       return ApiResponseWrapper.success(metrics);
     } catch (error) {
-      return ApiResponseWrapper.error('获取系统指标失败', 500);
+      return ApiResponseWrapper.error(ErrorCode.INTERNAL_SERVER_ERROR, '获取系统指标失败', null, 500);
     }
   }
 );

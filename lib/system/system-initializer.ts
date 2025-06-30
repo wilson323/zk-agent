@@ -14,6 +14,9 @@ import { enhancedDatabaseManager } from '@/lib/database/enhanced-database-manage
 import { highAvailabilityManager } from '@/lib/system/high-availability-manager';
 import { unifiedAIAdapter, initializeAIServices } from '@/lib/ai/unified-ai-adapter';
 import { enhancedMockService } from '@/lib/mocks/enhanced-mock-service';
+import { errorMonitor } from '@/lib/monitoring/error-monitor';
+import { errorTracker } from '@/lib/monitoring/error-tracker';
+import { getErrorMonitoringConfig, validateErrorMonitoringConfig } from '@/lib/config/error-monitoring-config';
 
 export class SystemInitializer {
   private static instance: SystemInitializer;
@@ -205,9 +208,34 @@ export class SystemInitializer {
     // 高可用管理器已通过单例自动初始化
     const systemStatus: any = await highAvailabilityManager.getSystemStatus();
 
+    // 启动错误监控系统
+    this.logger.info('🔍 Starting error monitoring system...');
+    const monitoringConfig = getErrorMonitoringConfig();
+    
+    // 验证配置
+    if (!validateErrorMonitoringConfig(monitoringConfig)) {
+      this.logger.warn('⚠️ Error monitoring config validation failed, using defaults');
+    }
+    
+    // 启动错误监控器
+    errorMonitor.startMonitoring(monitoringConfig.monitoringInterval);
+    
+    // 启动错误追踪器
+    this.logger.info('📋 Starting error tracker...');
+    errorTracker.startTracking();
+    
+    this.logger.info('✅ Error monitoring system started', {
+      interval: monitoringConfig.monitoringInterval,
+      errorRateThreshold: monitoringConfig.alertThresholds.errorRate,
+      autoRecovery: monitoringConfig.autoRecovery.enabled,
+      notifications: monitoringConfig.notifications.enabled
+    });
+
     this.logger.info('✅ Monitoring components initialized', {
       performanceMonitor: 'active',
       highAvailabilityManager: 'active',
+      errorMonitor: 'active',
+      errorTracker: 'active',
       services: Object.keys(systemStatus.services).length,
     });
   }
@@ -407,4 +435,4 @@ export const systemInitializer: any = SystemInitializer.getInstance();
 
 // 导出便捷方法
 export const initializeSystem: any = systemInitializer.initialize.bind(systemInitializer);
-export const getSystemInfo: any = systemInitializer.getSystemInfo.bind(systemInitializer); 
+export const getSystemInfo: any = systemInitializer.getSystemInfo.bind(systemInitializer);

@@ -6,21 +6,17 @@
  * @date 2024-12-19
  */
 
-// 用户角色枚举
-export enum UserRole {
-  USER = 'user',
-  ADMIN = 'admin',
-  PREMIUM = 'premium',
-  SUPER_ADMIN = 'super_admin'
-}
+// 导入统一的用户角色枚举
+import { UserRole } from '@/lib/types/enums';
 
-// 用户状态枚举
-export enum UserStatus {
-  ACTIVE = 'active',
-  INACTIVE = 'inactive',
-  SUSPENDED = 'suspended',
-  DELETED = 'deleted'
-}
+// 重新导出以保持向后兼容性
+export { UserRole };
+
+// 导入统一的用户状态枚举
+import { UserStatus } from '@/lib/types/enums';
+
+// 重新导出以保持向后兼容性
+export { UserStatus };
 
 // 基础用户信息
 export interface BaseUser {

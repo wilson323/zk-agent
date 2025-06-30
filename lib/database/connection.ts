@@ -38,11 +38,39 @@ export interface DatabaseHealthCheck {
       pending: number
       applied: number
     }
+    optimization: {
+      enabled: boolean
+      componentsActive: number
+      lastOptimization: Date | null
+      recommendations: number
+    }
+  }
+  timestamp: Date
+}
+
+// 数据库性能概览
+export interface DatabasePerformanceOverview {
+  monitoring: {
+    isActive: boolean
+    metricsCount: number
+    alertsCount: number
+  }
+  optimization: {
+    isActive: boolean
+    componentsStatus: Record<string, any>
+    recommendations: any[]
+  }
+  health: {
+    score: number
+    status: 'excellent' | 'good' | 'fair' | 'poor'
+    issues: string[]
   }
   timestamp: Date
 }
 
 import { enhancedDb, EnhancedDatabaseConnection, ConnectionState } from './enhanced-connection'
+import { databaseMonitor } from './monitoring'
+import { DatabasePerformanceUtils } from './enhanced-database-manager'
 
 // 全局 Prisma 客户端实例
 let prisma: PrismaClient | null = null
@@ -121,11 +149,16 @@ export async function checkDatabaseConnection(): Promise<DatabaseStatus> {
   } catch (error) {
     console.error('Database connection failed:', error)
     
-    // 如果增强连接管理器未连接，尝试连接
+    // 如果增强连接管理器未连接，尝试连接（但不递归重试）
     if (!enhancedDb.isConnected()) {
       try {
         await enhancedDb.connect()
-        return await checkDatabaseConnection() // 递归重试
+        // 连接成功后返回成功状态，不再递归调用
+        return {
+          connected: true,
+          message: 'Database connection successful via enhanced manager',
+          timestamp: new Date()
+        }
       } catch (connectError) {
         console.error('Enhanced connection failed:', connectError)
       }
@@ -155,6 +188,9 @@ export async function performDatabaseHealthCheck(): Promise<DatabaseHealthCheck>
     // 检查迁移状态
     const migrationChecks = await checkMigrationStatus()
     
+    // 检查性能优化状态
+    const optimizationStatus = await checkOptimizationStatus()
+    
     // 确定整体健康状态
     let status: DatabaseHealthCheck['status'] = 'healthy'
     
@@ -171,6 +207,7 @@ export async function performDatabaseHealthCheck(): Promise<DatabaseHealthCheck>
         queries: queryChecks,
         migrations: migrationChecks
       },
+      optimization: optimizationStatus,
       timestamp
     }
   } catch (error) {
@@ -194,6 +231,12 @@ export async function performDatabaseHealthCheck(): Promise<DatabaseHealthCheck>
           applied: 0
         }
       },
+      optimization: {
+        enabled: false,
+        componentsActive: 0,
+        lastOptimization: null,
+        recommendations: []
+      },
       timestamp
     }
   }
@@ -202,6 +245,50 @@ export async function performDatabaseHealthCheck(): Promise<DatabaseHealthCheck>
 /**
  * 检查数据库查询操作
  */
+/**
+ * 检查性能优化状态
+ * @returns {Promise<object>} 性能优化状态信息
+ */
+async function checkOptimizationStatus(): Promise<{
+  enabled: boolean
+  componentsActive: number
+  lastOptimization: Date | null
+  recommendations: any[]
+}> {
+  try {
+    // 检查数据库监控器是否启用
+    const monitoringActive = databaseMonitor && databaseMonitor.isMonitoring()
+    
+    if (!monitoringActive) {
+      return {
+        enabled: false,
+        componentsActive: 0,
+        lastOptimization: null,
+        recommendations: []
+      }
+    }
+    
+    // 获取优化状态
+    const optimizationStatus = databaseMonitor.getOptimizationStatus()
+    const recommendations = databaseMonitor.getOptimizationRecommendations()
+    
+    return {
+      enabled: true,
+      componentsActive: Object.values(optimizationStatus).filter(Boolean).length,
+      lastOptimization: optimizationStatus.lastOptimization,
+      recommendations: recommendations.slice(0, 5) // 限制返回前5个建议
+    }
+  } catch (error) {
+    console.error('Failed to check optimization status:', error)
+    return {
+      enabled: false,
+      componentsActive: 0,
+      lastOptimization: null,
+      recommendations: []
+    }
+  }
+}
+
 async function checkDatabaseQueries(): Promise<{
   read: boolean
   write: boolean
@@ -380,6 +467,146 @@ export async function getDatabasePoolStatus(): Promise<any> {
   }
 }
 
+/**
+ * 获取数据库性能概览
+ * @returns {Promise<DatabasePerformanceOverview>} 数据库性能概览信息
+ */
+export async function getDatabasePerformanceOverview(): Promise<DatabasePerformanceOverview> {
+  const timestamp = new Date()
+  
+  try {
+    // 获取监控状态
+    const monitoringActive = databaseMonitor && databaseMonitor.isMonitoring()
+    let monitoringInfo = {
+      isActive: false,
+      metricsCount: 0,
+      alertsCount: 0
+    }
+    
+    if (monitoringActive) {
+      const metrics = databaseMonitor.getMetrics()
+      const alerts = databaseMonitor.getAlerts()
+      
+      monitoringInfo = {
+        isActive: true,
+        metricsCount: metrics.length,
+        alertsCount: alerts.filter(alert => alert.level === 'CRITICAL' || alert.level === 'WARNING').length
+      }
+    }
+    
+    // 获取优化状态
+    const optimizationStatus = await checkOptimizationStatus()
+    const optimizationInfo = {
+      isActive: optimizationStatus.enabled,
+      componentsStatus: optimizationStatus.enabled ? databaseMonitor.getOptimizationStatus() : {},
+      recommendations: optimizationStatus.recommendations
+    }
+    
+    // 计算健康评分
+    const healthCheck = await performDatabaseHealthCheck()
+    let healthScore = 100
+    
+    if (healthCheck.status === 'unhealthy') {
+      healthScore = 30
+    } else if (healthCheck.status === 'degraded') {
+      healthScore = 70
+    } else if (monitoringInfo.alertsCount > 0) {
+      healthScore = Math.max(50, 100 - (monitoringInfo.alertsCount * 10))
+    }
+    
+    const healthStatus = healthScore >= 90 ? 'excellent' : 
+                        healthScore >= 70 ? 'good' : 
+                        healthScore >= 50 ? 'fair' : 'poor'
+    
+    const healthIssues: string[] = []
+    if (!healthCheck.checks.connection.connected) {
+      healthIssues.push('数据库连接失败')
+    }
+    if (!healthCheck.checks.queries.read) {
+      healthIssues.push('数据库读取操作失败')
+    }
+    if (!healthCheck.checks.queries.write) {
+      healthIssues.push('数据库写入操作失败')
+    }
+    if (monitoringInfo.alertsCount > 0) {
+      healthIssues.push(`存在 ${monitoringInfo.alertsCount} 个活跃告警`)
+    }
+    if (!optimizationStatus.enabled) {
+      healthIssues.push('性能优化组件未启用')
+    }
+    
+    return {
+      monitoring: monitoringInfo,
+      optimization: optimizationInfo,
+      health: {
+        score: healthScore,
+        status: healthStatus,
+        issues: healthIssues
+      },
+      timestamp
+    }
+  } catch (error) {
+    console.error('Failed to get database performance overview:', error)
+    
+    return {
+      monitoring: {
+        isActive: false,
+        metricsCount: 0,
+        alertsCount: 0
+      },
+      optimization: {
+        isActive: false,
+        componentsStatus: {},
+        recommendations: []
+      },
+      health: {
+        score: 0,
+        status: 'poor',
+        issues: ['无法获取性能概览信息']
+      },
+      timestamp
+    }
+  }
+}
+
+/**
+ * 触发数据库性能优化
+ * @returns {Promise<boolean>} 优化是否成功触发
+ */
+export async function triggerDatabaseOptimization(): Promise<boolean> {
+  try {
+    if (!databaseMonitor || !databaseMonitor.isMonitoring()) {
+      console.warn('Database monitoring is not active, cannot trigger optimization')
+      return false
+    }
+    
+    // 触发优化
+    await databaseMonitor.triggerOptimization()
+    console.log('Database optimization triggered successfully')
+    return true
+  } catch (error) {
+    console.error('Failed to trigger database optimization:', error)
+    return false
+  }
+}
+
+/**
+ * 获取数据库性能报告
+ * @returns {Promise<any>} 性能报告
+ */
+export async function getDatabasePerformanceReport(): Promise<any> {
+  try {
+    if (!DatabasePerformanceUtils) {
+      throw new Error('DatabasePerformanceUtils not available')
+    }
+    
+    return await DatabasePerformanceUtils.getPerformanceReport()
+  } catch (error) {
+    console.error('Failed to get database performance report:', error)
+    throw error
+  }
+}
+
 // 进程退出时清理连接
 process.on('beforeExit', async () => {
   try {
@@ -433,11 +660,11 @@ export {
   enhancedDb, 
   EnhancedDatabaseConnection, 
   ConnectionState,
-  connectDatabase,
-  disconnectDatabase,
-  getDatabaseStats,
-  isDatabaseConnected,
-  executeQuery
+  // connectDatabase,
+  // disconnectDatabase,
+  // getDatabaseStats,
+  // isDatabaseConnected,
+  // executeQuery
 } from './enhanced-connection'
 
 // 初始化增强数据库连接（如果环境变量启用）

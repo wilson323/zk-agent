@@ -6,7 +6,7 @@
  */
 
 import { EventEmitter } from 'events';
-import { DatabaseService } from '../database';
+import { enhancedDb, dbTransaction } from '@/lib/database';
 import { LogLevel } from '@prisma/client';
 
 // 错误上下文接口
@@ -140,7 +140,7 @@ export class ErrorTracker extends EventEmitter {
    */
   async getErrorStats(timeRangeMs: number = 86400000): Promise<ErrorStats> {
     try {
-      const prisma = DatabaseService.getInstance();
+      const prisma = productionDatabaseManager.getPrismaClient();
       const cutoffTime = new Date(Date.now() - timeRangeMs);
 
       const errors = await prisma.errorLog.findMany({
@@ -152,9 +152,9 @@ export class ErrorTracker extends EventEmitter {
       });
 
       const totalErrors = errors.length;
-      const unresolvedErrors = errors.filter(e => !e.resolved).length;
+      const unresolvedErrors = errors.filter((e: any) => !e.resolved).length;
       const errorsByLevel = errors.reduce(
-        (acc, error) => {
+        (acc: Record<LogLevel, number>, error: any) => {
           acc[error.level] = (acc[error.level] || 0) + 1;
           return acc;
         },
@@ -162,7 +162,7 @@ export class ErrorTracker extends EventEmitter {
       );
 
       const errorsByType = errors.reduce(
-        (acc, error) => {
+        (acc: Record<LogLevel, number>, error: any) => {
           const type = this.extractErrorType(error.message);
           acc[type] = (acc[type] || 0) + 1;
           return acc;
@@ -174,10 +174,10 @@ export class ErrorTracker extends EventEmitter {
       const errorRate = totalErrors / timeRangeHours;
 
       // 计算MTTR（简化版本）
-      const resolvedErrors = errors.filter(e => e.resolved);
+      const resolvedErrors = errors.filter((e: any) => e.resolved);
       const mttr =
         resolvedErrors.length > 0
-          ? resolvedErrors.reduce((acc, _error) => {
+          ? resolvedErrors.reduce((acc: number) => {
               // 假设解决时间为创建后24小时（实际应该有解决时间字段）
               return acc + 24;
             }, 0) / resolvedErrors.length
@@ -202,7 +202,7 @@ export class ErrorTracker extends EventEmitter {
    */
   async analyzeErrorPatterns(timeRangeMs: number = 86400000): Promise<ErrorAnalysis[]> {
     try {
-      const prisma = DatabaseService.getInstance();
+      const prisma = productionDatabaseManager.getPrismaClient();
       const cutoffTime = new Date(Date.now() - timeRangeMs);
 
       const errors = await prisma.errorLog.findMany({
@@ -222,8 +222,10 @@ export class ErrorTracker extends EventEmitter {
       const entries = Array.from(errorGroups.entries());
       for (let i = 0; i < entries.length; i++) {
         const [pattern, groupErrors] = entries[i];
-        const analysis = await this.analyzeErrorGroup(pattern, groupErrors);
-        analyses.push(analysis);
+        if (groupErrors && groupErrors.length >= 5) {
+          const analysis = await this.analyzeErrorGroup(pattern, groupErrors);
+          analyses.push(analysis);
+        }
       }
 
       return analyses.sort((a, b) => b.frequency - a.frequency);
@@ -238,7 +240,7 @@ export class ErrorTracker extends EventEmitter {
    */
   async resolveError(errorId: string, resolvedBy?: string): Promise<void> {
     try {
-      const prisma = DatabaseService.getInstance();
+      const prisma = productionDatabaseManager.getPrismaClient();
       await prisma.errorLog.update({
         where: { id: errorId },
         data: {
@@ -286,7 +288,7 @@ export class ErrorTracker extends EventEmitter {
    * 保存错误到数据库
    */
   private async saveErrorToDatabase(errorData: any): Promise<void> {
-    const prisma = DatabaseService.getInstance();
+    const prisma = enhancedDb.prisma;
     await prisma.errorLog.create({
       data: {
         level: errorData.level,
@@ -332,7 +334,7 @@ export class ErrorTracker extends EventEmitter {
    * 分析错误组
    */
   private async analyzeErrorGroup(pattern: string, errors: any[]): Promise<ErrorAnalysis> {
-    const errorType = this.extractErrorType(errors[0].message);
+    const errorType = this.extractErrorType(errors[0]?.message || '');
     const severity = this.determineSeverity(errors);
     const affectedUsers = new Set(errors.map(e => e.context.userId).filter(Boolean)).size;
 
@@ -412,11 +414,11 @@ export class ErrorTracker extends EventEmitter {
   /**
    * 提取通用模式
    */
-  private extractCommonPatterns(errors: any[]): string[] {
+  private extractCommonPatterns(_errors: any[]): string[] {
     const patterns: string[] = [];
 
     // 分析URL模式
-    const urls = errors.map(e => e.context.url).filter(Boolean);
+    const urls = _errors.map(e => e.context.url).filter(Boolean);
     if (urls.length > 0) {
       const commonUrl = this.findMostCommon(urls);
       if (commonUrl) {
@@ -425,7 +427,7 @@ export class ErrorTracker extends EventEmitter {
     }
 
     // 分析用户代理模式
-    const userAgents = errors.map(e => e.context.userAgent).filter(Boolean);
+    const userAgents = _errors.map(e => e.context.userAgent).filter(Boolean);
     if (userAgents.length > 0) {
       const commonUA = this.findMostCommon(userAgents);
       if (commonUA) {
@@ -541,7 +543,7 @@ export const errorTracker = new ErrorTracker();
 
 // 中间件函数
 export function errorTrackingMiddleware() {
-  return (error: Error, req: any, res: any, next: any) => {
+  return (error: Error, req: any, _res: any, next: any) => {
     errorTracker.trackError(error, LogLevel.ERROR, {
       userId: req.user?.id,
       sessionId: req.sessionID,

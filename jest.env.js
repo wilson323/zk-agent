@@ -8,8 +8,8 @@ process.env.NODE_ENV = 'test';
 process.env.NEXT_PUBLIC_APP_ENV = 'test';
 
 // 数据库配置
-process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/zk_agent_test';
-process.env.DATABASE_URL_TEST = 'postgresql://test:test@localhost:5432/zk_agent_test';
+process.env.DATABASE_URL = 'postgresql://postgres:123456@localhost:5432/zk-agent-test';
+process.env.DATABASE_URL_TEST = 'postgresql://postgres:123456@localhost:5432/zk-agent-test';
 
 // Redis配置
 process.env.REDIS_URL = 'redis://localhost:6379/1';

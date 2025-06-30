@@ -131,7 +131,16 @@ export class AdvancedCADAnalyzer {
   }
 
   private calculateAverageProcessingTime(): number {
-    // TODO: Implement the logic to calculate the average processing time
-    return 0
+    // 实现平均处理时间计算逻辑
+    if (this.processingTimes.length === 0) {
+      return 0;
+    }
+    
+    // 计算所有处理时间的平均值
+    const totalTime = this.processingTimes.reduce((sum, time) => sum + time, 0);
+    const averageTime = totalTime / this.processingTimes.length;
+    
+    // 保留两位小数
+    return Math.round(averageTime * 100) / 100;
   }
 }

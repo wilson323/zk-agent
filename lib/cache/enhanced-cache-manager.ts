@@ -9,65 +9,24 @@
 
 import { Logger } from '@/lib/utils/logger';
 
-// 缓存项接口
-interface CacheItem<T = any> {
-  key: string;
-  value: T;
-  expiry: number;
-  hits: number;
-  lastAccessed: number;
-  size: number;
-  tags: string[];
-  priority: CachePriority;
-}
+// 导入统一的缓存类型定义
+import {
+  CacheItem,
+  CachePriority,
+  CacheStrategy as EvictionPolicy,
+  CacheConfig,
+  CacheStats as CacheMetrics,
+  CacheEvent,
+  ICacheManager
+} from '../shared/cache-types';
 
-// 缓存优先级
-enum CachePriority {
-  LOW = 1,
-  NORMAL = 2,
-  HIGH = 3,
-  CRITICAL = 4,
-}
-
-// 缓存策略
-enum EvictionPolicy {
-  LRU = 'lru',           // 最近最少使用
-  LFU = 'lfu',           // 最少使用频率
-  TTL = 'ttl',           // 基于过期时间
-  PRIORITY = 'priority',  // 基于优先级
-  ADAPTIVE = 'adaptive',  // 自适应策略
-}
-
-// 缓存配置
-interface CacheConfig {
-  maxSize: number;           // 最大缓存大小（字节）
-  maxItems: number;          // 最大缓存项数
-  defaultTTL: number;        // 默认TTL（毫秒）
-  evictionPolicy: EvictionPolicy;
-  compressionEnabled: boolean;
-  persistenceEnabled: boolean;
-  metricsEnabled: boolean;
-}
-
-// 缓存指标
-interface CacheMetrics {
-  hits: number;
-  misses: number;
-  hitRate: number;
-  totalSize: number;
-  itemCount: number;
-  evictions: number;
-  compressionRatio: number;
-  memoryUsage: number;
-}
-
-// 缓存事件
-interface CacheEvent {
-  type: 'hit' | 'miss' | 'set' | 'delete' | 'evict' | 'clear';
-  key: string;
-  timestamp: number;
-  metadata?: any;
-}
+// 保持向后兼容的类型别名
+type LegacyCacheItem<T = any> = CacheItem<T>;
+type LegacyCachePriority = CachePriority;
+type LegacyEvictionPolicy = EvictionPolicy;
+type LegacyCacheConfig = CacheConfig;
+type LegacyCacheMetrics = CacheMetrics;
+type LegacyCacheEvent = CacheEvent;
 
 export class EnhancedCacheManager {
   private static instance: EnhancedCacheManager;
@@ -719,4 +678,4 @@ export const cacheSet = enhancedCacheManager.set.bind(enhancedCacheManager);
 export const cacheGet = enhancedCacheManager.get.bind(enhancedCacheManager);
 export const cacheDelete = enhancedCacheManager.delete.bind(enhancedCacheManager);
 export const cacheClear = enhancedCacheManager.clear.bind(enhancedCacheManager);
-export const cacheHas = enhancedCacheManager.has.bind(enhancedCacheManager); 
+export const cacheHas = enhancedCacheManager.has.bind(enhancedCacheManager);

@@ -7,11 +7,19 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { ZodError } from 'zod';
-import { AgentError, ErrorSeverity, AgentErrorType } from '@/lib/errors/agent-errors';
-import { ApiResponseWrapper, ApiLogger } from '@/lib/utils/api-helper';
-import { ErrorCode } from '@/types/core';
-import { errorMonitor } from '@/lib/monitoring/error-monitor';
+import { AgentError, ErrorSeverity, AgentErrorType } from '../errors/agent-errors';
+import { ApiResponseWrapper, ApiLogger } from '../utils/api-helper';
+import { ErrorCode } from '../../types/core';
+import { errorMonitor } from '../monitoring/error-monitor';
 import { randomUUID } from 'crypto';
+import { Logger } from '../utils/logger';
+// 注释掉不存在的模块导入
+// import { ErrorRecoveryEngine } from '../monitoring/error-recovery-engine';
+// import { ErrorAnalysisEngine } from '../monitoring/error-analysis-engine';
+import { ErrorCollector } from '../monitoring/error-monitor';
+import { ErrorTracker } from '../monitoring/error-tracker';
+import { errorTracker } from '../monitoring/error-tracker';
+import { LogLevel } from '@prisma/client';
 
 // 错误分类器
 class ErrorClassifier {
@@ -208,8 +216,8 @@ export class GlobalErrorHandler {
       }
       
       // 详细日志记录
-      ApiLogger.error('Global error handled', {
-        errorId: agentError.id,
+      ApiLogger.logError('Global error handled', {
+        errorId: agentError.sessionId || `error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         type: agentError.type,
         message: agentError.message,
         statusCode: classification.statusCode,
@@ -218,7 +226,7 @@ export class GlobalErrorHandler {
         timestamp: agentError.timestamp
       });
       
-      return this.createErrorResponse(agentError);
+      return this.createErrorResponse(classification, agentError, request);
 
     } catch (handlerError) {
       // 错误处理器本身出错的兜底处理
@@ -315,10 +323,29 @@ export class GlobalErrorHandler {
    */
   private calculateRetryDelay(type: AgentErrorType): number {
     const delayMap: Record<AgentErrorType, number> = {
-      [AgentErrorType.CHAT_RATE_LIMIT]: 60000, // 1分钟
-      [AgentErrorType.POSTER_RESOURCE_LIMIT]: 30000, // 30秒
-      [AgentErrorType.RESOURCE_EXHAUSTED]: 120000, // 2分钟
-      [AgentErrorType.SERVICE_UNAVAILABLE]: 60000, // 1分钟
+      // CAD分析错误
+      [AgentErrorType.CAD_FILE_PARSE_ERROR]: 5000,
+      [AgentErrorType.CAD_FORMAT_UNSUPPORTED]: 0, // 不重试
+      [AgentErrorType.CAD_FILE_CORRUPTED]: 0, // 不重试
+      [AgentErrorType.CAD_ANALYSIS_TIMEOUT]: 30000,
+      
+      // 海报生成错误
+      [AgentErrorType.POSTER_GENERATION_FAILED]: 10000,
+      [AgentErrorType.POSTER_TEMPLATE_ERROR]: 5000,
+      [AgentErrorType.POSTER_RESOURCE_LIMIT]: 30000,
+      [AgentErrorType.POSTER_TIMEOUT]: 15000,
+      
+      // 对话智能体错误
+      [AgentErrorType.CHAT_CONTEXT_LOST]: 5000,
+      [AgentErrorType.CHAT_API_ERROR]: 10000,
+      [AgentErrorType.CHAT_RATE_LIMIT]: 60000,
+      [AgentErrorType.CHAT_MODEL_UNAVAILABLE]: 30000,
+      
+      // 系统级错误
+      [AgentErrorType.AGENT_COMMUNICATION_ERROR]: 15000,
+      [AgentErrorType.RESOURCE_EXHAUSTED]: 120000,
+      [AgentErrorType.SERVICE_UNAVAILABLE]: 60000,
+      [AgentErrorType.AUTHENTICATION_ERROR]: 5000
     };
     return delayMap[type] || 5000; // 默认5秒
   }
@@ -393,46 +420,48 @@ export class GlobalErrorHandler {
    * 记录错误到监控系统
    */
   private recordError(error: AgentError): void {
-    // 这里可以集成外部监控系统，如 Sentry, DataDog 等
-    // 目前使用控制台输出作为占位符
-    console.error('Error recorded:', {
-      id: error.id,
-      type: error.type,
-      message: error.message,
-      timestamp: error.timestamp
-    });
-  }
+    try {
+      // 集成错误监控系统
+      const errorId = error.sessionId || `error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      errorMonitor.reportError(error, {
+        stack: error.stack || '',
+        timestamp: error.timestamp,
+        context: {
+          ...error.context,
+          userAgent: error.context?.userAgent || 'unknown',
+          url: error.context?.url || 'unknown',
+          userId: error.context?.userId || 'anonymous'
+        },
+        resolved: false,
+        errorId: errorId,
+        source: 'global-error-handler',
+        environment: process.env.NODE_ENV || 'development'
+      });
 
-  /**
-   * 创建错误响应
-   */
-  private createErrorResponse(error: AgentError): NextResponse {
-    const responseBody = {
-      success: false,
-      error: {
-        code: this.getErrorCode(error.type),
-        message: error.userMessage,
-        type: error.type,
-        ...(process.env.NODE_ENV === 'development' && {
-          details: error.message,
-          stack: error.stack
-        })
-      },
-      requestId: error.id,
-      timestamp: error.timestamp,
-      ...(error.retryable && {
-        retryAfter: this.getRetryDelay(error.type)
-      })
-    };
+      // 同时记录到错误追踪器
+      errorTracker.trackError(error, LogLevel.ERROR, {
+        sessionId: error.sessionId,
+        timestamp: new Date(),
+        ...error.context
+      });
 
-    return NextResponse.json(responseBody, {
-      status: error.statusCode,
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Request-ID': error.id
+      // 保留控制台输出用于开发调试
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error recorded:', {
+          id: errorId,
+          type: error.type,
+          message: error.message,
+          timestamp: error.timestamp
+        });
       }
-    });
+    } catch (recordingError) {
+      // 如果错误记录本身失败，至少输出到控制台
+      console.error('Failed to record error:', recordingError);
+      console.error('Original error:', error);
+    }
   }
+
+
 
   /**
    * 检查熔断器状态

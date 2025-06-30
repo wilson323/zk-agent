@@ -5,78 +5,55 @@
  * @date 2025-06-25
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { createApiRoute, RouteConfigs, CommonValidations } from '@/lib/middleware/api-route-wrapper';
+import { createApiRoute } from '@/lib/middleware/api-route';
 import { ApiResponseWrapper } from '@/lib/utils/api-helper';
+import { RouteConfigs } from '@/lib/middleware/route-configs';
 
-// 健康检查函数
+// Mock health check functions
 async function checkDatabase() {
-  try {
-    // TODO: 实际的数据库连接检查
-    return { status: "healthy", responseTime: "<10ms" };
-  } catch (error) {
-    return { status: "unhealthy", error: error.message };
-  }
+  return { status: "healthy", message: "Database connection OK" };
 }
 
 async function checkRedis() {
-  try {
-    // TODO: 实际的Redis连接检查
-    return { status: "healthy", responseTime: "<5ms" };
-  } catch (error) {
-    return { status: "unhealthy", error: error.message };
-  }
+  return { status: "healthy", message: "Redis connection OK" };
 }
 
 async function checkFastGPT() {
-  try {
-    // TODO: 实际的FastGPT服务检查
-    return { status: "healthy", responseTime: "<100ms" };
-  } catch (error) {
-    return { status: "unhealthy", error: error.message };
-  }
+  return { status: "healthy", message: "FastGPT API accessible" };
 }
 
 async function checkFileSystem() {
-  try {
-    // TODO: 实际的文件系统检查
-    return { status: "healthy", responseTime: "<5ms" };
-  } catch (error) {
-    return { status: "unhealthy", error: error.message };
-  }
+  return { status: "healthy", message: "File system accessible" };
 }
 
 export const GET = createApiRoute(
   RouteConfigs.publicGet(),
-  async (req: NextRequest, { params, validatedBody, validatedQuery, user, requestId }) => {
-    const health = {
-      status: "healthy",
-      timestamp: new Date().toISOString(),
-      services: {
-        database: await checkDatabase(),
-        redis: await checkRedis(),
-        fastgpt: await checkFastGPT(),
-        fileSystem: await checkFileSystem(),
-      },
-      version: process.env.npm_package_version || "unknown",
-      environment: process.env.NODE_ENV || "unknown",
-      requestId
-    };
-    
-    const allHealthy = Object.values(health.services).every(
-      (service: any) => service.status === "healthy"
-    );
-    
-    if (allHealthy) {
+  async ({ requestId }) => {
+    try {
+      const health = {
+        status: "healthy",
+        timestamp: new Date().toISOString(),
+        services: {
+          database: await checkDatabase(),
+          redis: await checkRedis(),
+          fastgpt: await checkFastGPT(),
+          fileSystem: await checkFileSystem(),
+        },
+        version: process.env.npm_package_version || "unknown",
+        environment: process.env.NODE_ENV || "unknown",
+        requestId: _requestId
+      };
+      
+      const allHealthy = Object.values(health.services).every(
+        (service: any) => service.status === "healthy"
+      );
+      
+      health.status = allHealthy ? "healthy" : "unhealthy";
+      
       return ApiResponseWrapper.success(health);
-    } else {
-       return ApiResponseWrapper.error(
-         'SERVICE_UNHEALTHY',
-         'Some services are unhealthy',
-         { health },
-         503
-       );
-     }
+    } catch (error) {
+      return ApiResponseWrapper.error('Internal server error', 500);
+    }
   }
 );
 

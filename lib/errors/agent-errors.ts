@@ -30,13 +30,8 @@ export enum AgentErrorType {
   AUTHENTICATION_ERROR = 'AUTHENTICATION_ERROR'
 }
 
-// 错误严重级别
-export enum ErrorSeverity {
-  LOW = 'low',        // 可忽略的警告
-  MEDIUM = 'medium',  // 影响功能但可恢复
-  HIGH = 'high',      // 严重影响用户体验
-  CRITICAL = 'critical' // 系统级故障
-}
+// 导入统一的错误严重级别枚举
+import { ErrorSeverity } from '@/lib/types/enums';
 
 // 资源状态枚举
 export enum ResourceStatus {
@@ -334,15 +329,9 @@ export interface ChatResponse {
   metadata?: Record<string, any>;
 }
 
-// 工具函数：生成唯一ID
-export function generateId(): string {
-  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-}
+import { generateId, delay } from '@/lib/utils';
 
-// 工具函数：延迟执行
-export function delay(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
+// 延迟函数已从统一工具库导入
 
 // 工具函数：指数退避计算
 export function calculateBackoffDelay(attempt: number, baseDelay: number = 1000): number {

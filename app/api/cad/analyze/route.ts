@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createApiRoute, RouteConfigs, CommonValidations } from '@/lib/middleware/api-route-wrapper';
+import { createApiRoute, RouteConfigs } from '@/lib/middleware/api-route-wrapper';
 import { ApiResponseWrapper } from '@/lib/utils/api-helper';
 import { ErrorCode } from '@/types/core';
 import { CADFileProcessor } from "../../../../lib/cad/cad-file-processor"
@@ -21,7 +21,13 @@ const fileProcessor = new CADFileProcessor()
 const deviceEngine = new DeviceRecognitionEngine()
 const retryManager = new ErrorRetryManager()
 const cacheManager = new AdvancedCacheManager()
-const reportGenerator = new ReportGenerator()
+const _reportGenerator = new ReportGenerator({
+  format: "pdf",
+  includeImages: true,
+  includeRecommendations: true,
+  includeAppendix: true,
+  language: "zh-CN"
+})
 
 // 性能指标记录函数
 async function recordPerformanceMetrics(metrics: {
@@ -29,7 +35,7 @@ async function recordPerformanceMetrics(metrics: {
   processingTime: number
   fileSize: number
   success: boolean
-  error?: string
+  error?: any
 }) {
   console.log(`[Performance] ${metrics.requestId}: ${metrics.processingTime}ms, ${metrics.fileSize} bytes, success: ${metrics.success}`)
   if (metrics.error) {
@@ -48,7 +54,7 @@ async function processSingleFile(file: File, config: any) {
     type: file.name.split(".").pop()?.toLowerCase() || "unknown",
     userId: "current_user",
   }
-  
+  const fileBuffer = Buffer.from(await file.arrayBuffer())
   const analysisResult = await analyzer.analyze(fileBuffer, file.name, (progress) => {
       // 进度回调处理
       console.log(`分析进度: ${progress.stage} - ${progress.progress}% - ${progress.message}`)
@@ -65,14 +71,14 @@ export const GET = createApiRoute(
   RouteConfigs.publicGet(),
   async (req: NextRequest, { params, validatedBody, validatedQuery, user, requestId }) => {
     try {
-      const { searchParams } = new URL(req.url)
+      const { searchParams: _searchParams } = new URL(req.url)
       const action = validatedQuery?.action
     
       switch (action) {
         case "stats":
           // 返回分析统计信息
-          const retryStats = retryManager.getStats()
-          const cacheStats = cacheManager.getMetrics()
+          const retryStats = retryManager.getAllStats()
+          const cacheStats = cacheManager.getStats()
           
           return ApiResponseWrapper.success({
             retryStats,
@@ -84,8 +90,10 @@ export const GET = createApiRoute(
     } catch (error) {
       console.error("CAD analyze GET error:", error)
       return ApiResponseWrapper.error(
+        ErrorCode.INTERNAL_SERVER_ERROR,
         "获取分析信息失败",
-        { status: 500 }
+        null,
+        500
       )
     }
   }
@@ -97,6 +105,7 @@ export const POST = createApiRoute(
     const startTime = Date.now()
     const currentRequestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
     let file: File | null = null
+    let fileBuffer: Buffer | null = null;
     
     try {
       console.log(`[${currentRequestId}] CAD分析请求开始`)
@@ -168,7 +177,9 @@ export const POST = createApiRoute(
                         fileName: file.name,
                         progress: (i / files.length) * 100,
                         stage: "processing",
-                      })}\n\n`,
+                      })}
+
+`,
                     )
     
                     // 处理单个文件
@@ -183,9 +194,11 @@ export const POST = createApiRoute(
                         fileIndex: i,
                         fileName: file.name,
                         result: fileResult,
-                      })}\n\n`,
+                      })}
+
+`,
                     )
-                  } catch (error) {
+                  } catch (error: any) {
                     // 发送文件错误通知
                     controller.enqueue(
                       `data: ${JSON.stringify({
@@ -194,7 +207,9 @@ export const POST = createApiRoute(
                         fileIndex: i,
                         fileName: file.name,
                         error: error.message,
-                      })}\n\n`,
+                      })}
+
+`,
                     )
                   }
                 }
@@ -205,31 +220,38 @@ export const POST = createApiRoute(
                     type: "batch_complete",
                     batchId,
                     results: Object.fromEntries(results),
-                  })}\n\n`,
+                  })}
+
+`,
                 )
     
                 controller.close()
               }
     
-              processFiles().catch((error) => {
+              processFiles().catch((error: any) => {
                 controller.enqueue(
                   `data: ${JSON.stringify({
                     type: "batch_error",
                     batchId,
                     error: error.message,
-                  })}\n\n`,
+                  })}
+
+`,
                 )
                 controller.close()
               })
             },
           })
     
-          return new Response(stream, { headers })
+          return new NextResponse(stream, { headers })
         }
     
         // 使用重试机制执行分析
         const result = await retryManager.executeWithRetry(async () => {
           // 1. 验证文件
+          if (!file) {
+            throw new Error("File is null after initial check.");
+          }
           const validation = await fileProcessor.validateFile(file)
           if (!validation.valid) {
             throw new Error(validation.error)
@@ -251,7 +273,7 @@ export const POST = createApiRoute(
             type: file.name.split(".").pop()?.toLowerCase() || "unknown",
             userId: "current_user", // 实际应用中从认证信息获取
           }
-    
+          fileBuffer = Buffer.from(await file.arrayBuffer());
           const analysisResult = await analyzer.analyze(fileBuffer, file.name, (progress) => {
       // 进度回调处理
       console.log(`分析进度: ${progress.stage} - ${progress.progress}% - ${progress.message}`)
@@ -263,22 +285,26 @@ export const POST = createApiRoute(
               format: config.reportFormat,
               includeImages: config.includeImages,
               includeRecommendations: config.includeRecommendations,
-            })
-    
-            analysisResult.reportUrl = await reportGenerator.generateReport(analysisResult, {
-              format: config.reportFormat,
-              includeImages: config.includeImages,
-              includeRecommendations: config.includeRecommendations,
               includeAppendix: true,
               language: "zh-CN"
             })
+    
+            analysisResult.report = {
+              url: await _reportGenerator.generateReport(analysisResult),
+              format: config.reportFormat,
+              size: 0, // Placeholder, actual size would be determined after generation
+              generatedAt: new Date(),
+              id: `report_${Date.now()}`,
+              sections: [], // Placeholder
+              metadata: {} // Placeholder
+            };
           }
     
           return {
             success: true,
             data: analysisResult,
             metadata: {
-              processingTime: Date.now() - Date.now(),
+              processingTime: Date.now() - startTime,
               cacheKey,
               version: "2.1.0",
             },
@@ -317,7 +343,7 @@ export const POST = createApiRoute(
         })
     
         return ApiResponseWrapper.success(result)
-    } catch (error) {
+    } catch (error: any) {
       const processingTime = Date.now() - startTime
       console.error(`[${currentRequestId}] CAD分析失败，耗时: ${processingTime}ms`, error)
     
@@ -331,10 +357,11 @@ export const POST = createApiRoute(
       })
     
       return ApiResponseWrapper.error(
-        error instanceof Error ? error.message : "分析过程中发生未知错误",
-        { status: 500 }
+        ErrorCode.INTERNAL_SERVER_ERROR,
+        error.message || "分析过程中发生未知错误",
+        null,
+        500
       )
     }
   }
 );
-

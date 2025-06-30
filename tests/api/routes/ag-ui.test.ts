@@ -7,6 +7,7 @@ import { NextRequest } from 'next/server';
 import { GET, POST, PUT, DELETE } from '@/app/api/ag-ui/route';
 import { GlobalErrorHandler } from '@/lib/middleware/global-error-handler';
 import { AgentError, AgentErrorType, ErrorSeverity } from '@/lib/errors/agent-errors';
+import type { MockedFunction } from 'jest-mock';
 
 // Mock dependencies
 jest.mock('../../../lib/services/ag-ui-manager', () => ({
@@ -819,7 +820,7 @@ describe('AG-UI API Error Handling', () => {
       await POST(request);
 
       const stats = errorHandler.getErrorStats();
-      expect(stats.agUiErrorCount).toBeGreaterThan(0);
+      expect(stats.errorCount).toBeGreaterThan(0);
     });
 
     it('should include AG-UI context in error responses', async () => {

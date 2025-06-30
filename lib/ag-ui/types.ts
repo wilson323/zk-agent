@@ -1,34 +1,32 @@
 // @ts-nocheck
 /**
  * AG-UI 事件类型定义
+ * @deprecated 请使用 ../shared/ag-ui-types.ts 中的统一类型定义
  */
 
-// 基础事件接口
-export interface BaseEvent {
-  type: string
-  timestamp: number
-}
+// 重新导出统一的类型定义
+export {
+  BaseEvent,
+  RunStartedEvent,
+  RunFinishedEvent,
+  RunErrorEvent,
+  RunCancelledEvent,
+  TextMessageStartEvent,
+  TextMessageContentEvent,
+  TextMessageEndEvent,
+  ToolCallStartEvent,
+  ToolCallEndEvent,
+  AgUiEvent,
+  EventHandler,
+  AgUiEventEmitter,
+  AG_UI_PROTOCOL_VERSION
+} from '../shared/ag-ui-types';
 
-// 运行开始事件
-export interface RunStartedEvent extends BaseEvent {
-  type: "RUN_STARTED"
-  threadId: string
-  runId: string
-}
-
-// 运行结束事件
-export interface RunFinishedEvent extends BaseEvent {
-  type: "RUN_FINISHED"
-  threadId: string
-  runId: string
-}
-
-// 运行错误事件
-export interface RunErrorEvent extends BaseEvent {
-  type: "RUN_ERROR"
-  message: string
-  code: number
-}
+// 保持向后兼容的类型别名
+export type { BaseEvent as LegacyBaseEvent } from '../shared/ag-ui-types';
+export type { RunStartedEvent as LegacyRunStartedEvent } from '../shared/ag-ui-types';
+export type { RunFinishedEvent as LegacyRunFinishedEvent } from '../shared/ag-ui-types';
+export type { RunErrorEvent as LegacyRunErrorEvent } from '../shared/ag-ui-types';
 
 // 文本消息开始事件
 export interface TextMessageStartEvent extends BaseEvent {

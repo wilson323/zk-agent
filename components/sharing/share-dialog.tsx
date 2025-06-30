@@ -10,23 +10,39 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Copy, Share2, Download, Eye, Lock, Globe, Calendar, Users } from "lucide-react"
+import { Copy, Share2, Download, Eye, Lock, Globe, Calendar, Users, Check } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { shareManager, type ShareConfig } from "@/lib/sharing/share-manager"
+import { enhancedShareManager } from "@/lib/sharing/enhanced-share-manager"
 
 interface ShareDialogProps {
   contentId: string
-  contentType: "conversation" | "cad_analysis" | "poster_design"
+  contentType: "conversation" | "cad_analysis" | "poster_design" | "chat_message"
   contentTitle: string
   trigger?: React.ReactNode
   onShare?: (shareUrl: string) => void
+  // New props from EnhancedShareDialog
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  initialConfig?: ShareConfig
+  showGeneratePoster?: boolean
 }
 
-export function ShareDialog({ contentId, contentType, contentTitle, trigger, onShare }: ShareDialogProps) {
-  const [isOpen, setIsOpen] = useState(false)
+export function ShareDialog({
+  contentId,
+  contentType,
+  contentTitle,
+  trigger,
+  onShare,
+  open,
+  onOpenChange,
+  initialConfig,
+  showGeneratePoster = false,
+}: ShareDialogProps) {
+  const [isOpen, setIsOpen] = useState(open !== undefined ? open : false)
   const [isLoading, setIsLoading] = useState(false)
   const [shareUrl, setShareUrl] = useState("")
-  const [config, setConfig] = useState<ShareConfig>({
+  const [config, setConfig] = useState<ShareConfig>(initialConfig || {
     expiresIn: 7 * 24 * 60 * 60 * 1000, // 7天
     allowDownload: true,
     allowCopy: true,
@@ -34,7 +50,35 @@ export function ShareDialog({ contentId, contentType, contentTitle, trigger, onS
     isPublic: false,
     password: "",
   })
+  const [isGeneratingPoster, setIsGeneratingPoster] = useState(false)
+  const [generatedPosterResult, setGeneratedPosterResult] = useState<any>(null)
+  const [copiedPosterLink, setCopiedPosterLink] = useState(false)
   const { toast } = useToast()
+
+  useEffect(() => {
+    if (open !== undefined) {
+      setIsOpen(open)
+    }
+  }, [open])
+
+  const handleOpenChange = (newOpen: boolean) => {
+    setIsOpen(newOpen)
+    onOpenChange?.(newOpen)
+    if (!newOpen) {
+      // Reset state when dialog closes
+      setShareUrl("")
+      setGeneratedPosterResult(null)
+      setCopiedPosterLink(false)
+      setConfig(initialConfig || {
+        expiresIn: 7 * 24 * 60 * 60 * 1000,
+        allowDownload: true,
+        allowCopy: true,
+        viewLimit: 1000,
+        isPublic: false,
+        password: "",
+      })
+    }
+  }
 
   const handleCreateShare = async () => {
     try {
@@ -81,6 +125,66 @@ export function ShareDialog({ contentId, contentType, contentTitle, trigger, onS
     }
   }
 
+  const handleGeneratePoster = async () => {
+    setIsGeneratingPoster(true)
+    try {
+      const result = await enhancedShareManager.generateSharePoster({
+        ...config,
+        contentId,
+        contentType,
+        title: contentTitle,
+      })
+
+      if (result.success) {
+        setGeneratedPosterResult(result)
+        toast({
+          title: "分享海报生成成功",
+          description: "您可以下载或复制链接分享",
+        })
+      } else {
+        toast({
+          title: "生成失败",
+          description: result.error,
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "生成失败",
+        description: "请稍后重试",
+        variant: "destructive",
+      })
+    } finally {
+      setIsGeneratingPoster(false)
+    }
+  }
+
+  const handleCopyPosterLink = async () => {
+    if (generatedPosterResult?.imageUrl) {
+      try {
+        await navigator.clipboard.writeText(generatedPosterResult.imageUrl)
+        setCopiedPosterLink(true)
+        setTimeout(() => setCopiedPosterLink(false), 2000)
+        toast({
+          title: "链接已复制",
+          description: "分享链接已复制到剪贴板",
+        })
+      } catch (error) {
+        toast({
+          title: "复制失败",
+          description: "请手动复制链接",
+          variant: "destructive",
+        })
+      }
+    }
+  }
+
+  const handleDownloadPoster = async (format: "jpg" | "png" | "pdf") => {
+    if (generatedPosterResult?.shareId) {
+      await enhancedShareManager.downloadShare(generatedPosterResult.shareId, format)
+    }
+  }
+
   const getExpiryOptions = () => [
     { value: 60 * 60 * 1000, label: "1小时" },
     { value: 24 * 60 * 60 * 1000, label: "1天" },
@@ -99,7 +203,7 @@ export function ShareDialog({ contentId, contentType, contentTitle, trigger, onS
   ]
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         {trigger || (
           <Button variant="outline" size="sm">
@@ -117,7 +221,7 @@ export function ShareDialog({ contentId, contentType, contentTitle, trigger, onS
         </DialogHeader>
 
         <div className="space-y-6">
-          {!shareUrl ? (
+          {!shareUrl && !generatedPosterResult ? (
             <>
               {/* 分享设置 */}
               <div className="space-y-4">
@@ -232,8 +336,18 @@ export function ShareDialog({ contentId, contentType, contentTitle, trigger, onS
                   </>
                 )}
               </Button>
+
+              {showGeneratePoster && (
+                <Button
+                  onClick={handleGeneratePoster}
+                  disabled={isGeneratingPoster}
+                  className="w-full bg-blue-500 hover:bg-blue-600"
+                >
+                  {isGeneratingPoster ? "生成海报中..." : "生成分享海报"}
+                </Button>
+              )}
             </>
-          ) : (
+          ) : shareUrl ? (
             <>
               {/* 分享链接结果 */}
               <div className="space-y-4">
@@ -292,13 +406,47 @@ export function ShareDialog({ contentId, contentType, contentTitle, trigger, onS
                   >
                     重新创建
                   </Button>
-                  <Button onClick={() => setIsOpen(false)} className="flex-1 bg-[#6cb33f] hover:bg-[#5a9635]">
+                  <Button onClick={() => handleOpenChange(false)} className="flex-1 bg-[#6cb33f] hover:bg-[#5a9635]">
                     完成
                   </Button>
                 </div>
               </div>
             </>
-          )}
+          ) : generatedPosterResult ? (
+            <>
+              <div className="text-center space-y-4">
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                  <img
+                    src={generatedPosterResult.imageUrl || "/placeholder.svg"}
+                    alt="分享预览"
+                    className="w-full h-32 object-cover rounded"
+                  />
+                </div>
+
+                <div className="flex gap-2">
+                  <Button onClick={handleCopyPosterLink} variant="outline" className="flex-1">
+                    {copiedPosterLink ? <Check className="h-4 w-4 mr-1" /> : <Copy className="h-4 w-4 mr-1" />}
+                    {copiedPosterLink ? "已复制" : "复制链接"}
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <Button onClick={() => handleDownloadPoster("jpg")} variant="outline" size="sm">
+                    <Download className="h-4 w-4 mr-1" />
+                    JPG
+                  </Button>
+                  <Button onClick={() => handleDownloadPoster("png")} variant="outline" size="sm">
+                    <Download className="h-4 w-4 mr-1" />
+                    PNG
+                  </Button>
+                  <Button onClick={() => handleDownloadPoster("pdf")} variant="outline" size="sm">
+                    <Download className="h-4 w-4 mr-1" />
+                    PDF
+                  </Button>
+                </div>
+              </div>
+            </>
+          ) : null}
         </div>
       </DialogContent>
     </Dialog>

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * AI模型管理器
  * 负责模型的增删改查和调用
@@ -6,13 +5,42 @@
 
 import { AIModelAdapter } from "./model-adapter"
 import type { AIModelConfig, ModelCallResult, ModelMetrics } from "@/types/ai-models"
+import { AgUICoreAdapter } from "@/lib/ag-ui/core-adapter"
+import * as client from 'prom-client'
+
+// Prometheus Metrics for AI Models
+const aiModelTotalCalls = new client.Gauge({
+  name: 'ai_model_total_calls',
+  help: 'Total number of calls to AI models',
+  labelNames: ['model_id', 'provider', 'type']
+})
+
+const aiModelSuccessRate = new client.Gauge({
+  name: 'ai_model_success_rate',
+  help: 'Success rate of AI model calls',
+  labelNames: ['model_id', 'provider', 'type']
+})
+
+const aiModelAverageLatency = new client.Gauge({
+  name: 'ai_model_average_latency_ms',
+  help: 'Average latency of AI model calls in milliseconds',
+  labelNames: ['model_id', 'provider', 'type']
+})
+
+const aiModelTotalCost = new client.Gauge({
+  name: 'ai_model_total_cost',
+  help: 'Total estimated cost of AI model calls',
+  labelNames: ['model_id', 'provider', 'type']
+})
 
 export class AIModelManager {
   private models: Map<string, AIModelConfig> = new Map()
   private adapters: Map<string, AIModelAdapter> = new Map()
   private metrics: Map<string, ModelMetrics> = new Map()
+  private agUiAdapter: AgUICoreAdapter
 
-  constructor() {
+  constructor(agUiAdapter: AgUICoreAdapter) {
+    this.agUiAdapter = agUiAdapter
     this.loadModelsFromStorage()
   }
 
@@ -151,7 +179,7 @@ export class AIModelManager {
         temperature: 0.1,
       }
 
-      const result = await this.callModel(modelId, testParams)
+      const result = await this.callModel(modelId, "test_app_id", "test_chat_id", testParams)
 
       return {
         success: result.success,
@@ -224,6 +252,17 @@ export class AIModelManager {
     metrics.totalCalls++
     metrics.lastUsed = new Date().toISOString()
 
+    // Update Prometheus metrics
+    const modelLabels = {
+      model_id: modelId,
+      provider: model?.provider || 'unknown',
+      type: model?.type || 'unknown',
+    };
+    aiModelTotalCalls.set(modelLabels, metrics.totalCalls);
+    aiModelSuccessRate.set(modelLabels, metrics.successRate);
+    aiModelAverageLatency.set(modelLabels, metrics.averageLatency);
+    aiModelTotalCost.set(modelLabels, metrics.totalCost);
+
     if (result.success) {
       // 更新成功率
       const successCount = metrics.totalCalls - metrics.errorCount
@@ -287,7 +326,7 @@ export class AIModelManager {
         const models: AIModelConfig[] = JSON.parse(modelsData)
         for (const model of models) {
           this.models.set(model.id, model)
-          this.adapters.set(model.id, new AIModelAdapter(model))
+          this.adapters.set(model.id, new AIModelAdapter(model, this.agUiAdapter))
         }
       }
 
@@ -328,5 +367,8 @@ export class AIModelManager {
   }
 }
 
+import { AgUICoreAdapter } from "@/lib/ag-ui/core-adapter"
+
 // 创建全局实例
-export const aiModelManager = new AIModelManager()
+export const agUiAdapter = new AgUICoreAdapter()
+export const aiModelManager = new AIModelManager(agUiAdapter)

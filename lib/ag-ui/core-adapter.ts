@@ -233,6 +233,17 @@ export class AgUICoreAdapter {
 
                     const data = JSON.parse(jsonStr)
 
+                    if (data.usage) {
+                      accumulatedUsage = {
+                        promptTokens: (accumulatedUsage.promptTokens || 0) + (data.usage.prompt_tokens || 0),
+                        completionTokens: (accumulatedUsage.completionTokens || 0) + (data.usage.completion_tokens || 0),
+                        totalTokens: (accumulatedUsage.totalTokens || 0) + (data.usage.total_tokens || 0),
+                        cost: (accumulatedUsage.cost || 0) + (data.usage.cost || 0),
+                      };
+                    }
+
+                    const data = JSON.parse(jsonStr)
+
                     // 处理工具调用
                     if (data.choices && data.choices[0].delta && data.choices[0].delta.tool_calls) {
                       this.handleToolCall(data.choices[0].delta.tool_calls[0], runId)

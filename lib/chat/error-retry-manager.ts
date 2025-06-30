@@ -6,16 +6,7 @@
  * @date 2024-12-19
  */
 
-// 错误类型枚举
-export enum ErrorType {
-  NETWORK = 'network',
-  TIMEOUT = 'timeout',
-  RATE_LIMIT = 'rate_limit',
-  AUTH = 'auth',
-  SERVER = 'server',
-  CLIENT = 'client',
-  UNKNOWN = 'unknown'
-}
+import { ErrorType } from '../types/enums';
 
 // 重试策略
 export interface RetryStrategy {
@@ -27,17 +18,7 @@ export interface RetryStrategy {
   retryableErrors: ErrorType[]
 }
 
-// 错误信息
-export interface ErrorInfo {
-  type: ErrorType
-  message: string
-  code?: string | number
-  statusCode?: number
-  timestamp: Date
-  retryCount: number
-  isRetryable: boolean
-  metadata?: Record<string, any>
-}
+import { ErrorInfo } from '../types/interfaces';
 
 // 重试结果
 export interface RetryResult<T> {

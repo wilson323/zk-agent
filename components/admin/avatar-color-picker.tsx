@@ -34,11 +34,11 @@ export function AvatarColorPicker({ value, onChange }: AvatarColorPickerProps) {
     if (value && value !== selectedColor) {
       setSelectedColor(value)
     }
-  }, [value])
+  }, [value, selectedColor])
 
-  const handleColorSelect = (color: string) => {
-    setSelectedColor(color)
-    onChange(color)
+  const handleColorSelect = (_color: string) => {
+    setSelectedColor(_color)
+    onChange(_color)
   }
 
   return (

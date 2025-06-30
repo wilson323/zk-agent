@@ -4,10 +4,8 @@
  * 严格按照设计文档的数据结构要求
  */
 
-import { PrismaClient } from "@prisma/client"
+import { enhancedDb, dbTransaction } from "@/lib/database"
 import type { PosterStyle, PosterSize, ColorPalette, PosterTask, PosterGenerationResult } from "@/types/poster"
-
-const prisma = new PrismaClient()
 
 export class PosterDatabase {
   /**
@@ -301,7 +299,7 @@ export class PosterDatabase {
     action: string
     metadata?: any
   }): Promise<void> {
-    try {
+    return dbTransaction(async (prisma) => {
       await prisma.usageStats.create({
         data: {
           userId: data.userId,
@@ -310,9 +308,6 @@ export class PosterDatabase {
           metadata: data.metadata,
         },
       })
-    } catch (error) {
-      console.error("Failed to record usage stats:", error)
-      // 不抛出错误，统计失败不影响主流程
-    }
+    })
   }
 }

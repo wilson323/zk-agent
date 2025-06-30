@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Observable, Subject, from } from "rxjs"
 import type {
   BaseEvent,
@@ -9,6 +8,31 @@ import type {
   RunFinishedEvent,
 } from "./types"
 import { AgUIRuntime } from "./protocol/runtime"
+
+// CAD 分析响应接口
+interface CADAnalysisResponse {
+  status: 'success' | 'error' | 'processing';
+  data?: {
+    fileName?: string;
+    fileSize?: number;
+    analysisResult?: Record<string, unknown>;
+    dimensions?: {
+      width?: number;
+      height?: number;
+      depth?: number;
+    };
+    materials?: string[];
+    complexity?: 'low' | 'medium' | 'high';
+    warnings?: string[];
+  };
+  error?: {
+    code: string;
+    message: string;
+    details?: Record<string, unknown>;
+  };
+  timestamp: number;
+  processingTime?: number;
+}
 
 /**
  * @deprecated 请使用 AgUIRuntime 替代
@@ -42,7 +66,7 @@ export class AgUIAdapter {
    * 处理来自FastGPT的流式响应
    * 将其转换为AG-UI事件流，但不改变原有处理逻辑
    */
-  public handleFastGPTStreamResponse(response: ReadableStream<Uint8Array>): Observable<any> {
+  public handleFastGPTStreamResponse(response: ReadableStream<Uint8Array>): Observable<unknown> {
     // 生成唯一消息ID
     const messageId = `msg-${++this.messageIdCounter}`
     const runId = `run-${Date.now()}`
@@ -64,7 +88,7 @@ export class AgUIAdapter {
     } as TextMessageStartEvent)
 
     // 创建一个新的Observable来处理流式响应
-    return new Observable<any>((observer) => {
+    return new Observable<unknown>((observer) => {
       // 保持原有的处理逻辑
       const reader = response.getReader()
       const decoder = new TextDecoder()
@@ -163,7 +187,7 @@ export class AgUIAdapter {
   /**
    * 处理CAD解读智能体的响应
    */
-  public handleCADAnalysisResponse(response: any): Observable<any> {
+  public handleCADAnalysisResponse(response: CADAnalysisResponse): Observable<CADAnalysisResponse> {
     const messageId = `msg-${++this.messageIdCounter}`
     const runId = `run-${Date.now()}`
 

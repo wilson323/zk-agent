@@ -274,7 +274,8 @@ describe('智能对话基础功能测试', () => {
 
   describe('工具函数测试', () => {
     test('应该正确生成唯一ID', () => {
-      const generateId = () => `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
+      // 使用统一的ID生成函数
+      const { generateId } = require('../../lib/utils');
       
       const id1 = generateId()
       const id2 = generateId()
@@ -300,4 +301,4 @@ describe('智能对话基础功能测试', () => {
       expect(typeof length).toBe('number')
     })
   })
-}) 
+})

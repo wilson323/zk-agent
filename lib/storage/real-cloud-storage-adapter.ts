@@ -12,12 +12,8 @@ import { enhancedCacheManager } from '@/lib/cache/enhanced-cache-manager';
 
 const logger = new Logger('RealCloudStorageAdapter');
 
-// 云存储提供商枚举
-export enum CloudProvider {
-  AWS_S3 = 'aws-s3',
-  ALIYUN_OSS = 'aliyun-oss',
-  LOCAL = 'local',
-}
+// 导入统一的云存储提供商枚举
+import { CloudProvider } from '@/lib/types/enums';
 
 // 存储配置接口
 interface StorageConfig {
@@ -46,15 +42,7 @@ interface DownloadOptions {
   range?: string;
 }
 
-// 文件信息接口
-interface FileInfo {
-  key: string;
-  size: number;
-  lastModified: Date;
-  etag: string;
-  contentType?: string;
-  url?: string;
-}
+import { FileInfo } from '../types/interfaces';
 
 // 上传结果接口
 interface UploadResult {
@@ -810,4 +798,4 @@ export const deleteFile = realCloudStorageAdapter.delete.bind(realCloudStorageAd
 export const fileExists = realCloudStorageAdapter.exists.bind(realCloudStorageAdapter);
 export const getFileInfo = realCloudStorageAdapter.getFileInfo.bind(realCloudStorageAdapter);
 export const listFiles = realCloudStorageAdapter.listFiles.bind(realCloudStorageAdapter);
-export const getSignedUrl = realCloudStorageAdapter.getSignedUrl.bind(realCloudStorageAdapter); 
+export const getSignedUrl = realCloudStorageAdapter.getSignedUrl.bind(realCloudStorageAdapter);

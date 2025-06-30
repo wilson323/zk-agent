@@ -28,18 +28,18 @@ export function IPHeatMap() {
   const [ipStats, setIPStats] = useState<IPStats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [timeRange, setTimeRange] = useState('24h')
-  const [selectedProvince, setSelectedProvince] = useState<string>('all')
+  const [_selectedProvince, setSelectedProvince] = useState<string>('all')
 
   const fetchIPStats = async () => {
     try {
       setIsLoading(true)
-      const response = await fetch(`/api/admin/ip-stats?range=${timeRange}&province=${selectedProvince}`)
+      const response = await fetch(`/api/admin/ip-stats?range=${timeRange}&province=${_selectedProvince}`)
       if (response.ok) {
         const data = await response.json()
         setIPStats(data)
       }
     } catch (error) {
-      console.error('获取IP统计失败:', error)
+      // console.error('获取IP统计失败:', error)
     } finally {
       setIsLoading(false)
     }
@@ -47,26 +47,9 @@ export function IPHeatMap() {
 
   useEffect(() => {
     fetchIPStats()
-  }, [timeRange, selectedProvince])
+  }, [timeRange, _selectedProvince, fetchIPStats])
 
-  const getTrendIcon = (trend: string) => {
-    switch (trend) {
-      case 'up':
-        return <TrendingUp className="w-3 h-3 text-green-600" />
-      case 'down':
-        return <TrendingUp className="w-3 h-3 text-red-600 rotate-180" />
-      default:
-        return <div className="w-3 h-3 bg-gray-400 rounded-full" />
-    }
-  }
-
-  const getHeatColor = (percentage: number) => {
-    if (percentage > 20) {return 'bg-red-500'}
-    if (percentage > 10) {return 'bg-orange-500'}
-    if (percentage > 5) {return 'bg-yellow-500'}
-    if (percentage > 1) {return 'bg-green-500'}
-    return 'bg-blue-500'
-  }
+  import { getTrendIcon, getHeatColor } from "@/lib/admin/ip-utils"
 
   return (
     <motion.div
@@ -123,39 +106,21 @@ export function IPHeatMap() {
             <div className="space-y-6">
               {/* 统计概览 */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4 text-blue-600" />
-                      <span className="text-sm font-medium">总访问IP</span>
-                    </div>
-                    <div className="text-2xl font-bold mt-1">
-                      {ipStats?.totalIPs?.toLocaleString() || 0}
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-green-600" />
-                      <span className="text-sm font-medium">独立IP</span>
-                    </div>
-                    <div className="text-2xl font-bold mt-1">
-                      {ipStats?.uniqueIPs?.toLocaleString() || 0}
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-2">
-                      <Globe className="h-4 w-4 text-purple-600" />
-                      <span className="text-sm font-medium">覆盖地区</span>
-                    </div>
-                    <div className="text-2xl font-bold mt-1">
-                      {ipStats?.topLocations?.length || 0}
-                    </div>
-                  </CardContent>
-                </Card>
+                <StatCard
+                  title="总访问IP"
+                  icon={Users}
+                  value={ipStats?.totalIPs?.toLocaleString() || 0}
+                />
+                <StatCard
+                  title="独立IP"
+                  icon={MapPin}
+                  value={ipStats?.uniqueIPs?.toLocaleString() || 0}
+                />
+                <StatCard
+                  title="覆盖地区"
+                  icon={Globe}
+                  value={ipStats?.topLocations?.length || 0}
+                />
               </div>
 
               {/* 地区排行榜 */}

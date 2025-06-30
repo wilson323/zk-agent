@@ -1,4 +1,3 @@
-// @ts-nocheck
 import type { AgentDefinition, Tool } from "./types"
 import { 
   IAgentManager, 
@@ -9,14 +8,13 @@ import {
   AgentValidationError,
   AgentNotFoundError
 } from '../../interfaces/agent-manager.interface'
-import { injectable } from '../../di/container'
 
 /**
  * AG-UI智能体管理器
  * 负责智能体的创建、配置和管理
  */
-@injectable
 export class AgUIAgentManager implements IAgentManager {
+  private fastGPTBaseUrl: string = process.env.FASTGPT_BASE_URL || 'https://api.fastgpt.run'
   private agents: Map<string, AgentDefinition> = new Map()
 
   /**
@@ -246,8 +244,8 @@ export class AgUIAgentManager implements IAgentManager {
   /**
    * 获取智能体
    */
-  getAgent(id: string): AgentDefinition | undefined {
-    return this.agents.get(id)
+  async getAgent(id: string): Promise<AgentDefinition | null> {
+    return this.agents.get(id) || null
   }
 
   /**
@@ -258,9 +256,9 @@ export class AgUIAgentManager implements IAgentManager {
   }
 
   /**
-   * 根据ID获取智能体
+   * 根据ID获取智能体 (异步版本)
    */
-  async getAgent(id: string): Promise<AgentDefinition | null> {
+  async getAgentAsync(id: string): Promise<AgentDefinition | null> {
     return this.agents.get(id) || null
   }
 
@@ -320,12 +318,12 @@ export class AgUIAgentManager implements IAgentManager {
     }
 
     // 验证版本号
-    if (agent.version && typeof agent.version !== 'string') {
+    if (agent.metadata?.version && typeof agent.metadata.version !== 'string') {
       errors.push('版本号必须是字符串')
     }
 
     // 验证标签
-    if (agent.tags && !Array.isArray(agent.tags)) {
+    if (agent.metadata?.tags && !Array.isArray(agent.metadata.tags)) {
       errors.push('标签必须是数组')
     }
 

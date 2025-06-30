@@ -88,6 +88,36 @@ export class ApiResponseWrapper {
       500
     );
   }
+
+  static methodNotAllowed(message?: string | string[]): NextResponse<ApiResponse> {
+    let errorMessage: string;
+    let details: any = null;
+    
+    if (typeof message === 'string') {
+      errorMessage = message;
+    } else if (Array.isArray(message)) {
+      errorMessage = `Method not allowed. Allowed methods: ${message.join(', ')}`;
+      details = { allowedMethods: message };
+    } else {
+      errorMessage = 'Method not allowed';
+    }
+    
+    return this.error(
+      ErrorCode.VALIDATION_ERROR,
+      errorMessage,
+      details,
+      405
+    );
+  }
+
+  static rateLimitExceeded(message: string = 'Rate limit exceeded', resetTime?: number): NextResponse<ApiResponse> {
+    return this.error(
+      ErrorCode.RATE_LIMIT_EXCEEDED,
+      message,
+      resetTime ? { resetTime } : null,
+      429
+    );
+  }
 }
 
 // API路由处理器包装器
@@ -226,4 +256,4 @@ export function withPerformanceMonitoring(
       throw error;
     }
   };
-} 
+}

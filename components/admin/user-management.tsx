@@ -92,7 +92,7 @@ export function UserManagement() {
 
   useEffect(() => {
     fetchUsers()
-  }, [searchTerm, roleFilter, statusFilter])
+  }, [searchTerm, roleFilter, statusFilter, fetchUsers])
 
   const handleUpdateUser = async (userId: string, updates: Partial<User>) => {
     try {
@@ -163,57 +163,7 @@ export function UserManagement() {
     }
   }
 
-  const getRoleColor = (role: string) => {
-    switch (role) {
-      case "ADMIN":
-        return "bg-red-100 text-red-800"
-      case "SUPER_ADMIN":
-        return "bg-purple-100 text-purple-800"
-      default:
-        return "bg-blue-100 text-blue-800"
-    }
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "ACTIVE":
-        return "bg-green-100 text-green-800"
-      case "INACTIVE":
-        return "bg-gray-100 text-gray-800"
-      case "SUSPENDED":
-        return "bg-yellow-100 text-yellow-800"
-      case "DELETED":
-        return "bg-red-100 text-red-800"
-      default:
-        return "bg-gray-100 text-gray-800"
-    }
-  }
-
-  const getRoleText = (role: string) => {
-    switch (role) {
-      case "ADMIN":
-        return "管理员"
-      case "SUPER_ADMIN":
-        return "超级管理员"
-      default:
-        return "普通用户"
-    }
-  }
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case "ACTIVE":
-        return "活跃"
-      case "INACTIVE":
-        return "未激活"
-      case "SUSPENDED":
-        return "已暂停"
-      case "DELETED":
-        return "已删除"
-      default:
-        return "未知"
-    }
-  }
+  import { getRoleColor, getStatusColor, getRoleText, getStatusText } from "@/lib/admin/constants"
 
   return (
     <motion.div
@@ -367,111 +317,19 @@ export function UserManagement() {
               </Table>
 
               {/* 分页 */}
-              {pagination.pages > 1 && (
-                <div className="flex items-center justify-between mt-4">
-                  <div className="text-sm text-gray-500">
-                    显示 {(pagination.page - 1) * pagination.limit + 1} 到{" "}
-                    {Math.min(pagination.page * pagination.limit, pagination.total)} 条，共 {pagination.total} 条
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => fetchUsers(pagination.page - 1)}
-                      disabled={pagination.page <= 1}
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                    </Button>
-                    <span className="text-sm">
-                      {pagination.page} / {pagination.pages}
-                    </span>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => fetchUsers(pagination.page + 1)}
-                      disabled={pagination.page >= pagination.pages}
-                    >
-                      <ChevronRight className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              )}
+              <Pagination pagination={pagination} onPageChange={fetchUsers} />
             </>
           )}
         </CardContent>
       </Card>
 
       {/* 编辑用户对话框 */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>编辑用户</DialogTitle>
-            <DialogDescription>修改用户的角色和状态</DialogDescription>
-          </DialogHeader>
-          {selectedUser && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <Avatar className="w-12 h-12">
-                  <AvatarImage src={selectedUser.avatar || "/placeholder.svg"} alt={selectedUser.name} />
-                  <AvatarFallback>{selectedUser.name.charAt(0).toUpperCase()}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <div className="font-medium">{selectedUser.name}</div>
-                  <div className="text-sm text-gray-500">{selectedUser.email}</div>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">角色</label>
-                <Select
-                  value={selectedUser.role}
-                  onValueChange={(value) => setSelectedUser({ ...selectedUser, role: value as any })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="USER">普通用户</SelectItem>
-                    <SelectItem value="ADMIN">管理员</SelectItem>
-                    <SelectItem value="SUPER_ADMIN">超级管理员</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">状态</label>
-                <Select
-                  value={selectedUser.status}
-                  onValueChange={(value) => setSelectedUser({ ...selectedUser, status: value as any })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ACTIVE">活跃</SelectItem>
-                    <SelectItem value="INACTIVE">未激活</SelectItem>
-                    <SelectItem value="SUSPENDED">已暂停</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex gap-2 pt-4">
-                <Button
-                  onClick={() =>
-                    handleUpdateUser(selectedUser.id, {
-                      role: selectedUser.role,
-                      status: selectedUser.status,
-                    })
-                  }
-                  className="flex-1"
-                >
-                  保存更改
-                </Button>
-                <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-                  取消
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <UserEditDialog
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        user={selectedUser}
+        onUpdateUser={handleUpdateUser}
+      />
     </motion.div>
   )
 }

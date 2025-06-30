@@ -6,8 +6,8 @@
  */
 
 import { NextRequest } from 'next/server';
-import { createApiRoute, RouteConfigs } from '@/lib/middleware/api-route-wrapper';
-import { ApiResponseWrapper } from '@/lib/utils/api-helper';
+import { createApiRoute, RouteConfigs } from '../../../../lib/middleware/api-route-wrapper';
+import { ApiResponseWrapper } from '../../../../lib/utils/api-helper';
 import { ErrorCode } from '../../../../types/core';
 import { z } from 'zod';
 import { getUsers, createUser } from '../../../../lib/services/user-service';
@@ -16,17 +16,17 @@ import { getCurrentUser } from '../../../../lib/auth/middleware';
 
 export const GET = createApiRoute(
   RouteConfigs.protectedGet(),
-  async (req: NextRequest, { validatedQuery: _validatedQuery }) => {
+  async (req: NextRequest, { validatedQuery: validatedQuery }) => {
     try {
       const currentUser = getCurrentUser(req);
-      if (!currentUser || currentUser.role !== 'admin') {
+      if (!currentUser || currentUser['role'] !== 'admin') {
         return ApiResponseWrapper.error(ErrorCode.AUTHORIZATION_ERROR, '权限不足', null);
       }
 
       const { searchParams } = new URL(req.url);
-      const validationResult = getUsersSchema.safeParse(Object.fromEntries(searchParams));
+  const validationResult = getUsersSchema.safeParse(Object.fromEntries(searchParams));
 
-      if (!validationResult.success) {
+  if (!validationResult.success) {
         return ApiResponseWrapper.error(
           ErrorCode.VALIDATION_ERROR,
           validationResult.error.errors[0]?.message || '验证失败',
@@ -75,8 +75,7 @@ export const GET = createApiRoute(
         },
       });
     } catch (error) {
-      return ApiResponseWrapper.error(
-        ErrorCode.INTERNAL_SERVER_ERROR,
+      return ApiResponseWrapper.error(ErrorCode.INTERNAL_SERVER_ERROR,
         '获取用户列表失败',
         null,
         500
@@ -90,7 +89,7 @@ export const POST = createApiRoute(
   async (req: NextRequest, { validatedBody }) => {
     try {
       const currentUser = getCurrentUser(req);
-      if (!currentUser || currentUser.role !== 'admin') {
+      if (!currentUser || currentUser['role'] !== 'admin') {
         return ApiResponseWrapper.error(ErrorCode.AUTHORIZATION_ERROR, '权限不足', null, 403);
       }
 

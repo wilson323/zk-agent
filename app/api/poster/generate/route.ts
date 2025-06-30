@@ -5,117 +5,79 @@
  * @date 2025-06-25
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { createApiRoute, RouteConfigs, CommonValidations } from '@/lib/middleware/api-route-wrapper';
+import { NextRequest } from 'next/server';
+import { createApiRoute, RouteConfigs } from '@/lib/middleware/api-route-wrapper';
 import { ApiResponseWrapper } from '@/lib/utils/api-helper';
-import { imageGenerationService } from "@/lib/ai/image-generation-service"
-import { templateSystem } from "@/lib/poster/template-system"
-import type { PosterGenerationRequest, PosterGenerationResult } from "@/types/poster"
+import { ErrorCode } from '@/types/core';
+import { imageGenerationService } from "@/lib/ai/image-generation-service";
+import { templateSystem } from "@/lib/poster/template-system";
+import type { PosterGenerationRequest, PosterGenerationResult } from "@/types/poster";
 
 export const POST = createApiRoute(
   RouteConfigs.protectedPost(),
-  async (req: NextRequest, { params, validatedBody, validatedQuery, user, requestId }) => {
+  async (req: NextRequest, { validatedBody, validatedQuery, user, requestId }) => {
     try {
-      const body: PosterGenerationRequest = await req.json();
+      const {
+        description,
+        style,
+        size,
+        palette,
+        referenceImageUrl,
+        timestamp
+      } = validatedBody as PosterGenerationRequest;
       
-      // 前端校验
-      if (!body.description || body.description.trim().length === 0) {
+      if (!description) {
         return ApiResponseWrapper.error(
-          "创意描述不能为空",
-          { status: 400 }
+          ErrorCode.VALIDATION_ERROR,
+          "Missing required parameters: description",
+          null,
+          400
         );
       }
-  
-      if (body.description.length > 2000) {
-        return ApiResponseWrapper.error(
-          "创意描述过长，请控制在2000字符以内",
-          { status: 400 }
-        );
-      }
-  
-      const startTime = Date.now();
-  
-      // 如果指定了模板，应用模板
-      let finalPrompt = body.description;
-      if (body.templateId) {
-        const template = templateSystem.getAllTemplates().find((t) => t.id === body.templateId);
-        if (template) {
-          // 结合模板和用户描述
-          finalPrompt = `${body.description}, in the style of ${template.name}, ${template.description}`;
-        }
-      }
-  
-      // 调用AI图像生成服务
+      
+      // Generate poster using AI image generation service
       const generationResult = await imageGenerationService.generateImage({
-        prompt: finalPrompt,
-        style: body.style,
-        size: body.size,
-        quality: 0.9,
+        prompt: description,
+        style: style,
+        size: size,
+        quality: 0.8,
+        negativePrompt: "",
+        seed: Date.now(),
         steps: 30,
         guidance: 7.5,
       });
-  
+      
       if (!generationResult.success) {
         return ApiResponseWrapper.error(
-          generationResult.error || "AI生成失败",
-          { status: 500 }
+          ErrorCode.INTERNAL_SERVER_ERROR,
+          generationResult.error || "Failed to generate poster",
+          null,
+          500
         );
       }
-  
-      const generationTime = Date.now() - startTime;
-  
-      // 构建结果
+      
       const result: PosterGenerationResult = {
         id: `poster_${Date.now()}`,
-        imageUrl: generationResult.imageUrl!,
+        imageUrl: generationResult.imageUrl || "",
         thumbnailUrl: generationResult.thumbnailUrl,
         metadata: {
-          generationTime,
-          style: body.style || "modern",
-          size: body.size || "square",
-          palette: body.palette || "brand",
-          aiModel: generationResult.metadata?.model || "stable-diffusion-xl",
-          prompt: finalPrompt,
-          seed: generationResult.metadata?.seed || 0,
-          steps: generationResult.metadata?.steps || 30,
-          guidance: generationResult.metadata?.guidance || 7.5,
+          generationTime: generationResult.metadata?.generationTime || 0,
+          style: style || "",
+          size: size || "",
+          palette: palette || "",
         },
         createdAt: new Date(),
       };
-  
-      // 保存到数据库（如果需要）
-      try {
-        await fetch("/api/poster/history", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            userId: req.headers.get("user-id") || "anonymous",
-            description: body.description,
-            style: body.style,
-            size: body.size,
-            palette: body.palette,
-            templateId: body.templateId,
-            resultImageUrl: result.imageUrl,
-            metadata: result.metadata,
-          }),
-        });
-      } catch (error) {
-        // 历史记录保存失败不影响主流程
-        console.error("Failed to save poster history:", error);
-      }
-  
-      return ApiResponseWrapper.success({
-        success: true,
-        data: result,
-      });
+      
+      return ApiResponseWrapper.success(result);
     } catch (error) {
+      console.error('Error generating poster:', error);
       return ApiResponseWrapper.error(
+        ErrorCode.INTERNAL_SERVER_ERROR,
         "Internal server error",
-        { status: 500 }
+        null,
+        500
       );
     }
   }
 );
-

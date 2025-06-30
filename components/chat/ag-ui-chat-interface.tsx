@@ -287,28 +287,13 @@ export function AgUiChatInterface() {
         {showWelcome ? (
           <div className="h-full">
             {Object.keys(requiredVariables).length > 0 ? (
-              <Card className="m-4 p-4">
-                <h2 className="text-xl font-bold mb-4">请填写以下必要信息</h2>
-                {Object.entries(requiredVariables).map(([key, description]) => (
-                  <div key={key} className="mb-4">
-                    <label className="block text-sm font-medium mb-1">{description}</label>
-                    <input
-                      type="text"
-                      className="w-full p-2 border rounded"
-                      value={variableValues[key] || ""}
-                      onChange={(e) =>
-                        setVariableValues((prev) => ({
-                          ...prev,
-                          [key]: e.target.value,
-                        }))
-                      }
-                    />
-                  </div>
-                ))}
-                <Button onClick={handleSubmitVariables} disabled={isLoading}>
-                  {isLoading ? "提交中..." : "提交"}
-                </Button>
-              </Card>
+              <VariableInputForm
+                requiredVariables={requiredVariables}
+                variableValues={variableValues}
+                setVariableValues={setVariableValues}
+                onSubmit={handleSubmitVariables}
+                isLoading={isLoading}
+              />
             ) : (
               <WelcomeScreen onClose={() => setShowWelcome(false)} />
             )}
@@ -350,40 +335,15 @@ export function AgUiChatInterface() {
       )}
 
       {/* 输入区域 */}
-      <div className="p-4 border-t">
-        <div className="flex items-end gap-2">
-          <Textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="输入消息..."
-            className="flex-1 min-h-[80px] resize-none"
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault()
-                handleSendMessage()
-              }
-            }}
-            disabled={isLoading || !chatId}
-          />
-          <div className="flex flex-col gap-2">
-            <Button
-              onClick={handleSendMessage}
-              disabled={isLoading || !input.trim() || !chatId}
-              className="h-10 w-10 p-0"
-            >
-              <Send className="h-5 w-5" />
-            </Button>
-            <Button
-              onClick={handleGenerateImage}
-              disabled={isLoading || messages.length === 0 || !chatId}
-              className="h-10 w-10 p-0"
-              variant="outline"
-            >
-              <ImageIcon className="h-5 w-5" />
-            </Button>
-          </div>
-        </div>
-      </div>
+      <ChatInputArea
+        input={input}
+        setInput={setInput}
+        isLoading={isLoading}
+        chatId={chatId}
+        handleSendMessage={handleSendMessage}
+        handleGenerateImage={handleGenerateImage}
+        messagesLength={messages.length}
+      />
     </div>
   )
 }

@@ -51,7 +51,7 @@ class AgentError extends Error {
   public readonly retryable: boolean;
   public readonly context?: any;
   public readonly timestamp: string;
-  public readonly stack?: string;
+  public override readonly stack?: string;
 
   constructor(
     type: AgentErrorType,

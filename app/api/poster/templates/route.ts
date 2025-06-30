@@ -5,76 +5,92 @@
  * @date 2025-06-25
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { createApiRoute, RouteConfigs, CommonValidations } from '@/lib/middleware/api-route-wrapper';
+import { NextRequest } from 'next/server';
+import { createApiRoute, RouteConfigs } from '@/lib/middleware/api-route-wrapper';
 import { ApiResponseWrapper } from '@/lib/utils/api-helper';
-import { PosterConfigDB } from "@/lib/database/poster-config"
+import { PosterConfigDB } from '@/lib/database/poster-config-db';
 
 export const GET = createApiRoute(
   RouteConfigs.publicGet(),
-  async (req: NextRequest, { params, validatedBody, validatedQuery, user, requestId }) => {
+  async (req: NextRequest, { validatedBody, validatedQuery, user, requestId }) => {
     try {
-      const { searchParams } = new URL(req.url)
-      const industry = validatedQuery?.industry
-      const category = validatedQuery?.category
-      const productType = validatedQuery?.productType
-    
-      if (industry === "security") {
-        const templates = await PosterConfigDB.getSecurityTemplates()
-    
-        let filtered = templates
-        if (category) {
-          filtered = filtered.filter((t) => t.category === category)
-        }
-        if (productType) {
-          filtered = filtered.filter((t) => t.productType === productType)
-        }
-    
-        return ApiResponseWrapper.success({
-          success: true,
-          data: filtered,
-        })
+      const { category, tags, search, page = 1, pageSize = 20 } = _validatedQuery;
+      
+      // Get templates based on category
+      let templates = await PosterConfigDB.getAllTemplates();
+      
+      // Filter by category if provided
+      if (category) {
+        templates = templates.filter(template => template.category === category);
       }
-    
-      return ApiResponseWrapper.error(
-        "Industry not supported",
-        { status: 400 }
-      )
+      
+      // Filter by tags if provided
+      if (tags) {
+        const tagArray = tags.split(',').map((tag: string) => tag.trim());
+        templates = templates.filter(template => 
+          tagArray.some((tag: string) => template.tags?.includes(tag))
+        );
+      }
+      
+      // Filter by search term if provided
+      if (search) {
+        const searchTerm = search.toLowerCase();
+        templates = templates.filter(template => 
+          template.name.toLowerCase().includes(searchTerm) ||
+          template.description?.toLowerCase().includes(searchTerm)
+        );
+      }
+      
+      // Pagination
+      const startIndex = (page - 1) * pageSize;
+      const endIndex = startIndex + pageSize;
+      const paginatedTemplates = templates.slice(startIndex, endIndex);
+      
+      return ApiResponseWrapper.success({
+        templates: paginatedTemplates,
+        pagination: {
+          page,
+          pageSize,
+          total: templates.length,
+          totalPages: Math.ceil(templates.length / pageSize)
+        }
+      });
     } catch (error) {
+      console.error('Error fetching templates:', error);
       return ApiResponseWrapper.error(
         "Internal server error",
         { status: 500 }
-      )
+      );
     }
   }
 );
 
 export const POST = createApiRoute(
-  RouteConfigs.protectedPost(),
-  async (req: NextRequest, { params, validatedBody, validatedQuery, user, requestId }) => {
+  RouteConfigs.publicPost(),
+  async (req: NextRequest, { validatedBody, validatedQuery, user, requestId }) => {
     try {
-      const body = await req.json()
-      const { templateId, userId } = body
-    
+      const { templateId, userId } = _validatedBody;
+      
       if (!templateId) {
         return ApiResponseWrapper.error(
-          "Missing required parameter: templateId",
+          "Missing templateId",
           { status: 400 }
-        )
+        );
       }
-    
-      // 更新模板使用统计
-      await PosterConfigDB.updateTemplateUsage(templateId)
-    
+      
+      // Update template usage statistics
+      await PosterConfigDB.updateTemplateUsage(templateId, userId);
+      
       return ApiResponseWrapper.success({
         success: true,
-        message: "Template usage updated",
-      })
+        message: "Template usage updated"
+      });
     } catch (error) {
+      console.error('Error updating template usage:', error);
       return ApiResponseWrapper.error(
         "Internal server error",
         { status: 500 }
-      )
+      );
     }
   }
 );

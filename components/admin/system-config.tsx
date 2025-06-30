@@ -12,40 +12,9 @@ import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
 import { Mic, Settings, Zap, Shield, Activity, TestTube, Brain, Filter, Clock, Save, RefreshCw } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
-import { aiModelManager } from "@/lib/ai-models/model-manager"
-import { ModelType } from "@/types/ai-models"
-import type { SystemConfig, SpeechRecognitionConfig } from "@/types/system-config"
+import { loadSystemConfig, saveSystemConfig, testSpeechRecognitionApi } from "@/lib/system/config-manager"
 
-// 支持的语言列表
-const SUPPORTED_LANGUAGES = [
-  { code: "zh-CN", name: "中文(简体)" },
-  { code: "zh-TW", name: "中文(繁体)" },
-  { code: "en-US", name: "英语(美国)" },
-  { code: "en-GB", name: "英语(英国)" },
-  { code: "ja-JP", name: "日语" },
-  { code: "ko-KR", name: "韩语" },
-  { code: "fr-FR", name: "法语" },
-  { code: "de-DE", name: "德语" },
-  { code: "es-ES", name: "西班牙语" },
-  { code: "ru-RU", name: "俄语" },
-]
-
-// 音频格式选项
-const AUDIO_FORMATS = [
-  { value: "wav", label: "WAV (推荐)" },
-  { value: "mp3", label: "MP3" },
-  { value: "flac", label: "FLAC (高质量)" },
-  { value: "webm", label: "WebM" },
-]
-
-// 编码格式选项
-const ENCODING_FORMATS = [
-  { value: "LINEAR16", label: "LINEAR16 (推荐)" },
-  { value: "FLAC", label: "FLAC" },
-  { value: "MULAW", label: "MULAW" },
-  { value: "AMR", label: "AMR" },
-]
+import { SUPPORTED_LANGUAGES, AUDIO_FORMATS, ENCODING_FORMATS } from "@/lib/system/constants"
 
 export function SystemConfig() {
   const [config, setConfig] = useState<SystemConfig>({
@@ -121,93 +90,46 @@ export function SystemConfig() {
     setSpeechModels(models.map((model) => ({ id: model.id, name: model.name })))
 
     // 加载保存的配置
-    loadConfig()
+    const loadedConfig = loadSystemConfig()
+    if (loadedConfig) {
+      setConfig(loadedConfig)
+    }
   }, [])
 
-  const loadConfig = () => {
-    try {
-      const savedConfig = localStorage.getItem("system_config")
-      if (savedConfig) {
-        const parsed = JSON.parse(savedConfig)
-        setConfig({ ...config, ...parsed })
-      }
-    } catch (error) {
-      console.error("Failed to load system config:", error)
-    }
-  }
-
-  const saveConfig = async () => {
+  const handleSaveConfig = async () => {
     setIsLoading(true)
-    try {
-      // 保存到本地存储
-      localStorage.setItem("system_config", JSON.stringify(config))
-
-      // 保存到服务器
-      const response = await fetch("/api/system/config", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(config),
+    const result = await saveSystemConfig(config)
+    if (result.success) {
+      toast({
+        title: "配置保存成功",
+        description: "系统配置已更新",
       })
-
-      if (response.ok) {
-        toast({
-          title: "配置保存成功",
-          description: "系统配置已更新",
-        })
-      } else {
-        throw new Error("Failed to save config to server")
-      }
-    } catch (error) {
-      console.error("Failed to save config:", error)
+    } else {
       toast({
         title: "保存失败",
-        description: "配置已保存到本地，但服务器同步失败",
+        description: result.error || "配置已保存到本地，但服务器同步失败",
         variant: "destructive",
       })
-    } finally {
-      setIsLoading(false)
     }
+    setIsLoading(false)
   }
 
-  const testSpeechRecognition = async () => {
+  const handleTestSpeechRecognition = async () => {
     setIsTesting(true)
-    try {
-      const response = await fetch("/api/speech/test", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          modelId: config.speechRecognition.globalModel,
-          config: config.speechRecognition,
-        }),
-      })
-
-      const result = await response.json()
-
-      if (result.success) {
-        toast({
-          title: "语音识别测试成功",
-          description: `模型响应正常，延迟: ${result.latency}ms`,
-        })
-      } else {
-        toast({
-          title: "语音识别测试失败",
-          description: result.error,
-          variant: "destructive",
-        })
-      }
-    } catch (error) {
+    const result = await testSpeechRecognitionApi(config.speechRecognition.globalModel, config.speechRecognition)
+    if (result.success) {
       toast({
-        title: "测试失败",
-        description: "无法连接到语音识别服务",
+        title: "语音识别测试成功",
+        description: `模型响应正常，延迟: ${result.data?.latency}ms`,
+      })
+    } else {
+      toast({
+        title: "语音识别测试失败",
+        description: result.error || "未知错误",
         variant: "destructive",
       })
-    } finally {
-      setIsTesting(false)
     }
+    setIsTesting(false)
   }
 
   const updateSpeechConfig = (updates: Partial<SpeechRecognitionConfig>) => {

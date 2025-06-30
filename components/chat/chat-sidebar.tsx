@@ -28,13 +28,13 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
-import { formatDistanceToNow } from "date-fns"
-import { zhCN } from "date-fns/locale"
+import { formatTimeDistance } from "@/lib/utils"
 import { useMobile } from "@/hooks/use-mobile"
 import { useToast } from "@/hooks/use-toast"
 import FastGPTApi from "@/lib/api/fastgpt"
 import { useVirtualizer } from "@tanstack/react-virtual"
 import { useInView } from "react-intersection-observer"
+import { ProductionToolkit } from "@/lib/utils/production-toolkit"
 
 // 每页加载的会话数量
 const SESSIONS_PER_PAGE = 20
@@ -338,14 +338,8 @@ const getScrollPosition = (key: string): number => {
   }
 }
 
-// 防抖函数
-const debounce = (fn: Function, ms = 300) => {
-  let timeoutId: ReturnType<typeof setTimeout>
-  return function (this: any, ...args: any[]) {
-    clearTimeout(timeoutId)
-    timeoutId = setTimeout(() => fn.apply(this, args), ms)
-  }
-}
+// 使用统一的防抖函数
+const debounce = ProductionToolkit.debounce
 
 export function ChatSidebar({ isOpen, onClose }: ChatSidebarProps) {
   const {
@@ -688,12 +682,9 @@ export function ChatSidebar({ isOpen, onClose }: ChatSidebarProps) {
   }, [])
 
   // 格式化时间 - 使用useCallback优化
+  // 使用统一的时间格式化函数
   const formatTime = useCallback((dateString: string) => {
-    try {
-      return formatDistanceToNow(new Date(dateString), { addSuffix: true, locale: zhCN })
-    } catch (e) {
-      return "未知时间"
-    }
+    return formatTimeDistance(dateString)
   }, [])
 
   // 处理新建会话 - 使用useCallback优化

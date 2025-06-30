@@ -5,7 +5,6 @@
  * @date 2025-06-25
  */
 
-import { NextRequest } from 'next/server';
 import { createApiRoute, ApiResponseWrapper } from '@/lib/api/route-factory';
 import { performanceMonitor } from '@/lib/middleware/performance-monitor';
 import { unifiedAIAdapter } from '@/lib/ai/unified-ai-adapter';

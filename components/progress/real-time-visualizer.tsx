@@ -5,23 +5,14 @@ import type React from "react"
 
 import { useState, useEffect, useRef } from "react"
 import { Progress } from "@/components/ui/progress"
+import { formatTime } from "@/lib/utils"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { CheckCircle2, Clock, AlertCircle, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { motion, AnimatePresence } from "framer-motion"
 
-export interface ProgressStep {
-  id: string
-  name: string
-  description?: string
-  status: "pending" | "running" | "completed" | "error"
-  progress: number
-  startTime?: Date
-  endTime?: Date
-  estimatedDuration?: number
-  metadata?: Record<string, any>
-}
+import type { ProgressStep } from "@/types/progress"
 
 export interface ProgressVisualizerProps {
   steps: ProgressStep[]
@@ -80,45 +71,9 @@ export function RealTimeProgressVisualizer({
     }
   }, [steps, showEstimatedTime])
 
-  const getStepIcon = (step: ProgressStep) => {
-    switch (step.status) {
-      case "completed":
-        return <CheckCircle2 className="h-4 w-4 text-green-500" />
-      case "running":
-        return <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />
-      case "error":
-        return <AlertCircle className="h-4 w-4 text-red-500" />
-      default:
-        return <Clock className="h-4 w-4 text-gray-400" />
-    }
-  }
+  import { getStepIcon, getStepStatusColor } from "@/lib/progress/utils"
 
-  const getStepStatusColor = (step: ProgressStep) => {
-    switch (step.status) {
-      case "completed":
-        return "bg-green-500/10 text-green-500 border-green-500/20"
-      case "running":
-        return "bg-blue-500/10 text-blue-500 border-blue-500/20"
-      case "error":
-        return "bg-red-500/10 text-red-500 border-red-500/20"
-      default:
-        return "bg-gray-500/10 text-gray-500 border-gray-500/20"
-    }
-  }
-
-  const formatTime = (ms: number) => {
-    const seconds = Math.floor(ms / 1000)
-    const minutes = Math.floor(seconds / 60)
-    const hours = Math.floor(minutes / 60)
-
-    if (hours > 0) {
-      return `${hours}小时${minutes % 60}分钟`
-    } else if (minutes > 0) {
-      return `${minutes}分钟${seconds % 60}秒`
-    } else {
-      return `${seconds}秒`
-    }
-  }
+  // 使用统一的时间格式化函数
 
   const completedSteps = steps.filter((step) => step.status === "completed").length
   const totalSteps = steps.length

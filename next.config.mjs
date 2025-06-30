@@ -1,4 +1,10 @@
 /** @type {import('next').NextConfig} */
+
+// 导入bundle分析器插件
+const withBundleAnalyzer = process.env.ANALYZE === 'true' 
+  ? require('@next/bundle-analyzer')({ enabled: true })
+  : (config) => config;
+
 const nextConfig = {
   // 构建优化 (swcMinify在Next.js 13+中默认启用)
   compress: true,
@@ -39,6 +45,23 @@ const nextConfig = {
   
   // Bundle分析和优化
   webpack: (config, { dev, isServer }) => {
+    // 客户端环境下的Node.js模块fallback配置
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        dns: false,
+        net: false,
+        tls: false,
+        fs: false,
+        child_process: false,
+        worker_threads: false,
+        cluster: false,
+        'mock-aws-s3': false,
+        'aws-sdk': false,
+        'nock': false,
+      }
+    }
+
     // 生产环境优化
     if (!dev && !isServer) {
       // Bundle分割优化
@@ -129,4 +152,4 @@ const nextConfig = {
   },
 }
 
-export default nextConfig
+export default withBundleAnalyzer(nextConfig)

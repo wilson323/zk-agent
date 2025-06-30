@@ -40,7 +40,7 @@ export function StandardChatInterface({ appId, apiKey, chatId, className }: Stan
     isRunning,
     currentAgent,
     messages,
-    state,
+    _state,
     events,
     error,
     threadId,

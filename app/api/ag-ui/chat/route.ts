@@ -6,23 +6,30 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createApiRoute, RouteConfigs, CommonValidations } from '@/lib/middleware/api-route-wrapper';
+import { createApiRoute, RouteConfigs } from '@/lib/middleware/api-route-wrapper';
 import { ApiResponseWrapper } from '@/lib/utils/api-helper';
+import { ErrorCode } from '@/types/core';
+import { ChatRequest, AgUiEvent } from '@/types/fastgpt';
 import { fetchEventSource } from "@microsoft/fetch-event-source"
 
 export const POST = createApiRoute(
   RouteConfigs.protectedPost(),
   async (req: NextRequest, { params, validatedBody, validatedQuery, user, requestId }) => {
     try {
-      const body = await req.json()
-      const { appId, chatId, messages, tools, context, variables, systemPrompt } = body
+      const body: ChatRequest = await req.json();
+      const { 
+        appId, 
+        chatId, 
+        messages, 
+        system: systemPrompt, 
+        variables,
+        tools, 
+        context 
+      } = body;
     
       // 验证必要参数
       if (!appId || !messages) {
-        return ApiResponseWrapper.error(
-          "Missing required parameters: appId and messages",
-          { status: 400 }
-        )
+        return ApiResponseWrapper.error(ErrorCode.VALIDATION_ERROR, 'Missing required parameters: appId and messages', null, 400)
       }
     
       // 获取环境变量
@@ -30,10 +37,7 @@ export const POST = createApiRoute(
       const apiKey = process.env.FASTGPT_API_KEY
     
       if (!apiKey) {
-        return ApiResponseWrapper.error(
-          "FastGPT API key not configured",
-          { status: 500 }
-        )
+        return ApiResponseWrapper.error(ErrorCode.INTERNAL_SERVER_ERROR, 'FastGPT API key not configured', null, 500)
       }
     
         // 创建响应流
@@ -227,10 +231,7 @@ export const POST = createApiRoute(
         },
       })
     } catch (error) {
-      return ApiResponseWrapper.error(
-        "Internal server error",
-        { status: 500 }
-      )
+      return ApiResponseWrapper.error(ErrorCode.INTERNAL_SERVER_ERROR, 'Internal server error', null, 500)
     }
   }
 );

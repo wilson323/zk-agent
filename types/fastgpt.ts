@@ -35,16 +35,7 @@ export interface AppTool {
   config: any
 }
 
-// 聊天消息类型
-export interface ChatMessage {
-  id: string
-  role: "user" | "assistant" | "system"
-  content: string
-  timestamp: string
-  fileIds?: string[]
-  isFavorite?: boolean
-  audioUrl?: string // 添加语音URL字段
-}
+import { ChatMessage } from './core/interfaces';
 
 // 聊天会话类型
 export interface ChatSession {
@@ -103,4 +94,60 @@ export interface User {
   avatar?: string
   role: "admin" | "user"
   createdAt: string
+}
+
+// 聊天API请求类型
+export interface ChatRequest {
+  appId: string
+  chatId?: string
+  messages: ChatMessage[]
+  stream?: boolean
+  detail?: boolean
+  system?: string
+  variables?: Record<string, any>
+  tools?: any[]
+  context?: any
+}
+
+// 聊天API响应类型
+export interface ChatResponse {
+  id: string
+  object: string
+  created: number
+  model: string
+  choices: ChatChoice[]
+  usage?: {
+    prompt_tokens: number
+    completion_tokens: number
+    total_tokens: number
+  }
+}
+
+// 聊天选择类型
+export interface ChatChoice {
+  index: number
+  message?: ChatMessage
+  delta?: {
+    content?: string
+    tool_calls?: ToolCall[]
+  }
+  finish_reason?: string
+}
+
+// 工具调用类型
+export interface ToolCall {
+  index: number
+  id: string
+  type: string
+  function: {
+    name: string
+    arguments: string
+  }
+}
+
+// AG-UI事件类型
+export interface AgUiEvent {
+  type: string
+  timestamp: number
+  [key: string]: any
 }

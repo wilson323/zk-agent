@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * @file 日志管理工具
  * @description 统一的日志记录和管理
@@ -6,10 +5,10 @@
  * @date 2024-01-20
  */
 
-import winston from 'winston';
-import { monitoringConfig, isDevelopment, isProduction } from '@/config/env';
-import path from 'path';
-import fs from 'fs';
+import * as winston from 'winston';
+import { monitoringConfig, isDevelopment, isProduction } from '../../config/env';
+import * as path from 'path';
+import * as fs from 'fs';
 
 // 确保日志目录存在
 const logDir = monitoringConfig.logFilePath;

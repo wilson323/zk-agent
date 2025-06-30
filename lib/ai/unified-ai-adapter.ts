@@ -10,12 +10,8 @@
 import { Logger } from '@/lib/utils/logger';
 import { performanceMonitor } from '@/lib/middleware/performance-monitor';
 
-// AI服务提供商枚举
-export enum AIProvider {
-  FASTGPT = 'fastgpt',
-  QIANWEN = 'qianwen',
-  SILICONFLOW = 'siliconflow',
-}
+// 导入统一的AI服务提供商枚举
+import { AIProvider } from '@/lib/types/enums';
 
 // 统一的AI请求接口
 export interface AIRequest {

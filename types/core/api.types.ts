@@ -6,39 +6,7 @@
  * @date 2024-12-19
  */
 
-// API响应基础类型
-export interface ApiResponse<T = any> {
-  success: boolean
-  data?: T
-  error?: {
-    code: string
-    message: string
-    details?: any
-  }
-  pagination?: {
-    page: number
-    limit: number
-    total: number
-    totalPages: number
-  }
-  timestamp: string
-}
-
-// API错误类型
-export interface ApiError {
-  code: string
-  message: string
-  details?: any
-  timestamp?: string
-}
-
-// 分页参数
-export interface PaginationParams {
-  page?: number
-  limit?: number
-  sortBy?: string
-  sortOrder?: 'asc' | 'desc'
-}
+import { ApiResponse, PaginationParams } from './core-interfaces';
 
 // 搜索参数
 export interface SearchParams {
@@ -107,4 +75,4 @@ export interface VersionResponse {
   buildDate: string
   gitCommit?: string
   environment: string
-} 
+}

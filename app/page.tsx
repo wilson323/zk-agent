@@ -78,18 +78,18 @@ export default function HomePage() {
         enableWebVitals={true}
         enableResourceTiming={true}
         enableMemoryMonitoring={true}
-        onMetric={(metric, value, rating) => {
+        onMetric={(_metric, _value, rating) => {
           // 性能指标回调
           if (rating === 'poor') {
-            console.warn(`Performance issue detected: ${metric} = ${value}`)
+            // console.warn(`Performance issue detected: ${metric} = ${value}`)
           }
         }}
       />
       
       <ErrorBoundary
-        onError={(error, errorInfo) => {
+        onError={(_error, _errorInfo) => {
           // 错误上报
-          console.error('HomePage Error:', error, errorInfo)
+          // console.error('HomePage Error:', error, errorInfo)
         }}
       >
         <main className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">

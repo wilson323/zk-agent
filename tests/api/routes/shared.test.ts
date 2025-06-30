@@ -630,7 +630,7 @@ describe('Shared API Error Handling', () => {
   describe('Batch Share Operations', () => {
     it('should handle batch share creation with partial failures', async () => {
       const { createShareLink } = require('../../../lib/services/sharing-manager');
-      createShareLink.mockImplementation((data) => {
+      createShareLink.mockImplementation((data: any) => {
         if (data.contentId === 'invalid-content') {
           throw new Error('Content not found');
         }
@@ -661,7 +661,7 @@ describe('Shared API Error Handling', () => {
 
     it('should handle batch share revocation with partial failures', async () => {
       const { revokeShareLink } = require('../../../lib/services/sharing-manager');
-      revokeShareLink.mockImplementation((shareId) => {
+      revokeShareLink.mockImplementation((shareId: any) => {
         if (shareId === 'nonexistent-share') {
           throw new Error('Share not found');
         }
