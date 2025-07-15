@@ -9,6 +9,7 @@
 import { AdvancedCacheManager } from '@/lib/cache/advanced-cache-manager'
 
 import { ChatMessage } from '../types/interfaces';
+import { logger } from '@/lib/utils/logger';
 
 // 上下文会话
 export interface ContextSession {
@@ -587,7 +588,7 @@ export class ContextMemoryManager {
       const key = `context_session_${session.id}`
       localStorage.setItem(key, JSON.stringify(session))
     } catch (error) {
-      console.error('Failed to persist session:', error)
+      logger.error('Failed to persist session:', error)
     }
   }
 
@@ -607,7 +608,7 @@ export class ContextMemoryManager {
         return session
       }
     } catch (error) {
-      console.error('Failed to load session from storage:', error)
+      logger.error('Failed to load session from storage:', error)
     }
     return null
   }
@@ -627,7 +628,7 @@ export class ContextMemoryManager {
         }
       }
     } catch (error) {
-      console.error('Failed to get all sessions from storage:', error)
+      logger.error('Failed to get all sessions from storage:', error)
     }
 
     return sessions
@@ -639,7 +640,7 @@ export class ContextMemoryManager {
       localStorage.removeItem(key)
       return true
     } catch (error) {
-      console.error('Failed to delete session from storage:', error)
+      logger.error('Failed to delete session from storage:', error)
       return false
     }
   }
@@ -655,7 +656,7 @@ export class ContextMemoryManager {
       // 更新缓存
       this.memoryCache.set(`memory_${userId}_all`, allMemories)
     } catch (error) {
-      console.error('Failed to store memory fragments:', error)
+      logger.error('Failed to store memory fragments:', error)
     }
   }
 
@@ -681,7 +682,7 @@ export class ContextMemoryManager {
         return memories
       }
     } catch (error) {
-      console.error('Failed to load memory from storage:', error)
+      logger.error('Failed to load memory from storage:', error)
     }
     return null
   }

@@ -1,4 +1,6 @@
 import type { AgentDefinition, Tool } from "./types"
+import { logger } from '@/lib/utils/logger';
+
 import { 
   IAgentManager, 
   CreateAgentParams, 
@@ -79,7 +81,7 @@ export class AgUIAgentManager implements IAgentManager {
 
       return agent
     } catch (error) {
-      console.error("Error creating agent from FastGPT:", error)
+      logger.error("Error creating agent from FastGPT:", error)
       throw error
     }
   }

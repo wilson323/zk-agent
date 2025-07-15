@@ -8,6 +8,7 @@ import type {
   RunFinishedEvent,
 } from "./types"
 import { AgUIRuntime } from "./protocol/runtime"
+import { logger } from '@/lib/utils/logger';
 
 // CAD 分析响应接口
 interface CADAnalysisResponse {
@@ -153,7 +154,7 @@ export class AgUIAdapter {
                 observer.next(data)
               } catch (e) {
                 if (this.options.debug) {
-                  console.error("Failed to parse JSON:", part, e)
+                  logger.error("Failed to parse JSON:", part, e)
                 }
               }
             }
@@ -165,7 +166,7 @@ export class AgUIAdapter {
           processChunk()
         } catch (error) {
           if (this.options.debug) {
-            console.error("Error processing stream:", error)
+            logger.error("Error processing stream:", error)
           }
           observer.error(error)
         }
@@ -177,7 +178,7 @@ export class AgUIAdapter {
       return () => {
         reader.cancel().catch((err) => {
           if (this.options.debug) {
-            console.error("Error cancelling reader:", err)
+            logger.error("Error cancelling reader:", err)
           }
         })
       }

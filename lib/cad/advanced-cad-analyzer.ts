@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { EventEmitter } from "events"
+import { logger } from '@/lib/utils/logger';
 
 // 添加实时分析进度接口
 export interface RealTimeProgress {
@@ -85,7 +86,7 @@ export class AdvancedCADAnalyzer {
           timestamp: new Date(),
         })
       } catch (error) {
-        console.error(`文件 ${file.id} 分析失败:`, error)
+        logger.error(`文件 ${file.id} 分析失败:`, error)
       } finally {
         this.activeAnalyses.delete(file.id)
       }

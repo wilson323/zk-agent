@@ -5,6 +5,7 @@ import { ToolRegistry, WeatherTool, WebSearchTool, CADAnalysisTool, PosterGenera
 import { AgUIErrorCode, ErrorHandler } from "./error-codes"
 import { VersionCompatibility } from "./version"
 import type { AgUIEvent, RunInput, RunConfig, AgentDefinition } from "./types"
+import { logger } from '@/lib/utils/logger';
 
 /**
  * 增强版AG-UI运行时
@@ -76,7 +77,7 @@ export class EnhancedAgUIRuntime extends AgUIRuntime {
       // 验证工具定义
       for (const tool of agent.tools) {
         if (!this.toolRegistry.has(tool.function.name)) {
-          console.warn(`Tool ${tool.function.name} not found in registry`)
+          logger.warn(`Tool ${tool.function.name} not found in registry`)
         }
       }
 
@@ -164,7 +165,7 @@ export class EnhancedAgUIRuntime extends AgUIRuntime {
         super.emitEvent(processedEvent)
       }
     } catch (error) {
-      console.error("Error processing event through middleware:", error)
+      logger.error("Error processing event through middleware:", error)
       // 即使中间件出错，也要发送原始事件
       super.emitEvent(event)
     }

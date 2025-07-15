@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ZodSchema, ZodError } from 'zod';
 import { ApiResponse, ErrorCode } from '@/types/core';
+import { logger } from '@/lib/utils/logger';
 
 // API响应包装器
 export class ApiResponseWrapper {
@@ -80,7 +81,7 @@ export class ApiResponseWrapper {
   }
 
   static internalError(error: any): NextResponse<ApiResponse> {
-    console.error('Internal Server Error:', error);
+    logger.error('Internal Server Error:', error);
     return this.error(
       ErrorCode.INTERNAL_SERVER_ERROR,
       'Internal server error',
@@ -205,8 +206,7 @@ export class ApiLogger {
       userId,
       timestamp: new Date().toISOString(),
     };
-    
-    console.log('📥 API Request:', JSON.stringify(log, null, 2));
+
   }
 
   static logResponse(response: NextResponse, duration: number) {
@@ -215,8 +215,7 @@ export class ApiLogger {
       duration: `${duration}ms`,
       timestamp: new Date().toISOString(),
     };
-    
-    console.log('📤 API Response:', JSON.stringify(log, null, 2));
+
   }
 
   static logError(error: any, context?: any) {
@@ -227,7 +226,7 @@ export class ApiLogger {
       timestamp: new Date().toISOString(),
     };
     
-    console.error('🚨 API Error:', JSON.stringify(log, null, 2));
+    logger.error('🚨 API Error:', JSON.stringify(log, null, 2));
   }
 }
 

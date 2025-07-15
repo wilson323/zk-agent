@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import { jwtConfig } from '@/config/env';
 import { ERROR_CODES } from '@/config/constants';
+import { logger } from '@/lib/utils/logger';
 
 export interface IUser {
   id: string;
@@ -83,7 +84,7 @@ export function withAuth(handler: (req: IAuthenticatedRequest) => Promise<NextRe
         );
       }
 
-      console.error('认证中间件错误:', error);
+      logger.error('认证中间件错误:', error);
       return NextResponse.json(
         { 
           error: ERROR_CODES.INTERNAL_SERVER_ERROR, 
@@ -208,7 +209,7 @@ export function withOptionalAuth(handler: (req: IAuthenticatedRequest) => Promis
       return await handler(req);
     } catch (error) {
       // 可选认证失败时不返回错误，继续处理请求
-      console.warn('可选认证失败:', error);
+      logger.warn('可选认证失败:', error);
       return await handler(req);
     }
   };

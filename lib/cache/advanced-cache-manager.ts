@@ -1,3 +1,5 @@
+import { logger } from '@/lib/utils/logger';
+
 // @ts-nocheck
 /**
  * @file Advanced Cache Manager
@@ -122,7 +124,7 @@ export class AdvancedCacheManager<T = any> {
       this.emitEvent('set', key, value)
       return true
     } catch (error) {
-      console.error('Cache set error:', error)
+      logger.error('Cache set error:', error)
       return false
     }
   }
@@ -349,155 +351,6 @@ export class AdvancedCacheManager<T = any> {
     }
 
     if (expired > 0) {
-      console.log(`Cache cleanup: ${expired} expired items removed`)
-    }
-  }
-
-  private isExpired(item: CacheItem<T>): boolean {
-    const ttl = item.ttl || this.config.ttl
-    return Date.now() > item.createdAt + ttl
-  }
-
-  private ensureCapacity(newItemSize: number): void {
-    while (this.stats.size >= this.config.maxSize || 
-           this.stats.memoryUsage + newItemSize > this.config.maxSize * 1024) {
-      this.evictOne()
-    }
-  }
-
-  private evictOne(): void {
-    let keyToEvict: string | null = null
-
-    switch (this.config.evictionPolicy) {
-      case 'lru':
-        keyToEvict = this.accessOrder[0] || null
-        break
-      case 'lfu':
-        keyToEvict = this.findLFUKey()
-        break
-      case 'ttl':
-        keyToEvict = this.findEarliestExpiringKey()
-        break
-      case 'fifo':
-        keyToEvict = this.findOldestKey()
-        break
-    }
-
-    if (keyToEvict) {
-      const item = this.cache.get(keyToEvict)
-      this.delete(keyToEvict, false)
-      this.stats.evictions++
-      this.emitEvent('evict', keyToEvict, item?.value)
-    }
-  }
-
-  private findLFUKey(): string | null {
-    let minAccess = Infinity
-    let keyToEvict: string | null = null
-
-    for (const [key, item] of this.cache.entries()) {
-      if (item.accessCount < minAccess) {
-        minAccess = item.accessCount
-        keyToEvict = key
-      }
-    }
-
-    return keyToEvict
-  }
-
-  private findEarliestExpiringKey(): string | null {
-    let earliestExpiry = Infinity
-    let keyToEvict: string | null = null
-
-    for (const [key, item] of this.cache.entries()) {
-      const expiry = item.createdAt + (item.ttl || this.config.ttl)
-      if (expiry < earliestExpiry) {
-        earliestExpiry = expiry
-        keyToEvict = key
-      }
-    }
-
-    return keyToEvict
-  }
-
-  private findOldestKey(): string | null {
-    let oldestTime = Infinity
-    let keyToEvict: string | null = null
-
-    for (const [key, item] of this.cache.entries()) {
-      if (item.createdAt < oldestTime) {
-        oldestTime = item.createdAt
-        keyToEvict = key
-      }
-    }
-
-    return keyToEvict
-  }
-
-  private updateAccessOrder(key: string): void {
-    this.removeFromAccessOrder(key)
-    this.accessOrder.push(key)
-  }
-
-  private removeFromAccessOrder(key: string): void {
-    const index = this.accessOrder.indexOf(key)
-    if (index > -1) {
-      this.accessOrder.splice(index, 1)
-    }
-  }
-
-  private calculateSize(value: T): number {
-    try {
-      return JSON.stringify(value).length
-    } catch {
-      return 1
-    }
-  }
-
-  private serialize(value: T): any {
-    return this.config.enableSerialization ? JSON.stringify(value) : value
-  }
-
-  private deserialize(value: any): T {
-    try {
-      return this.config.enableSerialization ? JSON.parse(value) : value
-    } catch {
-      return value
-    }
-  }
-
-  private updateHitRate(): void {
-    const total = this.stats.hits + this.stats.misses
-    this.stats.hitRate = total > 0 ? this.stats.hits / total : 0
-  }
-
-  private emitEvent(type: CacheEventType, key: string, value?: T): void {
-    const event = {
-      type,
-      key,
-      value,
-      timestamp: Date.now()
-    }
-
-    this.listeners.forEach(listener => {
-      try {
-        listener(event)
-      } catch (error) {
-        console.error('Cache event listener error:', error)
-      }
-    })
-  }
-}
-
-// 创建默认实例
-export const defaultCacheManager = new AdvancedCacheManager({
-  maxSize: 1000,
-  ttl: 5 * 60 * 1000, // 5分钟
-  checkPeriod: 60 * 1000, // 1分钟
-  enableCompression: false,
-  enableSerialization: true,
-  evictionPolicy: 'lru'
-})
 
 // 导出类型
 export type { CacheConfig, CacheItem, CacheStats, CacheEventType, CacheEventListener }

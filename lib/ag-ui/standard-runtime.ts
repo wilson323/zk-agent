@@ -1,6 +1,7 @@
 import { type Observable, Subject } from "rxjs"
 import type { BaseEvent, RunAgentInput, Tool, Message } from "./types"
 import type { AgentDefinition } from "./protocol/types"
+import { logger } from '@/lib/utils/logger';
 
 /**
  * 标准AG-UI运行时实现
@@ -87,7 +88,7 @@ export class StandardAgUIRuntime {
       // 处理流式响应
       await this.handleStreamResponse(response, messageId)
     } catch (error) {
-      console.error("Error calling FastGPT:", error)
+      logger.error("Error calling FastGPT:", error)
 
       // 发送错误消息
       this.emitEvent({
@@ -177,7 +178,7 @@ export class StandardAgUIRuntime {
                 await this.handleToolCalls(parsed.choices[0].delta.tool_calls, messageId)
               }
             } catch (e) {
-              console.error("Error parsing SSE data:", e)
+              logger.error("Error parsing SSE data:", e)
             }
           }
         }
@@ -228,7 +229,7 @@ export class StandardAgUIRuntime {
           timestamp: Date.now(),
         })
       } catch (error) {
-        console.error("Tool execution error:", error)
+        logger.error("Tool execution error:", error)
       }
 
       // 发送工具调用结束事件
@@ -255,7 +256,7 @@ export class StandardAgUIRuntime {
     try {
       parsedArgs = JSON.parse(args)
     } catch (e) {
-      console.error("Error parsing tool arguments:", e)
+      logger.error("Error parsing tool arguments:", e)
     }
 
     // 这里应该调用实际的工具执行逻辑

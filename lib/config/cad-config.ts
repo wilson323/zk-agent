@@ -1,3 +1,5 @@
+import { logger } from '@/lib/utils/logger';
+
 // @ts-nocheck
 export const CAD_CONFIG = {
   // 文件处理配置
@@ -204,7 +206,7 @@ export const validateConfig = (config: any): boolean => {
   for (const path of required) {
     const value = path.split(".").reduce((obj, key) => obj?.[key], config)
     if (value === undefined || value === null) {
-      console.error(`配置项缺失: ${path}`)
+      logger.error(`配置项缺失: ${path}`)
       return false
     }
   }

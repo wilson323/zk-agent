@@ -1,3 +1,5 @@
+import { logger } from '@/lib/utils/logger';
+
 // @ts-nocheck
 /**
  * 高性能点赞管理器
@@ -85,7 +87,7 @@ export class LikeManager {
         }
       }
     } catch (error) {
-      console.error("切换点赞状态失败:", error)
+      logger.error("切换点赞状态失败:", error)
       throw new Error("操作失败，请重试")
     }
   }
@@ -107,7 +109,7 @@ export class LikeManager {
 
       return likedItems.includes(itemId)
     } catch (error) {
-      console.error("检查点赞状态失败:", error)
+      logger.error("检查点赞状态失败:", error)
       return false
     }
   }
@@ -133,7 +135,7 @@ export class LikeManager {
 
       return stats
     } catch (error) {
-      console.error("获取点赞统计失败:", error)
+      logger.error("获取点赞统计失败:", error)
       return {
         itemId,
         itemType,
@@ -166,7 +168,7 @@ export class LikeManager {
 
       return results
     } catch (error) {
-      console.error("批量获取点赞统计失败:", error)
+      logger.error("批量获取点赞统计失败:", error)
       return results
     }
   }
@@ -192,7 +194,7 @@ export class LikeManager {
         favoriteTypes,
       }
     } catch (error) {
-      console.error("获取用户点赞活动失败:", error)
+      logger.error("获取用户点赞活动失败:", error)
       return {
         userId,
         totalLikes: 0,
@@ -225,7 +227,7 @@ export class LikeManager {
         .slice(0, limit)
         .map(({ score, ...stats }) => ({ ...stats, trending: score > 10 }))
     } catch (error) {
-      console.error("获取热门内容失败:", error)
+      logger.error("获取热门内容失败:", error)
       return []
     }
   }
@@ -256,7 +258,7 @@ export class LikeManager {
 
       return cleanedCount
     } catch (error) {
-      console.error("清理无效点赞记录失败:", error)
+      logger.error("清理无效点赞记录失败:", error)
       return 0
     }
   }
@@ -371,7 +373,7 @@ export class LikeManager {
       // 批量保存到存储
       await this.saveLikeBatch(batch)
     } catch (error) {
-      console.error("批量处理点赞失败:", error)
+      logger.error("批量处理点赞失败:", error)
       // 将失败的记录重新加入队列
       this.batchQueue.unshift(...batch)
     }
@@ -385,7 +387,7 @@ export class LikeManager {
       const likesData = localStorage.getItem(`user_likes_${userId}`)
       return likesData ? JSON.parse(likesData) : []
     } catch (error) {
-      console.error("加载用户点赞失败:", error)
+      logger.error("加载用户点赞失败:", error)
       return []
     }
   }
@@ -404,7 +406,7 @@ export class LikeManager {
       // 如果没有缓存的统计数据，计算统计
       return await this.calculateLikeStats(itemId, itemType)
     } catch (error) {
-      console.error("加载点赞统计失败:", error)
+      logger.error("加载点赞统计失败:", error)
       return {
         itemId,
         itemType,
@@ -459,7 +461,7 @@ export class LikeManager {
             likes.push(like)
           }
         } catch (error) {
-          console.error("解析点赞记录失败:", error)
+          logger.error("解析点赞记录失败:", error)
         }
       }
     }
@@ -483,7 +485,7 @@ export class LikeManager {
               stats.push(JSON.parse(statsData))
             }
           } catch (error) {
-            console.error("解析点赞统计失败:", error)
+            logger.error("解析点赞统计失败:", error)
           }
         }
       }
@@ -530,7 +532,7 @@ export class LikeManager {
 
       return localStorage.getItem(key) !== null
     } catch (error) {
-      console.error("检查内容存在性失败:", error)
+      logger.error("检查内容存在性失败:", error)
       return false
     }
   }

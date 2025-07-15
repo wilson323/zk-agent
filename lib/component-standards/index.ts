@@ -202,10 +202,7 @@ export function initializeComponentStandards(config?: {
   
   // 开发环境提示
   if (finalConfig.development.enableWarnings) {
-    console.log(
-      `🎨 组件标准库已初始化 (v${COMPONENT_STANDARDS_VERSION})`,
-      finalConfig
-    );
+
   }
   
   return finalConfig;

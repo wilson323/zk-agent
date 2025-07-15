@@ -5,6 +5,7 @@
  */
 
 import Redis from "ioredis"
+import { logger } from '@/lib/utils/logger';
 
 export interface RedisCacheConfig {
   host: string
@@ -80,261 +81,7 @@ export class RedisCacheManager {
    */
   private setupEventHandlers(): void {
     this.redis.on("connect", () => {
-      console.log("Redis连接已建立")
-      this.isConnected = true
-    })
 
-    this.redis.on("ready", () => {
-      console.log("Redis连接就绪")
-      this.isConnected = true
-    })
-
-    this.redis.on("error", (error) => {
-      console.error("Redis连接错误:", error)
-      this.metrics.errors++
-      this.isConnected = false
-    })
-
-    this.redis.on("close", () => {
-      console.log("Redis连接已关闭")
-      this.isConnected = false
-    })
-
-    this.redis.on("reconnecting", () => {
-      console.log("Redis正在重连...")
-    })
-  }
-
-  /**
-   * 检查连接状态
-   */
-  async checkConnection(): Promise<boolean> {
-    try {
-      await this.redis.ping()
-      return true
-    } catch (error) {
-      console.error("Redis连接检查失败:", error)
-      return false
-    }
-  }
-
-  /**
-   * 设置缓存
-   */
-  async set<T>(key: string, value: T, options: RedisCacheOptions = {}): Promise<boolean> {
-    try {
-      const ttl = options.ttl || this.config.defaultTTL
-      const tags = options.tags || []
-
-      // 序列化数据
-      let serializedValue: string
-      if (options.serialize !== false) {
-        serializedValue = JSON.stringify({
-          value,
-          tags,
-          createdAt: Date.now(),
-          compressed: options.compress || false,
-        })
-      } else {
-        serializedValue = value as string
-      }
-
-      // 压缩数据（如果需要）
-      if (options.compress) {
-        // 这里可以添加压缩逻辑
-        // serializedValue = await compress(serializedValue)
-      }
-
-      // 设置缓存
-      const result = await this.redis.setex(key, ttl, serializedValue)
-
-      // 设置标签索引
-      if (tags.length > 0) {
-        const pipeline = this.redis.pipeline()
-        tags.forEach((tag) => {
-          pipeline.sadd(`tag:${tag}`, key)
-          pipeline.expire(`tag:${tag}`, ttl)
-        })
-        await pipeline.exec()
-      }
-
-      this.metrics.sets++
-      return result === "OK"
-    } catch (error) {
-      console.error("Redis设置缓存失败:", error)
-      this.metrics.errors++
-      return false
-    }
-  }
-
-  /**
-   * 获取缓存
-   */
-  async get<T>(key: string): Promise<T | null> {
-    try {
-      const value = await this.redis.get(key)
-
-      if (!value) {
-        this.metrics.misses++
-        return null
-      }
-
-      // 反序列化数据
-      try {
-        const parsed = JSON.parse(value)
-
-        // 解压缩数据（如果需要）
-        if (parsed.compressed) {
-          // 这里可以添加解压缩逻辑
-          // parsed.value = await decompress(parsed.value)
-        }
-
-        this.metrics.hits++
-        return parsed.value as T
-      } catch (parseError) {
-        // 如果解析失败，返回原始值
-        this.metrics.hits++
-        return value as T
-      }
-    } catch (error) {
-      console.error("Redis获取缓存失败:", error)
-      this.metrics.errors++
-      this.metrics.misses++
-      return null
-    }
-  }
-
-  /**
-   * 删除缓存
-   */
-  async delete(key: string): Promise<boolean> {
-    try {
-      // 获取标签信息
-      const value = await this.redis.get(key)
-      if (value) {
-        try {
-          const parsed = JSON.parse(value)
-          if (parsed.tags && Array.isArray(parsed.tags)) {
-            // 从标签索引中移除
-            const pipeline = this.redis.pipeline()
-            parsed.tags.forEach((tag: string) => {
-              pipeline.srem(`tag:${tag}`, key)
-            })
-            await pipeline.exec()
-          }
-        } catch {
-          // 忽略解析错误
-        }
-      }
-
-      const result = await this.redis.del(key)
-      this.metrics.deletes++
-      return result > 0
-    } catch (error) {
-      console.error("Redis删除缓存失败:", error)
-      this.metrics.errors++
-      return false
-    }
-  }
-
-  /**
-   * 根据标签删除缓存
-   */
-  async deleteByTag(tag: string): Promise<number> {
-    try {
-      const keys = await this.redis.smembers(`tag:${tag}`)
-
-      if (keys.length === 0) {return 0}
-
-      const pipeline = this.redis.pipeline()
-      keys.forEach((key) => {
-        pipeline.del(key)
-      })
-      pipeline.del(`tag:${tag}`)
-
-      const results = await pipeline.exec()
-      const deletedCount = results?.filter(([err, result]) => !err && result === 1).length || 0
-
-      this.metrics.deletes += deletedCount
-      return deletedCount
-    } catch (error) {
-      console.error("Redis按标签删除缓存失败:", error)
-      this.metrics.errors++
-      return 0
-    }
-  }
-
-  /**
-   * 检查缓存是否存在
-   */
-  async has(key: string): Promise<boolean> {
-    try {
-      const result = await this.redis.exists(key)
-      return result === 1
-    } catch (error) {
-      console.error("Redis检查缓存存在性失败:", error)
-      this.metrics.errors++
-      return false
-    }
-  }
-
-  /**
-   * 获取缓存TTL
-   */
-  async getTTL(key: string): Promise<number> {
-    try {
-      return await this.redis.ttl(key)
-    } catch (error) {
-      console.error("Redis获取TTL失败:", error)
-      this.metrics.errors++
-      return -1
-    }
-  }
-
-  /**
-   * 设置缓存过期时间
-   */
-  async expire(key: string, seconds: number): Promise<boolean> {
-    try {
-      const result = await this.redis.expire(key, seconds)
-      return result === 1
-    } catch (error) {
-      console.error("Redis设置过期时间失败:", error)
-      this.metrics.errors++
-      return false
-    }
-  }
-
-  /**
-   * 批量获取
-   */
-  async mget<T>(keys: string[]): Promise<Map<string, T | null>> {
-    try {
-      const values = await this.redis.mget(...keys)
-      const result = new Map<string, T | null>()
-
-      keys.forEach((key, index) => {
-        const value = values[index]
-        if (value) {
-          try {
-            const parsed = JSON.parse(value)
-            result.set(key, parsed.value as T)
-            this.metrics.hits++
-          } catch {
-            result.set(key, value as T)
-            this.metrics.hits++
-          }
-        } else {
-          result.set(key, null)
-          this.metrics.misses++
-        }
-      })
-
-      return result
-    } catch (error) {
-      console.error("Redis批量获取失败:", error)
-      this.metrics.errors++
-      return new Map()
     }
   }
 
@@ -369,7 +116,7 @@ export class RedisCacheManager {
       this.metrics.sets += data.length
       return true
     } catch (error) {
-      console.error("Redis批量设置失败:", error)
+      logger.error("Redis批量设置失败:", error)
       this.metrics.errors++
       return false
     }
@@ -383,7 +130,7 @@ export class RedisCacheManager {
       await this.redis.flushdb()
       return true
     } catch (error) {
-      console.error("Redis清空缓存失败:", error)
+      logger.error("Redis清空缓存失败:", error)
       this.metrics.errors++
       return false
     }
@@ -396,7 +143,7 @@ export class RedisCacheManager {
     try {
       return await this.redis.keys(pattern)
     } catch (error) {
-      console.error("Redis获取键列表失败:", error)
+      logger.error("Redis获取键列表失败:", error)
       this.metrics.errors++
       return []
     }
@@ -409,7 +156,7 @@ export class RedisCacheManager {
     try {
       return await this.redis.dbsize()
     } catch (error) {
-      console.error("Redis获取缓存大小失败:", error)
+      logger.error("Redis获取缓存大小失败:", error)
       this.metrics.errors++
       return 0
     }
@@ -423,7 +170,7 @@ export class RedisCacheManager {
       const info = await this.redis.memory("usage")
       return info
     } catch (error) {
-      console.error("Redis获取内存使用情况失败:", error)
+      logger.error("Redis获取内存使用情况失败:", error)
       this.metrics.errors++
       return null
     }
@@ -449,7 +196,7 @@ export class RedisCacheManager {
       const info = await this.redis.info()
       return info
     } catch (error) {
-      console.error("Redis获取信息失败:", error)
+      logger.error("Redis获取信息失败:", error)
       this.metrics.errors++
       return null
     }
@@ -462,7 +209,7 @@ export class RedisCacheManager {
     try {
       return await (this.redis as any)[command](...args)
     } catch (error) {
-      console.error(`Redis执行命令${command}失败:`, error)
+      logger.error(`Redis执行命令${command}失败:`, error)
       this.metrics.errors++
       throw error
     }
@@ -474,22 +221,6 @@ export class RedisCacheManager {
   async disconnect(): Promise<void> {
     try {
       await this.redis.quit()
-      console.log("Redis连接已关闭")
-    } catch (error) {
-      console.error("Redis关闭连接失败:", error)
-    }
-  }
-
-  /**
-   * 获取Redis实例（用于高级操作）
-   */
-  getRedisInstance(): Redis {
-    return this.redis
-  }
-}
-
-// 创建全局Redis缓存管理器实例
-export const redisCacheManager = new RedisCacheManager()
 
 // 导出便捷方法
 export const redisCache = {

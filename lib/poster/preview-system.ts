@@ -1,3 +1,5 @@
+import { logger } from '@/lib/utils/logger';
+
 // @ts-nocheck
 /**
  * 海报实时预览系统
@@ -129,7 +131,7 @@ export class PreviewSystem {
         cacheHit: false,
       }
     } catch (error) {
-      console.error("Preview render failed:", error)
+      logger.error("Preview render failed:", error)
       return {
         success: false,
         renderTime: Date.now() - startTime,
@@ -282,7 +284,7 @@ export class PreviewSystem {
 
       this.ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight)
     } catch (error) {
-      console.error("Failed to render image:", error)
+      logger.error("Failed to render image:", error)
       // 渲染占位符
       this.ctx.fillStyle = "#f3f4f6"
       this.ctx.fillRect(x, y, width, height)
@@ -521,7 +523,7 @@ export class PreviewSystem {
       thumbnailCtx.drawImage(img, 0, 0, 300, 300)
       return thumbnailCanvas.toDataURL("image/jpeg", 0.8)
     } catch (error) {
-      console.error("Thumbnail generation failed:", error)
+      logger.error("Thumbnail generation failed:", error)
       return previewUrl
     }
   }
@@ -564,7 +566,7 @@ export class PreviewSystem {
     this.ctx = this.canvas.getContext("2d")
 
     if (!this.ctx) {
-      console.error("Failed to get canvas context")
+      logger.error("Failed to get canvas context")
     }
   }
 

@@ -230,7 +230,7 @@ export class GlobalErrorHandler {
 
     } catch (handlerError) {
       // 错误处理器本身出错的兜底处理
-      console.error('Global error handler failed:', handlerError);
+      logger.error('Global error handler failed:', handlerError);
       
       return NextResponse.json(
         {
@@ -400,7 +400,7 @@ export class GlobalErrorHandler {
     }
     
     this.circuitBreakerOpen = true;
-    console.warn('🚨 Circuit breaker opened due to high error rate');
+    logger.warn('🚨 Circuit breaker opened due to high error rate');
     
     // 清除之前的定时器
     if (this.circuitBreakerResetTimer) {
@@ -447,7 +447,7 @@ export class GlobalErrorHandler {
 
       // 保留控制台输出用于开发调试
       if (process.env.NODE_ENV === 'development') {
-        console.error('Error recorded:', {
+        logger.error('Error recorded:', {
           id: errorId,
           type: error.type,
           message: error.message,
@@ -456,12 +456,10 @@ export class GlobalErrorHandler {
       }
     } catch (recordingError) {
       // 如果错误记录本身失败，至少输出到控制台
-      console.error('Failed to record error:', recordingError);
-      console.error('Original error:', error);
+      logger.error('Failed to record error:', recordingError);
+      logger.error('Original error:', error);
     }
   }
-
-
 
   /**
    * 检查熔断器状态

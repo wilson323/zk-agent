@@ -17,15 +17,6 @@ import { STATS_DATA } from '@/lib/welcome/constants'
 import { TrendingUp } from 'lucide-react'
 
 // 主组件
-import { memo, useEffect, useState } from 'react'
-import { formatNumber } from '@/lib/utils'
-import { LiveIndicator } from '@/components/common/live-indicator'
-import { StatCard } from '@/components/admin/stat-card' // Use the common StatCard
-import { useCountAnimation } from '@/hooks/use-count-animation'
-import { STATS_DATA } from '@/lib/welcome/constants'
-import { TrendingUp } from 'lucide-react'
-
-// 主组件
 const StatsSection = memo(() => {
   const [isVisible, setIsVisible] = useState(false)
 
@@ -86,10 +77,6 @@ const StatsSection = memo(() => {
     </div>
   )
 })
-
-StatsSection.displayName = 'StatsSection'
-
-export default StatsSection
 
 StatsSection.displayName = 'StatsSection'
 

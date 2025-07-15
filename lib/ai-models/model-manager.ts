@@ -231,10 +231,10 @@ export class AIModelManager {
         })
 
         if (!testResult.success) {
-          console.warn(`Model validation warning: ${testResult.error}`)
+          logger.warn(`Model validation warning: ${testResult.error}`)
         }
       } catch (error) {
-        console.warn(`Model validation failed: ${error}`)
+        logger.warn(`Model validation failed: ${error}`)
         // 不抛出错误，允许保存配置但标记为非活跃
         config.isActive = false
       }
@@ -338,7 +338,7 @@ export class AIModelManager {
         }
       }
     } catch (error) {
-      console.error("Failed to load models from storage:", error)
+      logger.error("Failed to load models from storage:", error)
     }
   }
 
@@ -350,7 +350,7 @@ export class AIModelManager {
       const models = Array.from(this.models.values())
       localStorage.setItem("ai_models_config", JSON.stringify(models))
     } catch (error) {
-      console.error("Failed to save models to storage:", error)
+      logger.error("Failed to save models to storage:", error)
     }
   }
 
@@ -362,12 +362,13 @@ export class AIModelManager {
       const metrics = Array.from(this.metrics.values())
       localStorage.setItem("ai_models_metrics", JSON.stringify(metrics))
     } catch (error) {
-      console.error("Failed to save metrics to storage:", error)
+      logger.error("Failed to save metrics to storage:", error)
     }
   }
 }
 
 import { AgUICoreAdapter } from "@/lib/ag-ui/core-adapter"
+import { logger } from '@/lib/utils/logger';
 
 // 创建全局实例
 export const agUiAdapter = new AgUICoreAdapter()

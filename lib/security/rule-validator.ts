@@ -538,7 +538,7 @@ export class RuleValidator {
         const password = "hardcoded123";
         eval(userInput);
         document.innerHTML = unsafeData;
-        console.log("debug info");
+
       `,
       '.ts': `
         const apiKey: string = "sk-1234567890abcdef";

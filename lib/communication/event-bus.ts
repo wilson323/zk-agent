@@ -1,3 +1,5 @@
+import { logger } from '@/lib/utils/logger';
+
 /**
  * 智能体间通信 - 事件总线容错机制
  * 提供事件路由、失败处理、服务熔断等功能
@@ -76,7 +78,7 @@ class ServiceCircuitBreaker {
       if (this.shouldAttemptReset()) {
         this.state = CircuitBreakerState.HALF_OPEN;
         this.halfOpenCalls = 0;
-        console.log(`熔断器 ${this.serviceName} 进入半开状态`);
+
       } else {
         throw new ServiceUnavailable(
           `服务 ${this.serviceName} 熔断器开启，服务不可用`,
@@ -122,10 +124,10 @@ class ServiceCircuitBreaker {
 
     if (this.state === CircuitBreakerState.HALF_OPEN) {
       this.state = CircuitBreakerState.OPEN;
-      console.log(`熔断器 ${this.serviceName} 重新开启`);
+
     } else if (this.failureCount >= this.config.failureThreshold) {
       this.state = CircuitBreakerState.OPEN;
-      console.log(`熔断器 ${this.serviceName} 开启，失败次数: ${this.failureCount}`);
+
     }
   }
 
@@ -136,7 +138,7 @@ class ServiceCircuitBreaker {
     this.state = CircuitBreakerState.CLOSED;
     this.failureCount = 0;
     this.halfOpenCalls = 0;
-    console.log(`熔断器 ${this.serviceName} 重置为关闭状态`);
+
   }
 
   /**
@@ -203,7 +205,6 @@ class EventRouter {
     // 按优先级排序
     subs.sort((a, b) => b.priority - a.priority);
 
-    console.log(`智能体 ${agentId} 订阅事件 ${eventType}`);
     return subscription.id;
   }
 
@@ -215,7 +216,7 @@ class EventRouter {
       const index = subs.findIndex((sub: any) => sub.id === subscriptionId);
       if (index !== -1) {
         subs.splice(index, 1);
-        console.log(`取消订阅: ${subscriptionId}`);
+
         return true;
       }
     }
@@ -230,11 +231,9 @@ class EventRouter {
     const activeSubscriptions = subscriptions.filter(sub => sub.isActive);
 
     if (activeSubscriptions.length === 0) {
-      console.warn(`没有智能体订阅事件类型: ${event.type}`);
+      logger.warn(`没有智能体订阅事件类型: ${event.type}`);
       return;
     }
-
-    console.log(`发布事件 ${event.type} 给 ${activeSubscriptions.length} 个订阅者`);
 
     // 并行发送给所有订阅者
     const promises = activeSubscriptions.map(sub => 
@@ -257,10 +256,9 @@ class EventRouter {
       await circuitBreaker.execute(async () => {
         await subscription.listener(event);
       });
-      
-      console.log(`事件 ${event.id} 成功投递给智能体 ${subscription.agentId}`);
+
     } catch (error) {
-      console.error(`事件投递失败 (智能体: ${subscription.agentId}):`, error);
+      logger.error(`事件投递失败 (智能体: ${subscription.agentId}):`, error);
       
       // 记录失败事件
       this.recordFailedEvent(event, subscription.agentId, error as Error);
@@ -268,12 +266,12 @@ class EventRouter {
       // 如果是严重错误，暂时禁用订阅
       if (error instanceof ServiceUnavailable) {
         subscription.isActive = false;
-        console.warn(`暂时禁用智能体 ${subscription.agentId} 的订阅`);
+        logger.warn(`暂时禁用智能体 ${subscription.agentId} 的订阅`);
         
         // 5分钟后重新启用
         setTimeout(() => {
           subscription.isActive = true;
-          console.log(`重新启用智能体 ${subscription.agentId} 的订阅`);
+
         }, 300000);
       }
     }
@@ -346,12 +344,11 @@ class EventRouter {
           if (index !== -1) {
             this.failedEvents.splice(index, 1);
           }
-          
-          console.log(`失败事件重试成功: ${failedEvent.id}`);
+
         }
       } catch (error) {
         failedEvent.retryCount++;
-        console.error(`失败事件重试失败 (${failedEvent.retryCount}/${failedEvent.maxRetries}):`, error);
+        logger.error(`失败事件重试失败 (${failedEvent.retryCount}/${failedEvent.maxRetries}):`, error);
         
         // 达到最大重试次数，移除记录
         if (failedEvent.retryCount >= failedEvent.maxRetries) {
@@ -410,13 +407,12 @@ class EventRouter {
 class DirectNotificationService {
   private agentEndpoints = new Map<string, string>();
 
-
   /**
    * 注册智能体端点
    */
   registerAgent(agentId: string, endpoint: string): void {
     this.agentEndpoints.set(agentId, endpoint);
-    console.log(`注册智能体端点: ${agentId} -> ${endpoint}`);
+
   }
 
   /**
@@ -434,7 +430,7 @@ class DirectNotificationService {
     try {
       // 模拟HTTP请求
       await this.sendHttpNotification(endpoint, event);
-      console.log(`直接通知成功: ${agentId}`);
+
     } catch (error) {
       throw new CommunicationError(
         `直接通知失败: ${error instanceof Error ? error.message : '未知错误'}`,
@@ -465,7 +461,7 @@ class DirectNotificationService {
   ): Promise<void> {
     const promises = agentIds.map(agentId => 
       this.notifyAgent(agentId, event).catch(error => {
-        console.error(`批量通知失败 (${agentId}):`, error);
+        logger.error(`批量通知失败 (${agentId}):`, error);
         return error;
       })
     );
@@ -514,7 +510,7 @@ export class EventBus {
     try {
       await this.router.publish(event);
     } catch (error) {
-      console.error('事件发布失败:', error);
+      logger.error('事件发布失败:', error);
       throw new CommunicationError(
         `事件发布失败: ${error instanceof Error ? error.message : '未知错误'}`,
         { eventId: event.id, eventType: event.type }
@@ -536,7 +532,7 @@ export class EventBus {
     try {
       await this.directNotification.notifyAgent(agentId, event);
     } catch (error) {
-      console.warn('直接通知失败，尝试通过事件总线发送:', error);
+      logger.warn('直接通知失败，尝试通过事件总线发送:', error);
       // 降级到事件总线
       await this.publish(event);
     }
@@ -645,7 +641,7 @@ export class EventBus {
    */
   shutdown(): void {
     this.stopRetryMechanism();
-    console.log('事件总线已关闭');
+
   }
 }
 

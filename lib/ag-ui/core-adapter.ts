@@ -1,5 +1,7 @@
 // @ts-nocheck
 import { Observable, Subject } from "rxjs"
+import { logger } from '@/lib/utils/logger';
+
 import type {
   BaseEvent,
   TextMessageStartEvent,
@@ -106,7 +108,7 @@ export class AgUICoreAdapter {
 
       return data
     } catch (error) {
-      console.error("Error initializing session:", error)
+      logger.error("Error initializing session:", error)
       throw error
     }
   }
@@ -271,7 +273,7 @@ export class AgUICoreAdapter {
                   }
                 } catch (e) {
                   if (this.options.debug) {
-                    console.error("Failed to parse JSON:", part, e)
+                    logger.error("Failed to parse JSON:", part, e)
                   }
                 }
               }
@@ -283,7 +285,7 @@ export class AgUICoreAdapter {
             processChunk()
           } catch (error) {
             if (this.options.debug) {
-              console.error("Error processing stream:", error)
+              logger.error("Error processing stream:", error)
             }
             observer.error(error)
           }
@@ -295,13 +297,13 @@ export class AgUICoreAdapter {
         return () => {
           reader.cancel().catch((err) => {
             if (this.options.debug) {
-              console.error("Error cancelling reader:", err)
+              logger.error("Error cancelling reader:", err)
             }
           })
         }
       })
     } catch (error) {
-      console.error("Error in chat completion:", error)
+      logger.error("Error in chat completion:", error)
 
       // 发送错误事件
       this.emitEvent({
@@ -390,7 +392,7 @@ export class AgUICoreAdapter {
 
       return data
     } catch (error) {
-      console.error("Error fetching chat history:", error)
+      logger.error("Error fetching chat history:", error)
       throw error
     }
   }
@@ -428,7 +430,7 @@ export class AgUICoreAdapter {
 
       return questions
     } catch (error) {
-      console.error("Error fetching suggested questions:", error)
+      logger.error("Error fetching suggested questions:", error)
       return []
     }
   }
@@ -477,7 +479,7 @@ export class AgUICoreAdapter {
 
       return true
     } catch (error) {
-      console.error("Error submitting feedback:", error)
+      logger.error("Error submitting feedback:", error)
 
       // 发送自定义事件
       this.emitEvent({
@@ -534,7 +536,7 @@ export class AgUICoreAdapter {
 
       return imageUrl
     } catch (error) {
-      console.error("Error generating long image:", error)
+      logger.error("Error generating long image:", error)
       throw error
     }
   }
@@ -581,7 +583,7 @@ export class AgUICoreAdapter {
 
       return data
     } catch (error) {
-      console.error("Error in batch forward:", error)
+      logger.error("Error in batch forward:", error)
       throw error
     }
   }

@@ -261,7 +261,7 @@ export class DatabaseMonitor extends EventEmitter implements IMonitoringService 
   
   public triggerOptimization(strategy?: string): void {
     // this.optimizationCoordinator.triggerOptimizationEvaluation(); // 移除循环依赖
-    console.log('优化触发请求已记录，但优化协调器已解耦');
+
   }
 
   public getStatus(): any {

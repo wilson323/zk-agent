@@ -5,6 +5,7 @@
 
 import { enhancedDb, dbTransaction } from "@/lib/database"
 import type { PosterStyle, ColorPalette, PosterSize, SecurityTemplate, IndustryConfig } from "@/types/poster"
+import { logger } from '@/lib/utils/logger';
 
 export class PosterConfigDB {
   /**
@@ -27,7 +28,7 @@ export class PosterConfigDB {
         parameters: style.parameters as any,
       }))
     } catch (error) {
-      console.error("Failed to get poster styles:", error)
+      logger.error("Failed to get poster styles:", error)
       return []
     }
   }
@@ -65,7 +66,7 @@ export class PosterConfigDB {
         isPremium: template.isPremium,
       }))
     } catch (error) {
-      console.error("Failed to get security templates:", error)
+      logger.error("Failed to get security templates:", error)
       return []
     }
   }
@@ -88,7 +89,7 @@ export class PosterConfigDB {
         industryRecommended: palette.industryRecommended,
       }))
     } catch (error) {
-      console.error("Failed to get color palettes:", error)
+      logger.error("Failed to get color palettes:", error)
       return []
     }
   }
@@ -114,7 +115,7 @@ export class PosterConfigDB {
         recommended: size.recommended,
       }))
     } catch (error) {
-      console.error("Failed to get poster sizes:", error)
+      logger.error("Failed to get poster sizes:", error)
       return []
     }
   }
@@ -145,7 +146,7 @@ export class PosterConfigDB {
         },
       })
     } catch (error) {
-      console.error("Failed to save generation history:", error)
+      logger.error("Failed to save generation history:", error)
       throw error
     }
   }
@@ -164,7 +165,7 @@ export class PosterConfigDB {
         take: limit,
       })
     } catch (error) {
-      console.error("Failed to get user history:", error)
+      logger.error("Failed to get user history:", error)
       return []
     }
   }
@@ -182,7 +183,7 @@ export class PosterConfigDB {
         },
       })
     } catch (error) {
-      console.error("Failed to update template usage:", error)
+      logger.error("Failed to update template usage:", error)
     }
   }
 
@@ -201,7 +202,7 @@ export class PosterConfigDB {
       })
       return config
     } catch (error) {
-      console.error("Failed to get industry config:", error)
+      logger.error("Failed to get industry config:", error)
       return null
     }
   }

@@ -2,6 +2,7 @@ import type { FastGPTApp, FastGPTModel, VoiceModel } from "@/types/fastgpt"
 import FastGPTApi from "@/lib/api/fastgpt"
 import { STORAGE_KEYS, isApiConfigured } from "@/lib/utils"
 import { generateAvatarColor } from "@/lib/utils/avatar-utils"
+import { logger } from '@/lib/utils/logger';
 
 interface AgentApiResult<T> {
   success: boolean
@@ -13,7 +14,7 @@ export const fetchModels = async (): Promise<AgentApiResult<{ models: FastGPTMod
   try {
     const apiConfigured = isApiConfigured()
     if (!apiConfigured) {
-      console.warn("API not configured, using default models")
+      logger.warn("API not configured, using default models")
       return {
         success: true,
         data: {
@@ -42,7 +43,7 @@ export const fetchModels = async (): Promise<AgentApiResult<{ models: FastGPTMod
       },
     }
   } catch (error: any) {
-    console.error("Failed to get model list:", error)
+    logger.error("Failed to get model list:", error)
     return {
       success: false,
       error: error.message || "无法获取模型列表",
@@ -79,7 +80,7 @@ export const addAgent = async (agent: Omit<FastGPTApp, "id" | "createdAt" | "upd
 
     return { success: true, data: newAgent }
   } catch (error: any) {
-    console.error("添加智能体失败:", error)
+    logger.error("添加智能体失败:", error)
     return { success: false, error: error.message || "无法创建新智能体" }
   }
 }
@@ -135,7 +136,7 @@ export const updateAgent = async (updatedAgent: FastGPTApp): Promise<AgentApiRes
       return { success: false, error: "智能体未找到" }
     }
   } catch (error: any) {
-    console.error("更新智能体失败:", error)
+    logger.error("更新智能体失败:", error)
     return { success: false, error: error.message || "无法更新智能体信息" }
   }
 }
@@ -157,7 +158,7 @@ export const deleteAgent = async (id: string): Promise<AgentApiResult<boolean>> 
 
     return { success: true, data: true }
   } catch (error: any) {
-    console.error("删除智能体失败:", error)
+    logger.error("删除智能体失败:", error)
     return { success: false, error: error.message || "无法删除智能体" }
   }
 }
@@ -181,7 +182,7 @@ export const toggleAgentStatus = async (id: string, status: "active" | "inactive
       return { success: false, error: "智能体未找到" }
     }
   } catch (error: any) {
-    console.error("更新智能体状态失败:", error)
+    logger.error("更新智能体状态失败:", error)
     return { success: false, error: error.message || "无法更新智能体状态" }
   }
 }
@@ -189,7 +190,7 @@ export const toggleAgentStatus = async (id: string, status: "active" | "inactive
 export const checkAuthentication = (): boolean => {
   const userJson = localStorage.getItem(STORAGE_KEYS.CURRENT_USER)
   if (!userJson) {
-    console.warn("User not found in localStorage")
+    logger.warn("User not found in localStorage")
     return false
   }
 
@@ -197,7 +198,7 @@ export const checkAuthentication = (): boolean => {
     const user = JSON.parse(userJson)
     return !!user
   } catch (e) {
-    console.error("Error parsing user data:", e)
+    logger.error("Error parsing user data:", e)
     return false
   }
 }

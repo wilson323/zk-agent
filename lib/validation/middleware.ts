@@ -19,6 +19,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import type { ValidationResult } from './schemas'
+import { logger } from '@/lib/utils/logger';
 
 // 📝 命名规范：中间件配置类型
 export interface ValidationMiddlewareConfig {
@@ -134,7 +135,7 @@ export function withValidation(
         
       } catch (error) {
         if (config.debug) {
-          console.error('[ValidationMiddleware] 验证中间件错误:', error)
+          logger.error('[ValidationMiddleware] 验证中间件错误:', error)
         }
         
         if (error instanceof ValidationError) {

@@ -9,6 +9,7 @@ import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { REGEX_PATTERNS, TIME_INTERVALS } from '../constants';
 import type { ValidationResult, PaginationParams, PaginationResult } from '../types/interfaces';
+import { logger } from '@/lib/utils/logger';
 
 // ============================================================================
 // 样式工具函数
@@ -595,7 +596,7 @@ export async function safeAsync<T>(
   try {
     return await fn();
   } catch (error) {
-    console.error('Safe async execution failed:', error);
+    logger.error('Safe async execution failed:', error);
     return defaultValue;
   }
 }
@@ -643,7 +644,7 @@ export function createTimer(label: string): () => number {
   return () => {
     const end = performance.now();
     const duration = end - start;
-    console.log(`${label}: ${duration.toFixed(2)}ms`);
+
     return duration;
   };
 }

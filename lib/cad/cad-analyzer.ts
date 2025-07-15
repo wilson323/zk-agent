@@ -19,6 +19,7 @@
  */
 
 import type { CADAnalysisConfig, AnalysisResult, DeviceInfo, RiskAssessment, AnalysisProgress } from "@/types/cad"
+import { logger } from '@/lib/utils/logger';
 
 // Node.js 全局变量声明
 declare global {
@@ -126,7 +127,7 @@ export class CADAnalyzer {
       if (typeof window === 'undefined') {
         // Node环境详细日志
         // eslint-disable-next-line no-console
-        console.error(`[CADAnalyzer] 分析失败:`, fileName, error)
+        logger.error(`[CADAnalyzer] 分析失败:`, fileName, error)
       }
       throw new Error(`CAD分析失败: ${error instanceof Error ? error.message : "未知错误"}`)
     }
@@ -159,7 +160,7 @@ export class CADAnalyzer {
           results.set(fileObj.name, { error: errorMsg })
           if (typeof window === 'undefined') {
             // eslint-disable-next-line no-console
-            console.error(`[CADAnalyzer] 批量分析失败:`, fileObj.name, errorMsg)
+            logger.error(`[CADAnalyzer] 批量分析失败:`, fileObj.name, errorMsg)
           }
         }
       }))

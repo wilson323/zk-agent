@@ -764,6 +764,7 @@ function luminanceToHex(luminance: number): string {
 // =============================================================================
 
 import { generateId } from '../utils';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * React Hook: 唯一 ID
@@ -1042,7 +1043,7 @@ export function useAccessibilityValidation(
     setIssues(validationIssues);
     
     if (validationIssues.length > 0) {
-      console.warn(
+      logger.warn(
         `可访问性问题 (${element.tagName}):`,
         validationIssues
       );

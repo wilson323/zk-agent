@@ -79,7 +79,7 @@ export async function runExample(): Promise<void> {
     const result = await exampleService.performTask('direct-task');
     logger.info(`直接调用结果: ${result}`);
   } catch (error) {
-    console.error('示例运行失败:', error);
+    logger.error('示例运行失败:', error);
   }
 }
 

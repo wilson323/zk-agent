@@ -9,6 +9,7 @@ import * as React from 'react'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 import { designTokens, type ComponentSize } from './design-tokens'
+import { logger } from '@/lib/utils/logger';
 
 // 基础组件配置接口
 export interface BaseComponentConfig {
@@ -84,7 +85,7 @@ export function createStandardComponent<T extends React.ComponentType<any>>(
 
     // 验证属性
     if (config.validation && !config.validation(props)) {
-      console.warn(`Invalid props for ${config.displayName}:`, props)
+      logger.warn(`Invalid props for ${config.displayName}:`, props)
     }
 
     // 分析跟踪

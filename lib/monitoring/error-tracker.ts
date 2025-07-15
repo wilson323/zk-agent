@@ -8,6 +8,7 @@
 import { EventEmitter } from 'events';
 import { enhancedDb, dbTransaction } from '@/lib/database';
 import { LogLevel } from '@prisma/client';
+import { logger } from '@/lib/utils/logger';
 
 // 错误上下文接口
 export interface ErrorContext {
@@ -63,12 +64,12 @@ export class ErrorTracker extends EventEmitter {
    */
   startTracking(): void {
     if (this.isTracking) {
-      console.warn('Error tracking is already running');
+      logger.warn('Error tracking is already running');
       return;
     }
 
     this.isTracking = true;
-    console.log('Starting error tracking...');
+
     this.emit('trackingStarted');
   }
 
@@ -86,7 +87,6 @@ export class ErrorTracker extends EventEmitter {
       this.cacheCleanupInterval = null;
     }
 
-    console.log('Error tracking stopped');
     this.emit('trackingStopped');
   }
 
@@ -130,7 +130,7 @@ export class ErrorTracker extends EventEmitter {
       // 检查是否需要告警
       this.checkErrorAlerts(errorData);
     } catch (trackingError) {
-      console.error('Failed to track error:', trackingError);
+      logger.error('Failed to track error:', trackingError);
       this.emit('trackingError', trackingError);
     }
   }
@@ -192,7 +192,7 @@ export class ErrorTracker extends EventEmitter {
         unresolvedErrors,
       };
     } catch (error) {
-      console.error('Failed to get error stats:', error);
+      logger.error('Failed to get error stats:', error);
       throw error;
     }
   }
@@ -230,7 +230,7 @@ export class ErrorTracker extends EventEmitter {
 
       return analyses.sort((a, b) => b.frequency - a.frequency);
     } catch (error) {
-      console.error('Failed to analyze error patterns:', error);
+      logger.error('Failed to analyze error patterns:', error);
       throw error;
     }
   }
@@ -254,7 +254,7 @@ export class ErrorTracker extends EventEmitter {
 
       this.emit('errorResolved', { errorId, resolvedBy });
     } catch (error) {
-      console.error('Failed to resolve error:', error);
+      logger.error('Failed to resolve error:', error);
       throw error;
     }
   }

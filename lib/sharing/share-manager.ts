@@ -1,3 +1,5 @@
+import { logger } from '@/lib/utils/logger';
+
 /* eslint-disable */
 // @ts-nocheck
 /**
@@ -113,7 +115,7 @@ export class ShareManager {
 
       return shareLink
     } catch (error) {
-      console.error("创建分享链接失败:", error)
+      logger.error("创建分享链接失败:", error)
       throw new Error("创建分享链接失败")
     }
   }
@@ -165,7 +167,7 @@ export class ShareManager {
 
       return { content, shareLink }
     } catch (error) {
-      console.error("获取分享内容失败:", error)
+      logger.error("获取分享内容失败:", error)
       throw error
     }
   }
@@ -199,7 +201,7 @@ export class ShareManager {
         hasMore: offset + shares.length < total,
       }
     } catch (error) {
-      console.error("获取用户分享列表失败:", error)
+      logger.error("获取用户分享列表失败:", error)
       throw new Error("获取分享列表失败")
     }
   }
@@ -227,7 +229,7 @@ export class ShareManager {
       this.shareCache.delete(shareId)
       this.statsCache = null
     } catch (error) {
-      console.error("删除分享链接失败:", error)
+      logger.error("删除分享链接失败:", error)
       throw error
     }
   }
@@ -266,7 +268,7 @@ export class ShareManager {
 
       return updatedShareLink
     } catch (error) {
-      console.error("更新分享配置失败:", error)
+      logger.error("更新分享配置失败:", error)
       throw error
     }
   }
@@ -289,7 +291,7 @@ export class ShareManager {
 
       return stats
     } catch (error) {
-      console.error("获取分享统计失败:", error)
+      logger.error("获取分享统计失败:", error)
       throw new Error("获取统计数据失败")
     }
   }
@@ -314,7 +316,7 @@ export class ShareManager {
 
       return expiredCount
     } catch (error) {
-      console.error("清理过期分享失败:", error)
+      logger.error("清理过期分享失败:", error)
       return 0
     }
   }
@@ -387,7 +389,7 @@ export class ShareManager {
 
       return shareLink
     } catch (error) {
-      console.error("加载分享链接失败:", error)
+      logger.error("加载分享链接失败:", error)
       return null
     }
   }
@@ -419,7 +421,7 @@ export class ShareManager {
 
       return content
     } catch (error) {
-      console.error("加载内容失败:", error)
+      logger.error("加载内容失败:", error)
       return null
     }
   }
@@ -435,7 +437,7 @@ export class ShareManager {
         await this.saveShareLink(shareLink)
       }
     } catch (error) {
-      console.error("更新查看次数失败:", error)
+      logger.error("更新查看次数失败:", error)
     }
   }
 
@@ -478,7 +480,7 @@ export class ShareManager {
 
       return { shares, total }
     } catch (error) {
-      console.error("加载用户分享失败:", error)
+      logger.error("加载用户分享失败:", error)
       return { shares: [], total: 0 }
     }
   }
@@ -523,7 +525,7 @@ export class ShareManager {
 
       return stats
     } catch (error) {
-      console.error("加载分享统计失败:", error)
+      logger.error("加载分享统计失败:", error)
       return {
         totalShares: 0,
         totalViews: 0,
@@ -554,7 +556,7 @@ export class ShareManager {
             shares.push(shareLink)
           }
         } catch (error) {
-          console.error("解析分享数据失败:", error)
+          logger.error("解析分享数据失败:", error)
         }
       }
     }

@@ -1,4 +1,5 @@
 import type { FastGPTApp } from "@/types/fastgpt"
+import { logger } from '@/lib/utils/logger';
 
 interface FeedbackItem {
   id: string
@@ -56,7 +57,7 @@ export const fetchFeedback = async (applications: FastGPTApp[]): Promise<Feedbac
 
     return { success: true, data: mockFeedback }
   } catch (error: any) {
-    console.error("获取反馈数据失败:", error)
+    logger.error("获取反馈数据失败:", error)
     return { success: false, error: error.message || "无法获取反馈数据" }
   }
 }

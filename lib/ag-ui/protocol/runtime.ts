@@ -1,5 +1,7 @@
 // @ts-nocheck
 import { type Observable, Subject, BehaviorSubject } from "rxjs"
+import { logger } from '@/lib/utils/logger';
+
 import type {
   AgUIEvent,
   RunInput,
@@ -143,7 +145,7 @@ export class AgUIRuntime {
       // 处理流式响应
       await this.handleStreamResponse(response.body!, messageId)
     } catch (error) {
-      console.error("Error processing user message:", error)
+      logger.error("Error processing user message:", error)
 
       // 发送错误内容
       this.emitEvent({
@@ -212,7 +214,7 @@ export class AgUIRuntime {
               }
             } catch (e) {
               if (this.config.debug) {
-                console.error("Error parsing SSE data:", e)
+                logger.error("Error parsing SSE data:", e)
               }
             }
           }
@@ -274,7 +276,7 @@ export class AgUIRuntime {
           timestamp: Date.now(),
         } as ToolCallResultEvent)
       } catch (error) {
-        console.error("Tool execution error:", error)
+        logger.error("Tool execution error:", error)
 
         // 发送错误结果
         this.emitEvent({
@@ -310,7 +312,7 @@ export class AgUIRuntime {
     try {
       args = JSON.parse(argsJson)
     } catch (e) {
-      console.error("Error parsing tool arguments:", e)
+      logger.error("Error parsing tool arguments:", e)
     }
 
     // 根据工具名称执行相应逻辑

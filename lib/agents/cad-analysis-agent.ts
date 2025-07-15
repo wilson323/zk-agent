@@ -1,3 +1,5 @@
+import { logger } from '@/lib/utils/logger';
+
 /**
  * CAD分析智能体 - 容错机制实现
  * 提供文件解析容错、超时处理、备用解析器等功能
@@ -216,13 +218,13 @@ export class CADAnalysisAgent {
       return await this.primaryParser.parse(file);
     } catch (error) {
       if (error instanceof CADParseError) {
-        console.warn('主解析器失败，尝试备用解析器:', error.message);
+        logger.warn('主解析器失败，尝试备用解析器:', error.message);
         
         try {
           // 尝试备用解析器
           return await this.fallbackParser.parse(file);
         } catch (fallbackError) {
-          console.warn('备用解析器也失败，生成基础信息:', fallbackError);
+          logger.warn('备用解析器也失败，生成基础信息:', fallbackError);
           
           // 提供基础信息
           return this.generateBasicInfo(file);
@@ -246,7 +248,7 @@ export class CADAnalysisAgent {
         
         if (attempt < this.maxRetries) {
           const delay = calculateBackoffDelay(attempt);
-          console.warn(`CAD分析失败，${delay}ms后重试 (${attempt}/${this.maxRetries}):`, error);
+          logger.warn(`CAD分析失败，${delay}ms后重试 (${attempt}/${this.maxRetries}):`, error);
           await this.delay(delay);
         }
       }

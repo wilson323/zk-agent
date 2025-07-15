@@ -9,6 +9,7 @@ import { EventEmitter } from 'events'
 import { enhancedDb, ConnectionState } from './enhanced-connection'
 import { databaseMonitor, AlertLevel } from './monitoring'
 import { poolOptimizer } from './pool-optimizer'
+import { logger } from '@/lib/utils/logger';
 
 // 错误类型
 export enum ErrorType {
@@ -166,7 +167,7 @@ export class DatabaseErrorRecovery extends EventEmitter {
    */
   private async handleDatabaseError(error: Error): Promise<void> {
     try {
-      console.error('Database error detected:', error.message)
+      logger.error('Database error detected:', error.message)
       
       // 分析错误
       const analysis = this.analyzeError(error)
@@ -179,7 +180,7 @@ export class DatabaseErrorRecovery extends EventEmitter {
       
       // 如果熔断器开启，直接返回
       if (this.circuitBreakerState === CircuitBreakerState.OPEN) {
-        console.warn('Circuit breaker is open, skipping recovery attempt')
+        logger.warn('Circuit breaker is open, skipping recovery attempt')
         return
       }
       
@@ -187,12 +188,12 @@ export class DatabaseErrorRecovery extends EventEmitter {
       if (analysis.isRecoverable && !this.isRecovering) {
         await this.executeRecoveryStrategy(analysis)
       } else if (!analysis.isRecoverable) {
-        console.error('Error is not recoverable, manual intervention required')
+        logger.error('Error is not recoverable, manual intervention required')
         this.emit('unrecoverableError', { error, analysis })
       }
       
     } catch (recoveryError) {
-      console.error('Error during error recovery:', recoveryError)
+      logger.error('Error during error recovery:', recoveryError)
     }
   }
 
@@ -200,7 +201,7 @@ export class DatabaseErrorRecovery extends EventEmitter {
    * 处理监控告警
    */
   private async handleMonitoringAlert(alert: any): Promise<void> {
-    console.warn('Monitoring alert received:', alert.message)
+    logger.warn('Monitoring alert received:', alert.message)
     
     // 根据告警类型决定恢复策略
     if (alert.message.includes('连接') || alert.message.includes('connection')) {
@@ -319,7 +320,7 @@ export class DatabaseErrorRecovery extends EventEmitter {
         if (recentErrors >= this.configuration.circuitBreakerThreshold) {
           this.circuitBreakerState = CircuitBreakerState.OPEN
           this.circuitBreakerOpenTime = new Date()
-          console.warn('Circuit breaker opened due to high error rate')
+          logger.warn('Circuit breaker opened due to high error rate')
           this.emit('circuitBreakerOpened', { recentErrors, threshold: this.configuration.circuitBreakerThreshold })
         }
         break
@@ -337,7 +338,7 @@ export class DatabaseErrorRecovery extends EventEmitter {
         if (analysis.severity === 'critical' || analysis.severity === 'high') {
           this.circuitBreakerState = CircuitBreakerState.OPEN
           this.circuitBreakerOpenTime = new Date()
-          console.warn('Circuit breaker reopened due to continued errors')
+          logger.warn('Circuit breaker reopened due to continued errors')
           this.emit('circuitBreakerReopened')
         }
         break
@@ -357,72 +358,7 @@ export class DatabaseErrorRecovery extends EventEmitter {
     const beforeMetrics = enhancedDb.getStats()
     
     try {
-      console.log(`Executing recovery strategy: ${analysis.recommendedStrategy}`)
-      
-      switch (analysis.recommendedStrategy) {
-        case RecoveryStrategy.RETRY:
-          ({ success, attempts, lastError } = await this.executeRetryStrategy())
-          break
-          
-        case RecoveryStrategy.RECONNECT:
-          ({ success, attempts, lastError } = await this.executeReconnectStrategy())
-          break
-          
-        case RecoveryStrategy.FAILOVER:
-          ({ success, attempts, lastError } = await this.executeFailoverStrategy())
-          break
-          
-        case RecoveryStrategy.CIRCUIT_BREAKER:
-          ({ success, attempts, lastError } = await this.executeCircuitBreakerStrategy())
-          break
-          
-        case RecoveryStrategy.GRACEFUL_DEGRADATION:
-          ({ success, attempts, lastError } = await this.executeGracefulDegradationStrategy())
-          break
-          
-        case RecoveryStrategy.EMERGENCY_SHUTDOWN:
-          ({ success, attempts, lastError } = await this.executeEmergencyShutdownStrategy())
-          break
-          
-        default:
-          throw new Error(`Unknown recovery strategy: ${analysis.recommendedStrategy}`)
-      }
-      
-    } catch (error) {
-      lastError = error instanceof Error ? error.message : String(error)
-      console.error('Recovery strategy execution failed:', lastError)
-    }
-    
-    const afterMetrics = enhancedDb.getStats()
-    const duration = Date.now() - startTime
-    
-    // 记录恢复结果
-    const result: RecoveryResult = {
-      timestamp: new Date(),
-      errorType: analysis.errorType,
-      strategy: analysis.recommendedStrategy,
-      success,
-      duration,
-      attemptsCount: attempts,
-      error: lastError,
-      metrics: {
-        beforeRecovery: beforeMetrics,
-        afterRecovery: afterMetrics
-      }
-    }
-    
-    this.addRecoveryResult(result)
-    
-    if (success) {
-      this.consecutiveFailures = 0
-      if (this.circuitBreakerState === CircuitBreakerState.HALF_OPEN) {
-        this.circuitBreakerState = CircuitBreakerState.CLOSED
-        console.info('Circuit breaker closed after successful recovery')
-        this.emit('circuitBreakerClosed')
-      }
-    }
-    
-    this.emit('recoveryCompleted', result)
+
     this.isRecovering = false
   }
 
@@ -447,13 +383,7 @@ export class DatabaseErrorRecovery extends EventEmitter {
         // 尝试执行健康检查
         const isHealthy = await enhancedDb.forceHealthCheck()
         if (isHealthy) {
-          console.log(`Retry strategy succeeded on attempt ${attempts}`)
-          return { success: true, attempts }
-        }
-        
-      } catch (error) {
-        lastError = error instanceof Error ? error.message : String(error)
-        console.warn(`Retry attempt ${attempts} failed:`, lastError)
+
       }
     }
     
@@ -469,27 +399,7 @@ export class DatabaseErrorRecovery extends EventEmitter {
     
     try {
       attempts++
-      console.log('Attempting database reconnection...')
-      
-      // 断开现有连接
-      await enhancedDb.disconnect()
-      
-      // 等待一段时间
-      await this.sleep(this.configuration.retryDelayMs)
-      
-      // 重新连接
-      await enhancedDb.connect()
-      
-      // 验证连接
-      const isHealthy = await enhancedDb.forceHealthCheck()
-      if (isHealthy) {
-        console.log('Database reconnection successful')
-        return { success: true, attempts }
-      }
-      
-    } catch (error) {
-      lastError = error instanceof Error ? error.message : String(error)
-      console.error('Database reconnection failed:', lastError)
+
     }
     
     return { success: false, attempts, lastError }
@@ -508,20 +418,7 @@ export class DatabaseErrorRecovery extends EventEmitter {
     
     try {
       attempts++
-      console.log('Attempting database failover...')
-      
-      // 这里应该实现实际的故障转移逻辑
-      // 例如：切换到备用数据库、使用只读副本等
-      
-      // 模拟故障转移
-      await this.sleep(5000)
-      
-      console.log('Failover strategy executed (simulated)')
-      return { success: true, attempts }
-      
-    } catch (error) {
-      lastError = error instanceof Error ? error.message : String(error)
-      console.error('Failover strategy failed:', lastError)
+
     }
     
     return { success: false, attempts, lastError }
@@ -531,14 +428,7 @@ export class DatabaseErrorRecovery extends EventEmitter {
    * 执行熔断器策略
    */
   private async executeCircuitBreakerStrategy(): Promise<{ success: boolean; attempts: number; lastError?: string }> {
-    console.log('Circuit breaker strategy activated')
-    
-    this.circuitBreakerState = CircuitBreakerState.OPEN
-    this.circuitBreakerOpenTime = new Date()
-    
-    // 触发连接池优化
-    if (poolOptimizer) {
-      poolOptimizer.emit('emergencyOptimization', 'Circuit breaker activated')
+
     }
     
     return { success: true, attempts: 1 }
@@ -553,22 +443,7 @@ export class DatabaseErrorRecovery extends EventEmitter {
     }
     
     try {
-      console.log('Executing graceful degradation strategy...')
-      
-      // 这里应该实现优雅降级逻辑
-      // 例如：启用缓存模式、限制功能、使用备用数据源等
-      
-      // 模拟优雅降级
-      await this.sleep(2000)
-      
-      console.log('Graceful degradation activated')
-      this.emit('gracefulDegradationActivated')
-      
-      return { success: true, attempts: 1 }
-      
-    } catch (error) {
-      const lastError = error instanceof Error ? error.message : String(error)
-      console.error('Graceful degradation failed:', lastError)
+
       return { success: false, attempts: 1, lastError }
     }
   }
@@ -578,7 +453,7 @@ export class DatabaseErrorRecovery extends EventEmitter {
    */
   private async executeEmergencyShutdownStrategy(): Promise<{ success: boolean; attempts: number; lastError?: string }> {
     try {
-      console.error('Executing emergency shutdown strategy...')
+      logger.error('Executing emergency shutdown strategy...')
       
       // 发送紧急告警
       this.emit('emergencyShutdown', {
@@ -589,12 +464,12 @@ export class DatabaseErrorRecovery extends EventEmitter {
       // 优雅关闭数据库连接
       await enhancedDb.gracefulShutdown()
       
-      console.error('Emergency shutdown completed')
+      logger.error('Emergency shutdown completed')
       return { success: true, attempts: 1 }
       
     } catch (error) {
       const lastError = error instanceof Error ? error.message : String(error)
-      console.error('Emergency shutdown failed:', lastError)
+      logger.error('Emergency shutdown failed:', lastError)
       return { success: false, attempts: 1, lastError }
     }
   }
@@ -614,7 +489,7 @@ export class DatabaseErrorRecovery extends EventEmitter {
           }
         }
       } catch (error) {
-        console.error('Health check failed:', error)
+        logger.error('Health check failed:', error)
       }
     }, this.configuration.healthCheckIntervalMs)
   }
@@ -742,69 +617,6 @@ export class DatabaseErrorRecovery extends EventEmitter {
    */
   updateConfiguration(config: Partial<RecoveryConfiguration>): void {
     this.configuration = { ...this.configuration, ...config }
-    console.log('Error recovery configuration updated:', config)
-  }
-
-  /**
-   * 重置熔断器
-   */
-  resetCircuitBreaker(): void {
-    this.circuitBreakerState = CircuitBreakerState.CLOSED
-    this.circuitBreakerOpenTime = null
-    console.log('Circuit breaker reset to closed state')
-    this.emit('circuitBreakerReset')
-  }
-
-  /**
-   * 清除历史数据
-   */
-  clearHistory(): void {
-    this.recoveryHistory = []
-    this.errorCounts.clear()
-    Object.values(ErrorType).forEach(errorType => {
-      this.errorCounts.set(errorType, 0)
-    })
-    this.consecutiveFailures = 0
-    this.lastErrorTime = null
-    console.log('Error recovery history cleared')
-  }
-
-  /**
-   * 销毁恢复系统
-   */
-  destroy(): void {
-    this.stopHealthCheck()
-    this.removeAllListeners()
-    console.log('Database error recovery system destroyed')
-  }
-}
-
-// 创建全局错误恢复实例
-export const errorRecovery = new DatabaseErrorRecovery()
-
-// 监听关键事件
-errorRecovery.on('emergencyShutdown', (data) => {
-  console.error('EMERGENCY SHUTDOWN TRIGGERED:', data)
-  // 这里可以集成外部告警系统
-})
-
-errorRecovery.on('circuitBreakerOpened', (data) => {
-  console.warn('CIRCUIT BREAKER OPENED:', data)
-  // 这里可以发送告警通知
-})
-
-errorRecovery.on('unrecoverableError', (data) => {
-  console.error('UNRECOVERABLE ERROR DETECTED:', data)
-  // 这里可以发送紧急通知
-})
-
-// 导出便捷函数
-export const getErrorStatistics = () => errorRecovery.getErrorStatistics()
-export const getRecoveryStatistics = () => errorRecovery.getRecoveryStatistics()
-export const getRecoveryHistory = (limit?: number) => errorRecovery.getRecoveryHistory(limit)
-export const resetCircuitBreaker = () => errorRecovery.resetCircuitBreaker()
-export const updateRecoveryConfiguration = (config: Partial<RecoveryConfiguration>) => 
-  errorRecovery.updateConfiguration(config)
 
 // 默认导出错误恢复系统
 export default errorRecovery

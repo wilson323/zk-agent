@@ -6,6 +6,7 @@
 
 import { enhancedDb, dbTransaction } from "@/lib/database"
 import type { PosterStyle, PosterSize, ColorPalette, PosterTask, PosterGenerationResult } from "@/types/poster"
+import { logger } from '@/lib/utils/logger';
 
 export class PosterDatabase {
   /**
@@ -26,7 +27,7 @@ export class PosterDatabase {
         previewUrl: style.previewUrl,
       }))
     } catch (error) {
-      console.error("Failed to get poster styles:", error)
+      logger.error("Failed to get poster styles:", error)
       throw new Error("获取海报风格失败")
     }
   }
@@ -50,7 +51,7 @@ export class PosterDatabase {
         height: size.height,
       }))
     } catch (error) {
-      console.error("Failed to get poster sizes:", error)
+      logger.error("Failed to get poster sizes:", error)
       throw new Error("获取海报尺寸失败")
     }
   }
@@ -72,7 +73,7 @@ export class PosterDatabase {
         description: palette.description,
       }))
     } catch (error) {
-      console.error("Failed to get color palettes:", error)
+      logger.error("Failed to get color palettes:", error)
       throw new Error("获取配色方案失败")
     }
   }
@@ -116,7 +117,7 @@ export class PosterDatabase {
         createdAt: task.createdAt,
       }
     } catch (error) {
-      console.error("Failed to create poster task:", error)
+      logger.error("Failed to create poster task:", error)
       throw new Error("创建海报任务失败")
     }
   }
@@ -135,7 +136,7 @@ export class PosterDatabase {
         },
       })
     } catch (error) {
-      console.error("Failed to update poster task result:", error)
+      logger.error("Failed to update poster task result:", error)
       throw new Error("更新海报任务结果失败")
     }
   }
@@ -184,7 +185,7 @@ export class PosterDatabase {
         createdAt: generation.createdAt,
       }
     } catch (error) {
-      console.error("Failed to save generation history:", error)
+      logger.error("Failed to save generation history:", error)
       throw new Error("保存生成历史失败")
     }
   }
@@ -222,7 +223,7 @@ export class PosterDatabase {
         createdAt: item.createdAt,
       }))
     } catch (error) {
-      console.error("Failed to get user generation history:", error)
+      logger.error("Failed to get user generation history:", error)
       throw new Error("获取用户生成历史失败")
     }
   }
@@ -266,7 +267,7 @@ export class PosterDatabase {
         isPremium: template.isPremium,
       }))
     } catch (error) {
-      console.error("Failed to get templates:", error)
+      logger.error("Failed to get templates:", error)
       throw new Error("获取模板列表失败")
     }
   }
@@ -285,7 +286,7 @@ export class PosterDatabase {
         },
       })
     } catch (error) {
-      console.error("Failed to update template usage:", error)
+      logger.error("Failed to update template usage:", error)
       // 不抛出错误，统计失败不影响主流程
     }
   }

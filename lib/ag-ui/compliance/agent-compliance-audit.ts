@@ -4,6 +4,7 @@ import { ConversationAgentAdapter } from "../agents/conversation-agent-adapter"
 import { CADAgentAdapter } from "../agents/cad-agent-adapter"
 import { PosterAgentAdapter } from "../agents/poster-agent-adapter"
 import type { AgUIEvent, Message } from "../protocol/complete-types"
+import { logger } from '@/lib/utils/logger';
 
 /**
  * 智能体合规性审计器
@@ -24,7 +25,7 @@ export class AgentComplianceAudit {
       results.push(conversationReport)
       this.reports.set("conversation", conversationReport)
     } catch (error) {
-      console.error("Error auditing conversation agent:", error)
+      logger.error("Error auditing conversation agent:", error)
     }
 
     // 审计CAD智能体
@@ -33,7 +34,7 @@ export class AgentComplianceAudit {
       results.push(cadReport)
       this.reports.set("cad", cadReport)
     } catch (error) {
-      console.error("Error auditing CAD agent:", error)
+      logger.error("Error auditing CAD agent:", error)
     }
 
     // 审计海报智能体
@@ -42,7 +43,7 @@ export class AgentComplianceAudit {
       results.push(posterReport)
       this.reports.set("poster", posterReport)
     } catch (error) {
-      console.error("Error auditing poster agent:", error)
+      logger.error("Error auditing poster agent:", error)
     }
 
     // 计算总体合规性
@@ -87,7 +88,7 @@ export class AgentComplianceAudit {
 
       return report
     } catch (error) {
-      console.error(`Error performing audit for agent ${agentId}:`, error)
+      logger.error(`Error performing audit for agent ${agentId}:`, error)
       throw error
     }
   }
@@ -135,7 +136,7 @@ export class AgentComplianceAudit {
 
       return report
     } catch (error) {
-      console.error("Error in conversation agent audit:", error)
+      logger.error("Error in conversation agent audit:", error)
       throw error
     }
   }
@@ -186,7 +187,7 @@ export class AgentComplianceAudit {
 
       return report
     } catch (error) {
-      console.error("Error in CAD agent audit:", error)
+      logger.error("Error in CAD agent audit:", error)
       throw error
     }
   }
@@ -238,7 +239,7 @@ export class AgentComplianceAudit {
 
       return report
     } catch (error) {
-      console.error("Error in poster agent audit:", error)
+      logger.error("Error in poster agent audit:", error)
       throw error
     }
   }

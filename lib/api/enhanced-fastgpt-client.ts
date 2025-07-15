@@ -14,6 +14,7 @@ export interface FastGPTConfig {
 }
 
 import { ChatMessage } from '../types/interfaces';
+import { logger } from '@/lib/utils/logger';
 
 export interface ChatContext {
   sessionId: string
@@ -112,7 +113,7 @@ export class EnhancedFastGPTClient {
 
       return context
     } catch (error) {
-      console.error("Failed to initialize context:", error)
+      logger.error("Failed to initialize context:", error)
       throw new Error(`Context initialization failed: ${error.message}`)
     }
   }
@@ -162,7 +163,7 @@ export class EnhancedFastGPTClient {
           retry({
             count: this.config.maxRetries,
             delay: (error, retryCount) => {
-              console.warn(`Retry attempt ${retryCount} for session ${sessionId}:`, error.message)
+              logger.warn(`Retry attempt ${retryCount} for session ${sessionId}:`, error.message)
               this.updateConnectionStatus({ retryCount })
               return new Promise((resolve) => setTimeout(resolve, this.config.retryDelay * retryCount))
             },
@@ -204,66 +205,6 @@ export class EnhancedFastGPTClient {
     if (this.calculateContextLength(context) <= context.maxContextLength) {
       return
     }
-
-    console.log(`Context too long for session ${context.sessionId}, managing...`)
-
-    // 保留系统消息、最近的消息和重要消息
-    const importantMessages = context.messages.filter(
-      (msg) => msg.role === "system" || msg.metadata?.isWelcome || msg.metadata?.isImportant,
-    )
-
-    const recentMessages = context.messages.slice(-10) // 保留最近10条消息
-
-    // 合并并去重
-    const preservedMessages = [
-      ...importantMessages,
-      ...recentMessages.filter((msg) => !importantMessages.some((im) => im.id === msg.id)),
-    ].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
-
-    // 如果还是太长，进一步压缩
-    if (this.calculateContextLength({ ...context, messages: preservedMessages }) > context.maxContextLength) {
-      // 创建摘要消息
-      const summaryContent = this.createContextSummary(context.messages.slice(0, -10))
-      const summaryMessage: ChatMessage = {
-        id: uuidv4(),
-        role: "system",
-        content: `[Context Summary] ${summaryContent}`,
-        timestamp: new Date(),
-        metadata: { isSummary: true },
-      }
-
-      context.messages = [summaryMessage, ...recentMessages]
-    } else {
-      context.messages = preservedMessages
-    }
-
-    console.log(`Context managed: ${context.messages.length} messages remaining`)
-  }
-
-  /**
-   * 计算上下文长度（简单的字符计数，实际应该用token计数）
-   */
-  private calculateContextLength(context: ChatContext): number {
-    return context.messages.reduce((total, msg) => total + msg.content.length, 0)
-  }
-
-  /**
-   * 创建上下文摘要
-   */
-  private createContextSummary(messages: ChatMessage[]): string {
-    const topics = new Set<string>()
-    const keyPoints: string[] = []
-
-    messages.forEach((msg) => {
-      if (msg.role === "user") {
-        // 提取关键词
-        const words = msg.content.split(/\s+/).filter((word) => word.length > 3)
-        words.slice(0, 3).forEach((word) => topics.add(word))
-      } else if (msg.role === "assistant" && msg.content.length > 100) {
-        // 提取重要回答的开头
-        keyPoints.push(msg.content.substring(0, 50) + "...")
-      }
-    })
 
     return `Topics discussed: ${Array.from(topics).join(", ")}. Key points: ${keyPoints.join(" ")}`
   }
@@ -361,7 +302,7 @@ export class EnhancedFastGPTClient {
                       })
                     }
                   } catch (e) {
-                    console.warn("Failed to parse SSE data:", data)
+                    logger.warn("Failed to parse SSE data:", data)
                   }
                 }
               }
@@ -408,7 +349,7 @@ export class EnhancedFastGPTClient {
         lastError = error as Error
 
         if (attempt < this.config.maxRetries) {
-          console.warn(`Request attempt ${attempt + 1} failed, retrying...`, error.message)
+          logger.warn(`Request attempt ${attempt + 1} failed, retrying...`, error.message)
           await new Promise((resolve) => setTimeout(resolve, this.config.retryDelay * (attempt + 1)))
         }
       }

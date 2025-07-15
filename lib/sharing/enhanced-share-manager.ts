@@ -1,3 +1,5 @@
+import { logger } from '@/lib/utils/logger';
+
 // @ts-nocheck
 /**
  * 增强分享管理器
@@ -69,7 +71,7 @@ export class EnhancedShareManager {
         window.URL.revokeObjectURL(url)
       }
     } catch (error) {
-      console.error("下载失败:", error)
+      logger.error("下载失败:", error)
     }
   }
 }

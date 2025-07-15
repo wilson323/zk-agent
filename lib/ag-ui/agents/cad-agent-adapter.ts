@@ -2,6 +2,7 @@
 import { EnhancedAgUIRuntime } from "../protocol/enhanced-runtime"
 import { AgUIAgentManager } from "../protocol/agent-manager"
 import type { AgentDefinition, Message, RunInput } from "../protocol/complete-types"
+import { logger } from '@/lib/utils/logger';
 
 /**
  * CAD解读智能体AG-UI适配器
@@ -248,7 +249,7 @@ export class CADAgentAdapter {
 
       return agent
     } catch (error) {
-      console.error("Error initializing CAD agent:", error)
+      logger.error("Error initializing CAD agent:", error)
       throw error
     }
   }

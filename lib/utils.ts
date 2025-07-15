@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { logger } from '@/lib/utils/logger';
 
 export function cn(...inputs) {
   return twMerge(clsx(inputs))
@@ -22,7 +23,7 @@ export const isApiConfigured = () => {
     const config = JSON.parse(configJson)
     return !!(config && config.baseUrl && config.apiKey)
   } catch (error) {
-    console.error("Error checking API configuration:", error)
+    logger.error("Error checking API configuration:", error)
     return false
   }
 }

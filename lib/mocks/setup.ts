@@ -9,6 +9,7 @@
 import { setupWorker } from 'msw/browser'
 import { setupServer } from 'msw/node'
 import { handlers } from './handlers'
+import { logger } from '@/lib/utils/logger';
 
 // 性能监控配置
 interface MockMetrics {
@@ -80,65 +81,7 @@ export const startMocking = async () => {
         request.startTime = startTime
         
         if (process.env.NODE_ENV === 'development') {
-          console.log(`🎭 MSW Request: ${request.method} ${request.url}`)
-        }
-      })
 
-      worker.events.on('request:match', ({ request }) => {
-        const responseTime = Date.now() - (request.startTime || Date.now())
-        mockMonitor.recordRequest(responseTime)
-        
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`✅ MSW Matched: ${request.method} ${request.url} (${responseTime}ms)`)
-        }
-      })
-
-      worker.events.on('request:unhandled', ({ request }) => {
-        mockMonitor.recordRequest(0, true)
-        
-        if (process.env.NODE_ENV === 'development') {
-          console.warn(`⚠️ MSW Unhandled: ${request.method} ${request.url}`)
-        }
-      })
-
-      console.log('🎭 MSW Mock Worker started with performance monitoring')
-    }
-  } else {
-    // Node.js环境
-    server.listen({
-      onUnhandledRequest: 'warn'
-    })
-    console.log('🎭 MSW Mock Server started')
-  }
-}
-
-// 停止Mock服务
-export const stopMocking = () => {
-  if (typeof window !== 'undefined') {
-    worker?.stop()
-    console.log('🎭 MSW Mock Worker stopped')
-  } else {
-    server.close()
-    console.log('🎭 MSW Mock Server stopped')
-  }
-}
-
-// 重置Mock处理器
-export const resetMocking = () => {
-  if (typeof window !== 'undefined') {
-    worker?.resetHandlers()
-  } else {
-    server.resetHandlers()
-  }
-  mockMonitor.reset()
-}
-
-// 获取Mock性能指标
-export const getMockMetrics = () => mockMonitor.getMetrics()
-
-// 开发环境自动启动
-if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-  startMocking().catch(console.error)
 }
 
 // 类型扩展

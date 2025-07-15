@@ -4,6 +4,7 @@ import { LogLevel } from '@prisma/client';
 import { ErrorReport } from '../errors/agent-errors';
 import { ErrorAnalysis } from './error-tracker';
 import { groupBy } from '@/lib/utils';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * 根因分析结果
@@ -97,30 +98,28 @@ export class RootCauseAnalyzer {
     const startTime = Date.now();
     const analysisId = this.generateAnalysisId(errorReport.id);
     const cacheKey = this.generateCacheKey(errorReport);
-    
-    console.log(`Starting root cause analysis for error ${errorReport.id}`);
-    
+
     // 检查缓存（使用更智能的缓存键）
     const cached = this.analysisCache.get(cacheKey);
     if (cached) {
-      console.log(`Cache hit for error ${errorReport.id}, analysis time: ${Date.now() - startTime}ms`);
+
       return cached;
     }
 
     // 并行收集相关数据
     const [relatedErrors, patterns] = await Promise.all([
       this.findRelatedErrors(errorReport).catch(err => {
-        console.warn('Failed to find related errors:', err);
+        logger.warn('Failed to find related errors:', err);
         return [];
       }),
       this.identifyPatterns(errorReport, []).catch(err => {
-        console.warn('Failed to identify patterns:', err);
+        logger.warn('Failed to identify patterns:', err);
         return [];
       })
     ]);
     
     const timeline = await this.buildTimeline(errorReport, relatedErrors).catch(err => {
-      console.warn('Failed to build timeline:', err);
+      logger.warn('Failed to build timeline:', err);
       return [{
         timestamp: errorReport.timestamp,
         event: `Primary Error: ${errorReport.error?.message}`,
@@ -132,7 +131,7 @@ export class RootCauseAnalyzer {
     
     // 重新识别模式（现在有了相关错误数据）
     const updatedPatterns = await this.identifyPatterns(errorReport, relatedErrors).catch(err => {
-      console.warn('Failed to update patterns:', err);
+      logger.warn('Failed to update patterns:', err);
       return patterns;
     });
     
@@ -165,15 +164,7 @@ export class RootCauseAnalyzer {
     this.analysisCache.set(analysisId, analysis);
     
     const analysisTime = Date.now() - startTime;
-    console.log(`Root cause analysis completed for error ${errorReport.id}:`, {
-      analysisTime: `${analysisTime}ms`,
-      rootCause: analysis.rootCause,
-      confidence: analysis.confidence,
-      relatedErrorsCount: relatedErrors.length,
-      patternsFound: updatedPatterns.length,
-      cacheSize: this.analysisCache.size
-    });
-    
+
     return analysis;
   }
 
@@ -223,7 +214,7 @@ export class RootCauseAnalyzer {
         resolved: log.resolved || false
       }));
     } catch (error) {
-      console.error('Failed to find related errors:', error);
+      logger.error('Failed to find related errors:', error);
       return [];
     }
   }

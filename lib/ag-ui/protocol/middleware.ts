@@ -1,5 +1,6 @@
 // @ts-nocheck
 import type { AgUIEvent, Message, RunInput } from "./types"
+import { logger } from '@/lib/utils/logger';
 
 /**
  * AG-UI中间件接口
@@ -177,7 +178,7 @@ export class LoggingMiddleware implements AgUIMiddleware {
   }
 
   onError(error: Error, context: any): Error {
-    console.error(`[AG-UI Error] ${error.message}:`, { error, context })
+    logger.error(`[AG-UI Error] ${error.message}:`, { error, context })
     return error
   }
 }

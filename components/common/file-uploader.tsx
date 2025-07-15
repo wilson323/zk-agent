@@ -6,14 +6,6 @@ import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
 import { motion, AnimatePresence } from "framer-motion"
 
-import type React from "react"
-import { useState, useRef } from "react"
-import { Upload, FileUp, Check, AlertCircle, Loader2 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
-import { cn } from "@/lib/utils"
-import { motion, AnimatePresence } from "framer-motion"
-
 interface FileUploaderProps {
   onFilesChange: (files: File[]) => void // Changed to array
   onUploadProgress?: (progress: number) => void

@@ -539,6 +539,7 @@ export function VirtualList<T>({
 // =============================================================================
 
 import { debounce, throttle } from '../utils/performance-utils';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * React Hook: 防抖值
@@ -759,13 +760,13 @@ export function useRenderPerformance(
       // 开发环境下的性能警告
       if (process.env.NODE_ENV === 'development') {
         if (renderTime > 16) { // 超过一帧时间
-          console.warn(
+          logger.warn(
             `${componentName} 渲染时间过长: ${renderTime.toFixed(2)}ms`
           );
         }
         
         if (renderCountRef.current > 100 && avgRenderTime > 10) {
-          console.warn(
+          logger.warn(
             `${componentName} 平均渲染时间: ${avgRenderTime.toFixed(2)}ms (${renderCountRef.current} 次渲染)`
           );
         }

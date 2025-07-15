@@ -1,3 +1,5 @@
+import { logger } from '@/lib/utils/logger';
+
 // @ts-nocheck
 /**
  * AI图像生成服务
@@ -104,7 +106,7 @@ export class ImageGenerationService {
         throw new Error("No images generated")
       }
     } catch (error) {
-      console.error("Image generation failed:", error)
+      logger.error("Image generation failed:", error)
       return {
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",
@@ -206,7 +208,7 @@ export class ImageGenerationService {
       const result = await uploadResponse.json()
       return result.url
     } catch (error) {
-      console.error("Upload failed:", error)
+      logger.error("Upload failed:", error)
       // 返回临时URL作为fallback
       return `/api/images/temp/${Date.now()}.png`
     }
@@ -236,7 +238,7 @@ export class ImageGenerationService {
       const result = await response.json()
       return result.thumbnailUrl
     } catch (error) {
-      console.error("Thumbnail generation failed:", error)
+      logger.error("Thumbnail generation failed:", error)
       return imageUrl // 返回原图作为fallback
     }
   }

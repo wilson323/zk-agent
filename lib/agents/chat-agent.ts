@@ -1,3 +1,5 @@
+import { logger } from '@/lib/utils/logger';
+
 /**
  * 对话智能体 - 上下文恢复和API容错实现
  * 提供上下文恢复、API调用容错、模型切换等功能
@@ -107,23 +109,23 @@ class ChatContextManager {
       // 尝试从缓存恢复
       const cachedContext = await this.cache.get(`chat_context_${chatId}`);
       if (cachedContext) {
-        console.log('从缓存恢复上下文:', chatId);
+
         return cachedContext;
       }
 
       // 从数据库恢复
       const dbContext = await this.database.getChatContext(chatId);
       if (dbContext) {
-        console.log('从数据库恢复上下文:', chatId);
+
         await this.cache.set(`chat_context_${chatId}`, dbContext, this.contextTTL);
         return dbContext;
       }
 
       // 创建新上下文
-      console.log('创建新的聊天上下文:', chatId);
+
       return this.createNewContext(chatId);
     } catch (error) {
-      console.error('上下文恢复失败:', error);
+      logger.error('上下文恢复失败:', error);
       // 上下文恢复失败，创建临时上下文
       return this.createTemporaryContext(chatId);
     }
@@ -142,7 +144,7 @@ class ChatContextManager {
         await this.database.saveChatContext(context);
       }
     } catch (error) {
-      console.error('保存上下文失败:', error);
+      logger.error('保存上下文失败:', error);
       throw new ChatContextLost(
         '无法保存聊天上下文',
         { chatId: context.chatId, error: error instanceof Error ? error.message : '未知错误' }
@@ -178,7 +180,7 @@ class ChatContextManager {
    */
   async cleanupExpiredContexts(): Promise<void> {
     // 这里可以实现清理逻辑
-    console.log('清理过期上下文');
+
   }
 }
 
@@ -247,7 +249,7 @@ class ChatModelManager {
     if (!fallbackModel) {
       throw new ChatServiceUnavailable('没有可用的备用模型', new Error('没有可用的备用模型'));
     }
-    console.log(`切换到备用模型: ${fallbackModel.name}`);
+
     this.currentModelId = fallbackModel.id;
     
     return fallbackModel;
@@ -322,23 +324,22 @@ class ChatAPIHandler {
 
         // 调用API
         const response = await this.callChatAPI(message, context, currentModel);
-        
-        console.log(`消息发送成功 (模型: ${currentModel.name}, 尝试: ${attempt})`);
+
         return response;
       } catch (error) {
         lastError = error as Error;
-        console.warn(`消息发送失败 (尝试 ${attempt}/${this.maxRetries}):`, error);
+        logger.warn(`消息发送失败 (尝试 ${attempt}/${this.maxRetries}):`, error);
 
         if (error instanceof ChatRateLimit) {
           // 指数退避
           const delayTime = calculateBackoffDelay(attempt);
-          console.log(`速率限制，等待 ${delayTime}ms`);
+
           await delay(delayTime);
         } else if (error instanceof ChatModelUnavailable) {
           // 切换到备用模型
           try {
             currentModel = this.modelManager.switchToFallbackModel();
-            console.log(`切换到备用模型: ${currentModel.name}`);
+
           } catch (switchError) {
             throw new ChatServiceUnavailable(
               '所有聊天模型都不可用',
@@ -497,7 +498,7 @@ export class ChatAgent {
       
       return response;
     } catch (error) {
-      console.error('发送消息失败:', error);
+      logger.error('发送消息失败:', error);
       
       if (error instanceof AgentError) {
         throw error;
@@ -518,7 +519,7 @@ export class ChatAgent {
       const context = await this.contextManager.recoverContext(chatId);
       return context.messages || [];
     } catch (error) {
-      console.error('获取聊天历史失败:', error);
+      logger.error('获取聊天历史失败:', error);
       return [];
     }
   }
@@ -536,7 +537,7 @@ export class ChatAgent {
       
       await this.contextManager.saveContext(newContext);
     } catch (error) {
-      console.error('清除聊天上下文失败:', error);
+      logger.error('清除聊天上下文失败:', error);
       throw new ChatContextLost(
         '无法清除聊天上下文',
         { chatId }

@@ -12,6 +12,7 @@ import {
   generateId
 } from '../errors/agent-errors';
 import { rootCauseAnalyzer, RootCauseAnalysis } from './root-cause-analyzer';
+import { logger } from '@/lib/utils/logger';
 
 // 错误统计信息
 interface ErrorStats {
@@ -98,7 +99,6 @@ export class ErrorCollector {
     // 记录趋势数据
     this.recordTrend(error);
 
-    console.log(`收集错误: ${error.type} - ${error.message}`);
     return report.id;
   }
 
@@ -216,8 +216,7 @@ export class ErrorCollector {
     this.trends = this.trends.filter(
       t => t.timestamp.getTime() > cutoff
     );
-    
-    console.log('清理过期错误数据完成');
+
   }
 }
 
@@ -597,8 +596,7 @@ class AlertManager {
     };
     
     this.rules.push(alertRule);
-    console.log(`添加告警规则: ${alertRule.name}`);
-    
+
     return alertRule.id;
   }
 
@@ -637,7 +635,7 @@ class AlertManager {
         // 更新规则触发时间
         rule.lastTriggered = now;
         
-        console.warn(`触发告警: ${rule.name}`);
+        logger.warn(`触发告警: ${rule.name}`);
       }
     }
 
@@ -674,7 +672,7 @@ class AlertManager {
     const alert = this.alerts.find(a => a.id === alertId);
     if (alert) {
       alert.isResolved = true;
-      console.log(`告警已解决: ${alert.ruleName}`);
+
       return true;
     }
     return false;
@@ -701,7 +699,7 @@ class AlertManager {
     const rule = this.rules.find(r => r.id === ruleId);
     if (rule) {
       rule.isActive = isActive;
-      console.log(`告警规则 ${rule.name} ${isActive ? '启用' : '禁用'}`);
+
       return true;
     }
     return false;
@@ -737,23 +735,23 @@ export class ErrorMonitor {
     
     // 输出恢复建议
     if (recommendations.length > 0) {
-      console.log('恢复建议:');
+
       recommendations.forEach((rec, index) => {
-        console.log(`  ${index + 1}. ${rec.description} (优先级: ${rec.priority})`);
+
       });
     }
     
     // 输出告警
     if (alerts.length > 0) {
-      console.warn('触发告警:');
+      logger.warn('触发告警:');
       alerts.forEach(alert => {
-        console.warn(`  - ${alert.message} (严重程度: ${alert.severity})`);
+        logger.warn(`  - ${alert.message} (严重程度: ${alert.severity})`);
       });
     }
     
     // 异步执行根因分析
     this.performRootCauseAnalysis(reportId).catch(err => {
-      console.error('Root cause analysis failed:', err);
+      logger.error('Root cause analysis failed:', err);
     });
     
     return reportId;
@@ -845,7 +843,6 @@ export class ErrorMonitor {
       this.collector.cleanup();
     }, intervalMs);
 
-    console.log('错误监控已启动');
   }
 
   /**
@@ -855,7 +852,7 @@ export class ErrorMonitor {
     if (this.monitoringInterval) {
       clearInterval(this.monitoringInterval);
       this.monitoringInterval = null;
-      console.log('错误监控已停止');
+
     }
   }
 
@@ -866,23 +863,16 @@ export class ErrorMonitor {
     try {
       const errorReport = this.collector.getErrorById(reportId);
       if (!errorReport) {
-        console.warn(`Error report not found: ${reportId}`);
+        logger.warn(`Error report not found: ${reportId}`);
         return null;
       }
 
       // 执行根因分析
       const analysis = await rootCauseAnalyzer.analyzeRootCause(errorReport);
-      
-      console.log(`Root cause analysis completed for error ${reportId}:`, {
-        rootCause: analysis.rootCause,
-        confidence: analysis.confidence,
-        affectedUsers: analysis.impactAssessment.affectedUsers,
-        businessImpact: analysis.impactAssessment.businessImpact
-      });
 
       return analysis;
     } catch (error) {
-      console.error('Failed to perform root cause analysis:', error);
+      logger.error('Failed to perform root cause analysis:', error);
       return null;
     }
   }
@@ -963,7 +953,7 @@ export class ErrorMonitor {
    */
   shutdown(): void {
     this.stopMonitoring();
-    console.log('错误监控器已关闭');
+
   }
 }
 

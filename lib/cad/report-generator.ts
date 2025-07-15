@@ -1,5 +1,6 @@
 // @ts-nocheck
 import type { AnalysisResult, ReportSection } from "@/types/cad"
+import { logger } from '@/lib/utils/logger';
 
 export interface ReportConfig {
   format: "pdf" | "docx" | "html"
@@ -51,7 +52,7 @@ export class ReportGenerator {
           throw new Error(`不支持的报告格式: ${this.config.format}`)
       }
     } catch (error) {
-      console.error("报告生成失败:", error)
+      logger.error("报告生成失败:", error)
       throw error
     }
   }
@@ -265,7 +266,7 @@ export class ReportGenerator {
       const preview3DUrl = await this.generate3DPreview(analysisResult)
       if (preview3DUrl) {images.push(preview3DUrl)}
     } catch (error) {
-      console.warn("图片生成失败:", error)
+      logger.warn("图片生成失败:", error)
     }
 
     return images

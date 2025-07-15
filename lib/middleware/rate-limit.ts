@@ -12,6 +12,7 @@ import { RateLimiterRedis, RateLimiterMemory } from 'rate-limiter-flexible';
 import { redisConfig, securityConfig } from '@/config/env';
 import { ERROR_CODES } from '@/config/constants';
 import Redis from 'ioredis';
+import { logger } from '@/lib/utils/logger';
 
 // Redis 客户端
 let redisClient: Redis | null = null;
@@ -26,7 +27,7 @@ try {
     maxRetriesPerRequest: 3,
   });
 } catch (error) {
-  console.warn('Redis连接失败，使用内存限流器:', error);
+  logger.warn('Redis连接失败，使用内存限流器:', error);
 }
 
 // 速率限制器配置
@@ -152,7 +153,7 @@ export function withRateLimit(
       } catch (rateLimiterRes) {
         // 速率限制触发
         if (rateLimiterRes instanceof Error) {
-          console.error('速率限制器错误:', rateLimiterRes);
+          logger.error('速率限制器错误:', rateLimiterRes);
           // 限流器错误时允许请求通过
           return await handler(req);
         }
@@ -300,7 +301,7 @@ export async function resetUserRateLimit(userId: string): Promise<void> {
     await uploadRateLimiter.delete(`user:${userId}`);
     await aiRateLimiter.delete(`user:${userId}`);
   } catch (error) {
-    console.error('重置用户速率限制失败:', error);
+    logger.error('重置用户速率限制失败:', error);
   }
 }
 
@@ -314,7 +315,7 @@ export async function resetIpRateLimit(ip: string): Promise<void> {
     await uploadRateLimiter.delete(ip);
     await aiRateLimiter.delete(ip);
   } catch (error) {
-    console.error('重置IP速率限制失败:', error);
+    logger.error('重置IP速率限制失败:', error);
   }
 }
 
@@ -343,7 +344,7 @@ export async function getRateLimitStatus(key: string, type: RateLimitType = Rate
     const result: any = await limiter.get(key);
     return result;
   } catch (error) {
-    console.error('获取速率限制状态失败:', error);
+    logger.error('获取速率限制状态失败:', error);
     return null;
   }
 } 

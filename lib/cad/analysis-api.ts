@@ -1,4 +1,5 @@
 import type { CADAnalysisResult } from "@/types/cad"
+import { logger } from '@/lib/utils/logger';
 
 interface ApiResponse<T> {
   success: boolean
@@ -29,7 +30,7 @@ export const exportCADAnalysis = async (resultId: string, format: "pdf" | "excel
     URL.revokeObjectURL(url)
     return { success: true, data: "导出成功" }
   } catch (error: any) {
-    console.error("导出失败:", error)
+    logger.error("导出失败:", error)
     return { success: false, error: error.message || "导出失败" }
   }
 }
@@ -51,7 +52,7 @@ export const shareCADAnalysis = async (result: CADAnalysisResult): Promise<ApiRe
     await navigator.clipboard.writeText(shareUrl)
     return { success: true, data: shareUrl }
   } catch (error: any) {
-    console.error("分享失败:", error)
+    logger.error("分享失败:", error)
     return { success: false, error: error.message || "分享失败" }
   }
 }
@@ -83,7 +84,7 @@ export const advancedExportCADAnalysis = async (resultId: string, options: any):
     URL.revokeObjectURL(url)
     return { success: true, data: "高级导出成功" }
   } catch (error: any) {
-    console.error("高级导出失败:", error)
+    logger.error("高级导出失败:", error)
     return { success: false, error: error.message || "高级导出失败" }
   }
 }

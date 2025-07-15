@@ -220,7 +220,7 @@ async function authenticateRequest(req: NextRequest): Promise<any> {
     
     return null;
   } catch (error) {
-    console.error('Authentication error:', error);
+    logger.error('Authentication error:', error);
     return null;
   }
 }

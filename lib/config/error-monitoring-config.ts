@@ -1,3 +1,5 @@
+import { logger } from '@/lib/utils/logger';
+
 /**
  * 错误监控系统配置
  */
@@ -107,35 +109,35 @@ export function validateErrorMonitoringConfig(config: ErrorMonitoringConfig): bo
   try {
     // 验证监控间隔
     if (config.monitoringInterval < 1000 || config.monitoringInterval > 300000) {
-      console.warn('监控间隔应在1秒到5分钟之间');
+      logger.warn('监控间隔应在1秒到5分钟之间');
       return false;
     }
     
     // 验证告警阈值
     if (config.alertThresholds.errorRate <= 0) {
-      console.warn('错误率阈值必须大于0');
+      logger.warn('错误率阈值必须大于0');
       return false;
     }
     
     if (config.alertThresholds.criticalErrorCount <= 0) {
-      console.warn('关键错误数量阈值必须大于0');
+      logger.warn('关键错误数量阈值必须大于0');
       return false;
     }
     
     // 验证数据保留策略
     if (config.dataRetention.errorHistoryDays <= 0) {
-      console.warn('错误历史保留天数必须大于0');
+      logger.warn('错误历史保留天数必须大于0');
       return false;
     }
     
     if (config.dataRetention.maxErrorsInMemory <= 0) {
-      console.warn('内存中最大错误数量必须大于0');
+      logger.warn('内存中最大错误数量必须大于0');
       return false;
     }
     
     return true;
   } catch (error) {
-    console.error('配置验证失败:', error);
+    logger.error('配置验证失败:', error);
     return false;
   }
 }

@@ -5,6 +5,7 @@
 
 import { IMonitoringService } from './unified-interfaces';
 import { IMonitoringServiceFactory } from './monitoring-interfaces';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * 监控服务注册表
@@ -34,7 +35,7 @@ class MonitoringRegistry {
    */
   registerFactory(factory: IMonitoringServiceFactory): void {
     if (this.factory) {
-      console.warn('监控服务工厂已存在，将被替换');
+      logger.warn('监控服务工厂已存在，将被替换');
     }
     this.factory = factory;
   }
@@ -91,7 +92,7 @@ class MonitoringRegistry {
    */
   setMonitoringService(service: IMonitoringService): void {
     if (this.monitoringService && this.monitoringService !== service) {
-      console.warn('替换现有的监控服务实例');
+      logger.warn('替换现有的监控服务实例');
     }
     this.monitoringService = service;
   }
@@ -116,9 +117,9 @@ class MonitoringRegistry {
 
     try {
       this.monitoringService = this.factory.createMonitoringService();
-      console.log('监控服务初始化成功');
+
     } catch (error) {
-      console.error('监控服务初始化失败:', error);
+      logger.error('监控服务初始化失败:', error);
       throw error;
     }
   }

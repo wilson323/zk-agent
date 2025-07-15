@@ -40,8 +40,7 @@ import {
   AgentNotFoundError
 } from '../interfaces/agent-manager.interface'
 import { injectable } from '../di/container'
-
-
+import { logger } from '@/lib/utils/logger';
 
 // 📝 命名规范：服务类使用PascalCase，Service后缀明确表示业务逻辑层
 @injectable
@@ -151,7 +150,7 @@ export class AgentService implements IAgentService {
       // 转换为前端类型格式
       return this.transformPrismaToAgent(agent);
     } catch (error) {
-      console.error('获取智能体详情失败:', error)
+      logger.error('获取智能体详情失败:', error)
       throw new AgentError('获取智能体详情失败', 'GET_FAILED', { originalError: error })
     }
   }
@@ -227,7 +226,7 @@ export class AgentService implements IAgentService {
             throw new AgentError('所有者不存在', 'OWNER_NOT_FOUND')
           }
         }
-        console.error('创建智能体失败:', error)
+        logger.error('创建智能体失败:', error)
         throw new AgentError('创建智能体失败', 'CREATE_FAILED', { originalError: error })
       }
     });
@@ -303,7 +302,7 @@ export class AgentService implements IAgentService {
             throw new AgentNotFoundError(id)
           }
         }
-        console.error('更新智能体失败:', error)
+        logger.error('更新智能体失败:', error)
         throw new AgentError('更新智能体失败', 'UPDATE_FAILED', { originalError: error })
       }
     });
@@ -342,7 +341,7 @@ export class AgentService implements IAgentService {
             throw new AgentNotFoundError(id)
           }
         }
-        console.error('删除智能体失败:', error)
+        logger.error('删除智能体失败:', error)
         throw new AgentError('删除智能体失败', 'DELETE_FAILED', { originalError: error })
       }
     });

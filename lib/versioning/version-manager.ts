@@ -1,3 +1,5 @@
+import { logger } from '@/lib/utils/logger';
+
 // @ts-nocheck
 /**
  * 高性能版本管理器
@@ -139,7 +141,7 @@ export class VersionManager {
 
       return version
     } catch (error) {
-      console.error("创建版本失败:", error)
+      logger.error("创建版本失败:", error)
       throw new Error("创建版本失败")
     }
   }
@@ -181,7 +183,7 @@ export class VersionManager {
 
       return history
     } catch (error) {
-      console.error("获取版本历史失败:", error)
+      logger.error("获取版本历史失败:", error)
       return {
         contentId,
         contentType,
@@ -212,7 +214,7 @@ export class VersionManager {
 
       return version
     } catch (error) {
-      console.error("获取版本失败:", error)
+      logger.error("获取版本失败:", error)
       return null
     }
   }
@@ -241,7 +243,7 @@ export class VersionManager {
 
       return content
     } catch (error) {
-      console.error("恢复版本失败:", error)
+      logger.error("恢复版本失败:", error)
       throw error
     }
   }
@@ -280,7 +282,7 @@ export class VersionManager {
 
       return diff
     } catch (error) {
-      console.error("比较版本失败:", error)
+      logger.error("比较版本失败:", error)
       throw error
     }
   }
@@ -307,7 +309,7 @@ export class VersionManager {
 
       return branch
     } catch (error) {
-      console.error("创建分支失败:", error)
+      logger.error("创建分支失败:", error)
       throw error
     }
   }
@@ -359,7 +361,7 @@ export class VersionManager {
         activeUsers,
       }
     } catch (error) {
-      console.error("获取版本统计失败:", error)
+      logger.error("获取版本统计失败:", error)
       throw error
     }
   }
@@ -399,7 +401,7 @@ export class VersionManager {
 
       return versionsToDelete.length
     } catch (error) {
-      console.error("清理旧版本失败:", error)
+      logger.error("清理旧版本失败:", error)
       return 0
     }
   }
@@ -436,7 +438,7 @@ export class VersionManager {
         compressionRatio,
       }
     } catch (error) {
-      console.error("计算差异失败:", error)
+      logger.error("计算差异失败:", error)
       return {
         type: "full",
         changes: [],
@@ -485,7 +487,7 @@ export class VersionManager {
 
       return content
     } catch (error) {
-      console.error("重建内容失败:", error)
+      logger.error("重建内容失败:", error)
       throw error
     }
   }
@@ -503,7 +505,7 @@ export class VersionManager {
       }
       return content
     } catch (error) {
-      console.error("应用差异失败:", error)
+      logger.error("应用差异失败:", error)
       return content
     }
   }
@@ -555,7 +557,7 @@ export class VersionManager {
 
       return version
     } catch (error) {
-      console.error("加载版本失败:", error)
+      logger.error("加载版本失败:", error)
       return null
     }
   }
@@ -577,7 +579,7 @@ export class VersionManager {
 
       return versions
     } catch (error) {
-      console.error("加载版本列表失败:", error)
+      logger.error("加载版本列表失败:", error)
       return []
     }
   }
@@ -608,7 +610,7 @@ export class VersionManager {
         createdAt: new Date(branch.createdAt),
       }))
     } catch (error) {
-      console.error("加载分支失败:", error)
+      logger.error("加载分支失败:", error)
       return []
     }
   }
@@ -642,7 +644,7 @@ export class VersionManager {
             }
           }
         } catch (error) {
-          console.error("解析版本数据失败:", error)
+          logger.error("解析版本数据失败:", error)
         }
       }
     }
@@ -666,8 +668,5 @@ if (typeof window !== "undefined") {
   setInterval(
     () => {
       // 这里可以添加全局清理逻辑
-      console.log("定期版本清理任务执行")
-    },
-    24 * 60 * 60 * 1000,
-  )
+
 }

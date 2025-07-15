@@ -21,6 +21,7 @@
  */
 
 import type { CADAnalysisConfig } from "@/types/cad"
+import { logger } from '@/lib/utils/logger';
 
 // 📝 命名规范：接口名使用PascalCase，属性使用camelCase
 export interface CADFileMetadata {
@@ -231,7 +232,7 @@ export class CADFileProcessor {
           if (typeof window === 'undefined') {
             // Node环境
             // eslint-disable-next-line no-console
-            console.error(`[CADFileProcessor] 处理文件失败:`, file.name, errorMsg)
+            logger.error(`[CADFileProcessor] 处理文件失败:`, file.name, errorMsg)
           }
         }
       }))

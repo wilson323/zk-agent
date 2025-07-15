@@ -1,3 +1,5 @@
+import { logger } from '@/lib/utils/logger';
+
 /**
  * 加密和安全工具函数
  * 提供哈希、加密、签名等安全相关功能
@@ -651,7 +653,7 @@ export function secureClear(data: string | Uint8Array): void {
   if (typeof data === 'string') {
     // 注意：JavaScript字符串是不可变的，这里只是演示
     // 实际应用中应该避免在内存中存储敏感字符串
-    console.warn('Cannot securely clear immutable string in JavaScript');
+    logger.warn('Cannot securely clear immutable string in JavaScript');
   } else {
     data.fill(0);
   }

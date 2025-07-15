@@ -1,3 +1,5 @@
+import { logger } from '@/lib/utils/logger';
+
 // @ts-nocheck
 /**
  * 海报导出系统
@@ -83,7 +85,7 @@ export class ExportSystem {
       result.exportTime = Date.now() - startTime
       return result
     } catch (error) {
-      console.error("Export failed:", error)
+      logger.error("Export failed:", error)
       return {
         success: false,
         exportTime: Date.now() - startTime,
@@ -394,7 +396,7 @@ export class ExportSystem {
 
       this.ctx.drawImage(img, x, y, width, height)
     } catch (error) {
-      console.error("Failed to render image:", error)
+      logger.error("Failed to render image:", error)
       // 渲染占位符
       this.ctx.fillStyle = "#f3f4f6"
       this.ctx.fillRect(x, y, width, height)
@@ -453,7 +455,7 @@ export class ExportSystem {
 
         this.ctx.drawImage(img, x, y, watermark.size, watermark.size)
       } catch (error) {
-        console.error("Failed to add image watermark:", error)
+        logger.error("Failed to add image watermark:", error)
       }
     }
 
@@ -643,7 +645,7 @@ export class ExportSystem {
 
       return await response.blob()
     } catch (error) {
-      console.error("Image compression failed:", error)
+      logger.error("Image compression failed:", error)
       return blob // 返回原始blob作为fallback
     }
   }
@@ -668,7 +670,7 @@ export class ExportSystem {
       const result = await response.json()
       return result.url
     } catch (error) {
-      console.error("Upload failed:", error)
+      logger.error("Upload failed:", error)
       // 返回临时URL作为fallback
       return URL.createObjectURL(blob)
     }
@@ -719,7 +721,7 @@ export class ExportSystem {
     this.ctx = this.canvas.getContext("2d")
 
     if (!this.ctx) {
-      console.error("Failed to get canvas context")
+      logger.error("Failed to get canvas context")
     }
   }
 }

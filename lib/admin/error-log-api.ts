@@ -1,3 +1,5 @@
+import { logger } from '@/lib/utils/logger';
+
 interface ErrorLog {
   id: string
   level: "INFO" | "WARN" | "ERROR" | "FATAL"
@@ -46,7 +48,7 @@ export const fetchErrorLogs = async (searchTerm: string, levelFilter: string, st
       return { success: false, error: errorData.message || "获取错误日志失败" }
     }
   } catch (error: any) {
-    console.error("获取错误日志失败:", error)
+    logger.error("获取错误日志失败:", error)
     return { success: false, error: error.message || "网络错误，请稍后重试" }
   }
 }
@@ -63,7 +65,7 @@ export const markErrorAsResolved = async (logId: string): Promise<ApiResponse<bo
       return { success: false, error: errorData.message || "标记错误为已解决失败" }
     }
   } catch (error: any) {
-    console.error("标记错误为已解决失败:", error)
+    logger.error("标记错误为已解决失败:", error)
     return { success: false, error: error.message || "网络错误，请稍后重试" }
   }
 }
@@ -80,7 +82,7 @@ export const deleteErrorLog = async (logId: string): Promise<ApiResponse<boolean
       return { success: false, error: errorData.message || "删除错误日志失败" }
     }
   } catch (error: any) {
-    console.error("删除错误日志失败:", error)
+    logger.error("删除错误日志失败:", error)
     return { success: false, error: error.message || "网络错误，请稍后重试" }
   }
 }
@@ -111,7 +113,7 @@ export const exportErrorLogs = async (searchTerm: string, levelFilter: string, s
       return { success: false, error: errorData.message || "导出错误日志失败" }
     }
   } catch (error: any) {
-    console.error("导出错误日志失败:", error)
+    logger.error("导出错误日志失败:", error)
     return { success: false, error: error.message || "网络错误，请稍后重试" }
   }
 }

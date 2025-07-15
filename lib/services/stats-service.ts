@@ -7,6 +7,7 @@
 
 import { db } from '../database/enhanced-database-manager';
 import { NextRequest } from 'next/server';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * Creates a usage stats record.
@@ -43,7 +44,7 @@ export const createUsageStats = async ({
       },
     })
     .catch((error) => {
-      console.error(`Failed to log ${action}:`, error);
+      logger.error(`Failed to log ${action}:`, error);
       return null;
     });
 };

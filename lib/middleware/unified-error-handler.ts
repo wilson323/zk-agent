@@ -288,7 +288,7 @@ function recordErrorMetrics(
   processingTime: number
 ): void {
   // 这里可以集成监控系统，如 Prometheus、DataDog 等
-  console.log(`[ERROR_METRICS] ${requestId}: ${error.constructor.name} - ${processingTime}ms`);
+
 }
 
 /**
@@ -298,7 +298,7 @@ function recordSuccessMetrics(
   requestId: string,
   processingTime: number
 ): void {
-  console.log(`[SUCCESS_METRICS] ${requestId}: Success - ${processingTime}ms`);
+
 }
 
 /**

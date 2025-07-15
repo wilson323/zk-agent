@@ -9,6 +9,7 @@ import 'reflect-metadata';
 import { EventEmitter } from 'events';
 import { container } from './container';
 import { configureServices } from './config';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * 依赖注入初始化状态
@@ -98,9 +99,8 @@ class DIInitializationManager extends EventEmitter {
       this.updateStatus(DIInitializationStatus.COMPLETED);
       this.emit('completed');
 
-      console.log('依赖注入系统初始化完成');
     } catch (error) {
-      console.error('依赖注入系统初始化失败:', error);
+      logger.error('依赖注入系统初始化失败:', error);
       this.emit('error', error as Error);
       this.updateStatus(DIInitializationStatus.FAILED);
       throw error;
@@ -114,9 +114,9 @@ class DIInitializationManager extends EventEmitter {
     try {
       // 调用配置服务函数
       configureServices();
-      console.log('依赖注入服务配置成功');
+
     } catch (error) {
-      console.error('依赖注入服务配置失败:', error);
+      logger.error('依赖注入服务配置失败:', error);
       throw error;
     }
   }
@@ -140,9 +140,8 @@ class DIInitializationManager extends EventEmitter {
         }
       }
 
-      console.log('依赖注入容器状态验证成功');
     } catch (error) {
-      console.error('依赖注入容器状态验证失败:', error);
+      logger.error('依赖注入容器状态验证失败:', error);
       throw error;
     }
   }

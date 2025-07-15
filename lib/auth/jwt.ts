@@ -6,6 +6,7 @@
 
 import jwt from "jsonwebtoken"
 import type { User } from "@prisma/client"
+import { logger } from '@/lib/utils/logger';
 
 // JWT配置
 const JWT_CONFIG = {
@@ -113,7 +114,7 @@ export function verifyAccessToken(token: string): TokenPayload | null {
       permissions: decoded.permissions,
     }
   } catch (error) {
-    console.error("访问令牌验证失败:", error)
+    logger.error("访问令牌验证失败:", error)
     return null
   }
 }
@@ -137,7 +138,7 @@ export function verifyRefreshToken(token: string): Pick<TokenPayload, "userId" |
       email: decoded.email,
     }
   } catch (error) {
-    console.error("刷新令牌验证失败:", error)
+    logger.error("刷新令牌验证失败:", error)
     return null
   }
 }

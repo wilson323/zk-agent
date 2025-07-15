@@ -5,6 +5,7 @@
  */
 
 import bcrypt from "bcryptjs"
+import { logger } from '@/lib/utils/logger';
 
 // 密码配置
 const PASSWORD_CONFIG = {
@@ -82,7 +83,7 @@ export async function hashPassword(password: string): Promise<string> {
     const salt = await bcrypt.genSalt(PASSWORD_CONFIG.saltRounds)
     return await bcrypt.hash(password, salt)
   } catch (error) {
-    console.error("密码加密失败:", error)
+    logger.error("密码加密失败:", error)
     throw new Error("密码加密失败")
   }
 }
@@ -94,7 +95,7 @@ export async function verifyPassword(password: string, hashedPassword: string): 
   try {
     return await bcrypt.compare(password, hashedPassword)
   } catch (error) {
-    console.error("密码验证失败:", error)
+    logger.error("密码验证失败:", error)
     return false
   }
 }

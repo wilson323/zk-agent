@@ -1,5 +1,6 @@
 // @ts-nocheck
 import type { AgUIPlugin, ProtocolExtension, AgUIEvent } from "./complete-types"
+import { logger } from '@/lib/utils/logger';
 
 /**
  * AG-UI插件系统
@@ -128,7 +129,7 @@ export class AgUIPluginSystem {
         try {
           handler(event)
         } catch (error) {
-          console.error(`Error in event handler for ${event.type}:`, error)
+          logger.error(`Error in event handler for ${event.type}:`, error)
         }
       }
     }
@@ -164,7 +165,7 @@ export class AgUIPluginSystem {
         await plugin.deactivate()
         await plugin.uninstall()
       } catch (error) {
-        console.error(`Error disposing plugin ${plugin.name}:`, error)
+        logger.error(`Error disposing plugin ${plugin.name}:`, error)
       }
     }
 
@@ -173,7 +174,7 @@ export class AgUIPluginSystem {
       try {
         await extension.dispose()
       } catch (error) {
-        console.error(`Error disposing extension ${extension.name}:`, error)
+        logger.error(`Error disposing extension ${extension.name}:`, error)
       }
     }
 

@@ -13,6 +13,7 @@ import { bundleAnalyzer } from './bundle-analyzer'
 // 内存优化器
 export { MemoryOptimizer, memoryOptimizer } from './memory-optimizer'
 import { memoryOptimizer } from './memory-optimizer'
+import { logger } from '@/lib/utils/logger';
 
 // 性能监控类型
 export interface PerformanceMetrics {
@@ -114,7 +115,7 @@ export class PerformanceToolkit {
       try {
         webVitalsScore = await this.getWebVitalsScore();
       } catch (error) {
-        console.warn('Failed to get Web Vitals score:', error);
+        logger.warn('Failed to get Web Vitals score:', error);
       }
       
       // Weighted average
@@ -122,7 +123,7 @@ export class PerformanceToolkit {
       
       return Math.round(overallScore);
     } catch (error) {
-      console.error('获取性能评分失败:', error)
+      logger.error('获取性能评分失败:', error)
       return 0
     }
   }
@@ -162,7 +163,7 @@ export class PerformanceToolkit {
       
       return Math.max(0, score)
     } catch (error) {
-      console.error('获取Web Vitals评分失败:', error)
+      logger.error('获取Web Vitals评分失败:', error)
       return 100 // 默认满分
     }
   }
@@ -237,7 +238,7 @@ export class PerformanceToolkit {
             fidObserver.observe({ entryTypes: ['first-input'] })
             
           } catch (error) {
-            console.warn('PerformanceObserver不支持某些指标:', error)
+            logger.warn('PerformanceObserver不支持某些指标:', error)
           }
         }
         

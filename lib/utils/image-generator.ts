@@ -5,6 +5,7 @@ import fs from "fs/promises"
 import os from "os"
 
 import { ChatMessage } from '../types/interfaces';
+import { logger } from '@/lib/utils/logger';
 
 export async function generateImageFromChat(
   messages: ChatMessage[],
@@ -16,7 +17,7 @@ export async function generateImageFromChat(
       family: "Noto Sans SC",
     })
   } catch (error) {
-    console.warn("无法注册字体:", error)
+    logger.warn("无法注册字体:", error)
   }
 
   // 创建画布
@@ -50,7 +51,7 @@ export async function generateImageFromChat(
       ctx.textAlign = "center"
       ctx.fillText("欢迎使用ZKTeco AI智能对话系统", width / 2, welcomeHeight - 50)
     } catch (error) {
-      console.error("加载图片失败:", error)
+      logger.error("加载图片失败:", error)
       // 如果图片加载失败，绘制备用文字
       ctx.font = '24px "Noto Sans SC"'
       ctx.fillStyle = "#333333"

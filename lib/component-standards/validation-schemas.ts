@@ -4,6 +4,7 @@
  */
 
 import { z } from 'zod';
+import { logger } from '@/lib/utils/logger';
 
 // =============================================================================
 // 基础验证模式
@@ -719,7 +720,7 @@ export function createRuntimePropsChecker<T>(
         return schema.parse(props);
       } catch (error) {
         if (error instanceof z.ZodError) {
-          console.error(
+          logger.error(
             `[${componentName}] 组件属性验证失败:`,
             error.errors.map(err => ({
               path: err.path.join('.'),
@@ -761,7 +762,7 @@ export function validateAccessibilityProps(props: Record<string, any>) {
   }
   
   if (process.env.NODE_ENV === 'development' && warnings.length > 0) {
-    console.warn('可访问性检查警告:', warnings);
+    logger.warn('可访问性检查警告:', warnings);
   }
   
   return warnings;

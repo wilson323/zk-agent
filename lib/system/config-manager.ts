@@ -1,4 +1,5 @@
 import type { SystemConfig } from "@/types/system-config"
+import { logger } from '@/lib/utils/logger';
 
 interface ConfigManagerResult<T> {
   success: boolean
@@ -13,7 +14,7 @@ export const loadSystemConfig = (): SystemConfig | null => {
       return JSON.parse(savedConfig)
     }
   } catch (error) {
-    console.error("Failed to load system config from localStorage:", error)
+    logger.error("Failed to load system config from localStorage:", error)
   }
   return null
 }
@@ -39,7 +40,7 @@ export const saveSystemConfig = async (config: SystemConfig): Promise<ConfigMana
       return { success: false, error: errorData.message || "Failed to save config to server" }
     }
   } catch (error: any) {
-    console.error("Failed to save config:", error)
+    logger.error("Failed to save config:", error)
     return { success: false, error: error.message || "未知错误" }
   }
 }
@@ -65,7 +66,7 @@ export const testSpeechRecognitionApi = async (modelId: string, config: any): Pr
       return { success: false, error: result.error || "语音识别测试失败" }
     }
   } catch (error: any) {
-    console.error("语音识别测试失败:", error)
+    logger.error("语音识别测试失败:", error)
     return { success: false, error: error.message || "无法连接到语音识别服务" }
   }
 }

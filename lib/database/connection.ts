@@ -71,6 +71,7 @@ export interface DatabasePerformanceOverview {
 import { enhancedDb, EnhancedDatabaseConnection, ConnectionState } from './enhanced-connection'
 import { databaseMonitor } from './monitoring'
 import { DatabasePerformanceUtils } from './enhanced-database-manager'
+import { logger } from '@/lib/utils/logger';
 
 // 全局 Prisma 客户端实例
 let prisma: PrismaClient | null = null
@@ -147,7 +148,7 @@ export async function checkDatabaseConnection(): Promise<DatabaseStatus> {
       timestamp: new Date()
     }
   } catch (error) {
-    console.error('Database connection failed:', error)
+    logger.error('Database connection failed:', error)
     
     // 如果增强连接管理器未连接，尝试连接（但不递归重试）
     if (!enhancedDb.isConnected()) {
@@ -160,7 +161,7 @@ export async function checkDatabaseConnection(): Promise<DatabaseStatus> {
           timestamp: new Date()
         }
       } catch (connectError) {
-        console.error('Enhanced connection failed:', connectError)
+        logger.error('Enhanced connection failed:', connectError)
       }
     }
     
@@ -211,7 +212,7 @@ export async function performDatabaseHealthCheck(): Promise<DatabaseHealthCheck>
       timestamp
     }
   } catch (error) {
-    console.error('Database health check failed:', error)
+    logger.error('Database health check failed:', error)
     
     return {
       status: 'unhealthy',
@@ -279,7 +280,7 @@ async function checkOptimizationStatus(): Promise<{
       recommendations: recommendations.slice(0, 5) // 限制返回前5个建议
     }
   } catch (error) {
-    console.error('Failed to check optimization status:', error)
+    logger.error('Failed to check optimization status:', error)
     return {
       enabled: false,
       componentsActive: 0,
@@ -303,7 +304,7 @@ async function checkDatabaseQueries(): Promise<{
       await prisma.$queryRaw`SELECT 1 as test`
       readSuccess = true
     } catch (error) {
-      console.error('Database read test failed:', error)
+      logger.error('Database read test failed:', error)
     }
     
     // 测试写操作（如果有测试表的话）
@@ -314,7 +315,7 @@ async function checkDatabaseQueries(): Promise<{
       // 暂时假设写操作成功
       writeSuccess = true
     } catch (error) {
-      console.error('Database write test failed:', error)
+      logger.error('Database write test failed:', error)
     }
     
     const latency = Date.now() - startTime
@@ -350,7 +351,7 @@ async function checkMigrationStatus(): Promise<{
       applied: 0
     }
   } catch (error) {
-    console.error('Migration status check failed:', error)
+    logger.error('Migration status check failed:', error)
     return {
       pending: 0,
       applied: 0
@@ -367,311 +368,7 @@ export async function closeDatabaseConnection(): Promise<void> {
     // 优先使用增强连接管理器
     if (enhancedDb.isConnected()) {
       await enhancedDb.disconnect()
-      console.log('Enhanced database connection closed successfully')
-      return
-    }
-    
-    // 回退到传统方式
-    const client = getPrismaClient()
-    await client.$disconnect()
-    console.log('Database connection closed successfully')
-  } catch (error) {
-    console.error('Error closing database connection:', error)
-    throw error
-  }
-}
 
-/**
- * 重新连接数据库
- * @returns {Promise<DatabaseStatus>}
- */
-export async function reconnectDatabase(): Promise<DatabaseStatus> {
-  try {
-    // 优先使用增强连接管理器
-    if (enhancedDb.getState() !== ConnectionState.DISCONNECTED) {
-      await enhancedDb.reconnect()
-      return await checkDatabaseConnection()
-    }
-    
-    // 回退到传统重连方式
-    await closeDatabaseConnection()
-    
-    // 等待一小段时间
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
-    // 重新检查连接
-    return await checkDatabaseConnection()
-  } catch (error) {
-    console.error('Database reconnection failed:', error)
-    throw error
-  }
-}
-
-/**
- * 获取数据库连接池状态
- * @returns {Promise<any>} 连接池状态信息
- */
-export async function getDatabasePoolStatus(): Promise<any> {
-  try {
-    // 优先使用增强连接管理器的统计信息
-    if (enhancedDb.isConnected()) {
-      const stats = enhancedDb.getStats()
-      const status = await checkDatabaseConnection()
-      
-      return {
-        connected: status.connected,
-        timestamp: status.timestamp,
-        version: status.version,
-        enhanced: true,
-        connectionState: stats.state,
-        uptime: Math.round(stats.uptime / 1000),
-        performance: {
-          totalQueries: stats.totalQueries,
-          failedQueries: stats.failedQueries,
-          successRate: stats.totalQueries > 0 
-            ? ((stats.totalQueries - stats.failedQueries) / stats.totalQueries * 100).toFixed(2) + '%'
-            : '100%',
-          avgLatency: Math.round(stats.avgLatency),
-          reconnectAttempts: stats.reconnectAttempts
-        },
-        pool: {
-          maxConnections: parseInt(process.env.DB_POOL_MAX || '50'),
-          minConnections: parseInt(process.env.DB_POOL_MIN || '10'),
-          active: status.connected ? 1 : 0,
-          acquireTimeout: parseInt(process.env.DB_POOL_ACQUIRE || '60000'),
-          idleTimeout: parseInt(process.env.DB_POOL_IDLE || '20000')
-        }
-      }
-    }
-    
-    // 回退到传统状态检查
-    const status = await checkDatabaseConnection()
-    
-    return {
-      connected: status.connected,
-      timestamp: status.timestamp,
-      version: status.version,
-      latency: status.latency,
-      enhanced: false,
-      // 模拟连接池信息（实际需要根据具体数据库驱动获取）
-      pool: {
-        total: parseInt(process.env.DB_POOL_MAX || '10'),
-        active: status.connected ? 1 : 0,
-        idle: status.connected ? parseInt(process.env.DB_POOL_MAX || '10') - 1 : 0,
-        waiting: 0
-      }
-    }
-  } catch (error) {
-    console.error('Failed to get database pool status:', error)
-    throw error
-  }
-}
-
-/**
- * 获取数据库性能概览
- * @returns {Promise<DatabasePerformanceOverview>} 数据库性能概览信息
- */
-export async function getDatabasePerformanceOverview(): Promise<DatabasePerformanceOverview> {
-  const timestamp = new Date()
-  
-  try {
-    // 获取监控状态
-    const monitoringActive = databaseMonitor && databaseMonitor.isMonitoring()
-    let monitoringInfo = {
-      isActive: false,
-      metricsCount: 0,
-      alertsCount: 0
-    }
-    
-    if (monitoringActive) {
-      const metrics = databaseMonitor.getMetrics()
-      const alerts = databaseMonitor.getAlerts()
-      
-      monitoringInfo = {
-        isActive: true,
-        metricsCount: metrics.length,
-        alertsCount: alerts.filter(alert => alert.level === 'CRITICAL' || alert.level === 'WARNING').length
-      }
-    }
-    
-    // 获取优化状态
-    const optimizationStatus = await checkOptimizationStatus()
-    const optimizationInfo = {
-      isActive: optimizationStatus.enabled,
-      componentsStatus: optimizationStatus.enabled ? databaseMonitor.getOptimizationStatus() : {},
-      recommendations: optimizationStatus.recommendations
-    }
-    
-    // 计算健康评分
-    const healthCheck = await performDatabaseHealthCheck()
-    let healthScore = 100
-    
-    if (healthCheck.status === 'unhealthy') {
-      healthScore = 30
-    } else if (healthCheck.status === 'degraded') {
-      healthScore = 70
-    } else if (monitoringInfo.alertsCount > 0) {
-      healthScore = Math.max(50, 100 - (monitoringInfo.alertsCount * 10))
-    }
-    
-    const healthStatus = healthScore >= 90 ? 'excellent' : 
-                        healthScore >= 70 ? 'good' : 
-                        healthScore >= 50 ? 'fair' : 'poor'
-    
-    const healthIssues: string[] = []
-    if (!healthCheck.checks.connection.connected) {
-      healthIssues.push('数据库连接失败')
-    }
-    if (!healthCheck.checks.queries.read) {
-      healthIssues.push('数据库读取操作失败')
-    }
-    if (!healthCheck.checks.queries.write) {
-      healthIssues.push('数据库写入操作失败')
-    }
-    if (monitoringInfo.alertsCount > 0) {
-      healthIssues.push(`存在 ${monitoringInfo.alertsCount} 个活跃告警`)
-    }
-    if (!optimizationStatus.enabled) {
-      healthIssues.push('性能优化组件未启用')
-    }
-    
-    return {
-      monitoring: monitoringInfo,
-      optimization: optimizationInfo,
-      health: {
-        score: healthScore,
-        status: healthStatus,
-        issues: healthIssues
-      },
-      timestamp
-    }
-  } catch (error) {
-    console.error('Failed to get database performance overview:', error)
-    
-    return {
-      monitoring: {
-        isActive: false,
-        metricsCount: 0,
-        alertsCount: 0
-      },
-      optimization: {
-        isActive: false,
-        componentsStatus: {},
-        recommendations: []
-      },
-      health: {
-        score: 0,
-        status: 'poor',
-        issues: ['无法获取性能概览信息']
-      },
-      timestamp
-    }
-  }
-}
-
-/**
- * 触发数据库性能优化
- * @returns {Promise<boolean>} 优化是否成功触发
- */
-export async function triggerDatabaseOptimization(): Promise<boolean> {
-  try {
-    if (!databaseMonitor || !databaseMonitor.isMonitoring()) {
-      console.warn('Database monitoring is not active, cannot trigger optimization')
-      return false
-    }
-    
-    // 触发优化
-    await databaseMonitor.triggerOptimization()
-    console.log('Database optimization triggered successfully')
-    return true
-  } catch (error) {
-    console.error('Failed to trigger database optimization:', error)
-    return false
-  }
-}
-
-/**
- * 获取数据库性能报告
- * @returns {Promise<any>} 性能报告
- */
-export async function getDatabasePerformanceReport(): Promise<any> {
-  try {
-    if (!DatabasePerformanceUtils) {
-      throw new Error('DatabasePerformanceUtils not available')
-    }
-    
-    return await DatabasePerformanceUtils.getPerformanceReport()
-  } catch (error) {
-    console.error('Failed to get database performance report:', error)
-    throw error
-  }
-}
-
-// 进程退出时清理连接
-process.on('beforeExit', async () => {
-  try {
-    // 优先使用增强连接管理器的优雅关闭
-    if (enhancedDb.isConnected()) {
-      await enhancedDb.gracefulShutdown()
-    } else {
-      await closeDatabaseConnection()
-    }
-  } catch (error) {
-    console.error('Error during database cleanup:', error)
-  }
-})
-
-process.on('SIGINT', async () => {
-  try {
-    console.log('Received SIGINT, initiating graceful shutdown...')
-    
-    // 优先使用增强连接管理器的优雅关闭
-    if (enhancedDb.isConnected()) {
-      await enhancedDb.gracefulShutdown()
-    } else {
-      await closeDatabaseConnection()
-      process.exit(0)
-    }
-  } catch (error) {
-    console.error('Error during graceful shutdown:', error)
-    process.exit(1)
-  }
-})
-
-process.on('SIGTERM', async () => {
-  try {
-    console.log('Received SIGTERM, initiating graceful shutdown...')
-    
-    // 优先使用增强连接管理器的优雅关闭
-    if (enhancedDb.isConnected()) {
-      await enhancedDb.gracefulShutdown()
-    } else {
-      await closeDatabaseConnection()
-      process.exit(0)
-    }
-  } catch (error) {
-    console.error('Error during graceful shutdown:', error)
-    process.exit(1)
-  }
-})
-
-// 导出增强连接管理器实例和相关功能
-export { 
-  enhancedDb, 
-  EnhancedDatabaseConnection, 
-  ConnectionState,
-  // connectDatabase,
-  // disconnectDatabase,
-  // getDatabaseStats,
-  // isDatabaseConnected,
-  // executeQuery
-} from './enhanced-connection'
-
-// 初始化增强数据库连接（如果环境变量启用）
-if (process.env.ENHANCED_DB_CONNECTION === 'true') {
-  enhancedDb.connect().catch(error => {
-    console.error('Failed to initialize enhanced database connection:', error)
-  })
 }
 
 // 默认导出Prisma客户端

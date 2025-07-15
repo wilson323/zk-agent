@@ -1,6 +1,7 @@
 /* eslint-disable */
 // @ts-nocheck
 import fastGPTClient from "@/lib/api/fastgpt-client"
+import { logger } from '@/lib/utils/logger';
 
 /**
  * Utility functions for FastGPT API operations
@@ -60,7 +61,7 @@ export const processStreamResponse: any = async (
               onChunk(accumulatedContent)
             }
           } catch (e) {
-            console.error("Error parsing stream data:", e)
+            logger.error("Error parsing stream data:", e)
           }
         }
       }
@@ -71,7 +72,7 @@ export const processStreamResponse: any = async (
       onComplete(accumulatedContent)
     }
   } catch (error) {
-    console.error("Error processing stream:", error)
+    logger.error("Error processing stream:", error)
     onError(error instanceof Error ? error : new Error("Unknown error processing stream"))
   } finally {
     reader.releaseLock()
@@ -126,7 +127,7 @@ export const getQuestionSuggestions: any = async (
 
     return Array.isArray(result) ? result : []
   } catch (error) {
-    console.error("Failed to get question suggestions:", error)
+    logger.error("Failed to get question suggestions:", error)
     return []
   }
 }

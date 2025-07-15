@@ -14,6 +14,7 @@ import {
   calculateBackoffDelay
 } from '../errors/agent-errors';
 import { PosterTemplate } from '../poster/template-system';
+import { logger } from '@/lib/utils/logger';
 
 // 海报模板接口已从 '../poster/template-system' 导入
 
@@ -69,7 +70,7 @@ class PosterResourceManager {
       // 模拟值
       return Math.random() * 0.8;
     } catch (error) {
-      console.warn('无法获取内存使用率:', error);
+      logger.warn('无法获取内存使用率:', error);
       return 0.5; // 默认值
     }
   }
@@ -91,7 +92,7 @@ class PosterResourceManager {
       
       return Math.min(0.9, loadFactor + Math.random() * 0.3);
     } catch (error) {
-      console.warn('无法获取CPU使用率:', error);
+      logger.warn('无法获取CPU使用率:', error);
       return 0.5; // 默认值
     }
   }
@@ -373,7 +374,7 @@ export class PosterGenerationAgent {
         
         if (attempt < this.maxRetries) {
           const delay = calculateBackoffDelay(attempt);
-          console.warn(`海报生成失败，${delay}ms后重试 (${attempt}/${this.maxRetries}):`, error);
+          logger.warn(`海报生成失败，${delay}ms后重试 (${attempt}/${this.maxRetries}):`, error);
           await this.delay(delay);
         }
       }
@@ -390,12 +391,7 @@ export class PosterGenerationAgent {
    * 尝试生成海报
    */
   private async attemptGeneration(config: PosterConfig, attempt: number): Promise<PosterResult> {
-    console.log(`海报生成尝试 ${attempt}:`, {
-      template: config.template,
-      quality: config.quality,
-      dimensions: `${config.width}x${config.height}`
-    });
-    
+
     return await this.generationEngine.generatePoster(config);
   }
 
@@ -406,7 +402,7 @@ export class PosterGenerationAgent {
     const fallbackTemplate = this.templateManager.getFallbackTemplate(config.template);
     
     if (fallbackTemplate) {
-      console.log(`切换到备用模板: ${fallbackTemplate.id}`);
+
       return {
         ...config,
         template: fallbackTemplate.id
@@ -437,12 +433,7 @@ export class PosterGenerationAgent {
       adjustedConfig.width = Math.max(config.width * (0.8 ** (attempt - 1)), 400);
       adjustedConfig.height = Math.max(config.height * (0.8 ** (attempt - 1)), 300);
     }
-    
-    console.log(`调整质量设置 (尝试 ${attempt}):`, {
-      quality: adjustedConfig.quality,
-      dimensions: `${adjustedConfig.width}x${adjustedConfig.height}`
-    });
-    
+
     return adjustedConfig;
   }
 

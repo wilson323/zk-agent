@@ -5,6 +5,7 @@
  */
 
 import type { GeneratePosterRequest, GeneratePosterResponse } from "@/types/poster"
+import { logger } from '@/lib/utils/logger';
 
 export class PosterGenerator {
   private apiEndpoint: string
@@ -46,7 +47,7 @@ export class PosterGenerator {
       const result: any = await response.json()
       return result
     } catch (error) {
-      console.error("Poster generation failed:", error)
+      logger.error("Poster generation failed:", error)
       return {
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",
@@ -96,7 +97,7 @@ export class PosterGenerator {
       try {
         optimized = await this.optimizePromptWithAI(optimized);
       } catch (error) {
-        console.warn('AI提示词优化失败，使用基础优化结果:', error);
+        logger.warn('AI提示词优化失败，使用基础优化结果:', error);
       }
     }
 
@@ -157,7 +158,7 @@ export class PosterGenerator {
       
       return optimized;
     } catch (error) {
-      console.error('AI提示词优化失败:', error);
+      logger.error('AI提示词优化失败:', error);
       // 如果AI优化失败，返回原始提示词
       return prompt;
     }
@@ -206,7 +207,7 @@ export class PosterGenerator {
 
       return await response.json()
     } catch (error) {
-      console.error("Failed to get generation progress:", error)
+      logger.error("Failed to get generation progress:", error)
       return { progress: 0, status: "error" }
     }
   }
@@ -253,7 +254,7 @@ export class PosterExporter {
 
       return await response.blob()
     } catch (error) {
-      console.error("Export failed:", error)
+      logger.error("Export failed:", error)
       throw error
     }
   }

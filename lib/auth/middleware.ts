@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verify } from 'jsonwebtoken'
 import { UserRole } from '../types/enums'
+import { logger } from '@/lib/utils/logger';
 
 // 认证结果接口
 export interface AuthResult {
@@ -88,7 +89,7 @@ export async function verifyAuth(request: NextRequest): Promise<AuthResult> {
       }
     }
   } catch (error) {
-    console.error('Auth verification error:', error)
+    logger.error('Auth verification error:', error)
     return {
       success: false,
       error: 'Authentication verification failed'

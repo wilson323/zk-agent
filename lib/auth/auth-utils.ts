@@ -6,6 +6,7 @@
 import * as jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
 import type { NextRequest } from 'next/server'
+import { logger } from '@/lib/utils/logger';
 
 // 环境变量
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
@@ -50,7 +51,7 @@ export function verifyToken(token: string): JWTPayload | null {
     const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload
     return decoded
   } catch (error) {
-    console.error('Token verification failed:', error)
+    logger.error('Token verification failed:', error)
     return null
   }
 }

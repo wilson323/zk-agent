@@ -1,3 +1,5 @@
+import { logger } from '@/lib/utils/logger';
+
 // @ts-nocheck
 /**
  * 增强点赞管理器
@@ -117,7 +119,7 @@ export class EnhancedLikeManager {
         }
       }
     } catch (error) {
-      console.error("Toggle like failed:", error)
+      logger.error("Toggle like failed:", error)
       return {
         success: false,
         isLiked: false,
@@ -154,7 +156,7 @@ export class EnhancedLikeManager {
         return { isLiked: result.isLiked, count: result.count }
       }
     } catch (error) {
-      console.error("Get like status failed:", error)
+      logger.error("Get like status failed:", error)
     }
 
     // 返回默认值
@@ -200,7 +202,7 @@ export class EnhancedLikeManager {
           }
         }
       } catch (error) {
-        console.error("Batch get like status failed:", error)
+        logger.error("Batch get like status failed:", error)
       }
     }
 
@@ -219,7 +221,7 @@ export class EnhancedLikeManager {
         return result.data
       }
     } catch (error) {
-      console.error("Get like stats failed:", error)
+      logger.error("Get like stats failed:", error)
     }
 
     return {
@@ -249,7 +251,7 @@ export class EnhancedLikeManager {
   async preloadLikeStatus(items: Array<{ itemId: string; itemType: string }>): Promise<void> {
     // 在后台预加载，不阻塞UI
     this.getBatchLikeStatus(items).catch((error) => {
-      console.error("Preload like status failed:", error)
+      logger.error("Preload like status failed:", error)
     })
   }
 }

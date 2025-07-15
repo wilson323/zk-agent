@@ -1,3 +1,5 @@
+import { logger } from '@/lib/utils/logger';
+
 // @ts-nocheck
 /**
  * @file Bundle Analyzer
@@ -181,7 +183,7 @@ export class BundleAnalyzer {
       this.analysis = mockAnalysis
       return mockAnalysis
     } catch (error) {
-      console.error('Bundle analysis failed:', error)
+      logger.error('Bundle analysis failed:', error)
       throw new Error('Bundle分析失败')
     }
   }
@@ -356,39 +358,7 @@ ${rec.estimatedSavings ? `- **预计节省**: ${(rec.estimatedSavings / 1024).to
           const sizeDiff = newAnalysis.totalSize - this.analysis.totalSize
           
           if (Math.abs(sizeDiff) > 10 * 1024) { // 10KB变化
-            console.log(`Bundle大小变化: ${sizeDiff > 0 ? '+' : ''}${(sizeDiff / 1024).toFixed(1)}KB`)
-            
-            // 触发告警
-            if (sizeDiff > 50 * 1024) { // 增加超过50KB
-              console.warn('⚠️ Bundle大小显著增加，请检查最近的代码变更')
-            }
-          }
-        }
-        
-        this.analysis = newAnalysis
-      } catch (error) {
-        console.error('Bundle监控失败:', error)
-      }
-    }, 30000) // 30秒检查一次
-  }
 
-  /**
-   * 获取当前分析结果
-   */
-  getCurrentAnalysis(): BundleAnalysis | null {
-    return this.analysis
-  }
-}
-
-// 创建全局实例
-export const bundleAnalyzer = new BundleAnalyzer()
-
-// 自动启动监控（仅在开发环境）
-if (typeof window === 'undefined' && typeof process !== 'undefined') {
-  try {
-    // @ts-ignore - process.env在Node.js环境中可用
-    if (process.env?.NODE_ENV === 'development') {
-      bundleAnalyzer.monitorBundleChanges()
     }
   } catch (error) {
     // 忽略环境检查错误
