@@ -106,7 +106,7 @@ export enum ZKErrorType {
   VERIFICATION_FAILED = 'VERIFICATION_FAILED',
   CIRCUIT_LOAD_FAILED = 'CIRCUIT_LOAD_FAILED',
   TIMEOUT = 'TIMEOUT',
-  SYSTEM_ERROR = 'SYSTEM_ERROR'
+  SYSTEM_ERROR = 'SYSTEM_ERROR',
 }
 
 // ZK自定义错误类
@@ -127,7 +127,7 @@ export enum ZKEventType {
   PROOF_GENERATED = 'proof_generated',
   PROOF_VERIFIED = 'proof_verified',
   ERROR_OCCURRED = 'error_occurred',
-  SYSTEM_INITIALIZED = 'system_initialized'
+  SYSTEM_INITIALIZED = 'system_initialized',
 }
 
 // ZK事件数据

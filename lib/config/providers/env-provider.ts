@@ -3,9 +3,16 @@
  * @description 环境变量配置提供者实现
  */
 
-import { ConfigProvider, AppConfig, ConfigUpdateEvent, ConfigValidationResult } from '../core/types';
+import {
+  ConfigProvider,
+  AppConfig,
+  ConfigUpdateEvent,
+  ConfigValidationResult,
+} from '../core/types';
 import { validatePartialConfig } from '../core/validation';
-import { Logger } from '../../utils/logger';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
 
 export class EnvironmentConfigProvider implements ConfigProvider {
   private watchers: ((event: ConfigUpdateEvent) => void)[] = [];
@@ -26,7 +33,7 @@ export class EnvironmentConfigProvider implements ConfigProvider {
   async load(): Promise<Partial<AppConfig>> {
     try {
       const config: any = {};
-      
+
       // 遍历所有环境变量
       for (const [key, value] of Object.entries(process.env)) {
         if (key.startsWith(this.envPrefix)) {
@@ -38,11 +45,11 @@ export class EnvironmentConfigProvider implements ConfigProvider {
 
       // 添加特殊的环境配置
       this.addSpecialEnvConfigs(config);
-      
+
       this.logger.debug('Loaded config from environment variables', {
         keysCount: Object.keys(config).length,
       });
-      
+
       return config;
     } catch (error) {
       this.logger.error('Failed to load config from environment variables', { error });
@@ -56,17 +63,17 @@ export class EnvironmentConfigProvider implements ConfigProvider {
   async save(config: Partial<AppConfig>): Promise<void> {
     try {
       const flatConfig = this.flattenConfig(config);
-      
+
       for (const [key, value] of Object.entries(flatConfig)) {
         const envKey = this.transformConfigKey(key);
         const envValue = this.stringifyEnvValue(value);
         process.env[envKey] = envValue;
       }
-      
+
       this.logger.debug('Saved config to environment variables', {
         keysCount: Object.keys(flatConfig).length,
       });
-      
+
       // 触发更新事件
       const event: ConfigUpdateEvent = {
         key: 'root',
@@ -75,7 +82,7 @@ export class EnvironmentConfigProvider implements ConfigProvider {
         timestamp: new Date(),
         source: 'env',
       };
-      
+
       this.notifyWatchers(event);
     } catch (error) {
       this.logger.error('Failed to save config to environment variables', { error });
@@ -88,7 +95,7 @@ export class EnvironmentConfigProvider implements ConfigProvider {
    */
   watch(callback: (event: ConfigUpdateEvent) => void): void {
     this.watchers.push(callback);
-    
+
     // 如果还没有轮询器，启动一个
     if (!this.pollInterval) {
       this.startPolling();
@@ -134,11 +141,14 @@ export class EnvironmentConfigProvider implements ConfigProvider {
    * 例如: database.connectionPool.max -> ZK_AGENT_DATABASE_CONNECTION_POOL_MAX
    */
   private transformConfigKey(configKey: string): string {
-    return this.envPrefix + configKey
-      .split('.')
-      .map(part => part.replace(/([A-Z])/g, '_$1'))
-      .join('_')
-      .toUpperCase();
+    return (
+      this.envPrefix +
+      configKey
+        .split('.')
+        .map(part => part.replace(/([A-Z])/g, '_$1'))
+        .join('_')
+        .toUpperCase()
+    );
   }
 
   /**
@@ -162,8 +172,10 @@ export class EnvironmentConfigProvider implements ConfigProvider {
     }
 
     // JSON
-    if ((value.startsWith('{') && value.endsWith('}')) || 
-        (value.startsWith('[') && value.endsWith(']'))) {
+    if (
+      (value.startsWith('{') && value.endsWith('}')) ||
+      (value.startsWith('[') && value.endsWith(']'))
+    ) {
       try {
         return JSON.parse(value);
       } catch {
@@ -186,19 +198,19 @@ export class EnvironmentConfigProvider implements ConfigProvider {
     if (value === null || value === undefined) {
       return '';
     }
-    
+
     if (typeof value === 'boolean' || typeof value === 'number') {
       return String(value);
     }
-    
+
     if (Array.isArray(value)) {
       return value.join(',');
     }
-    
+
     if (typeof value === 'object') {
       return JSON.stringify(value);
     }
-    
+
     return String(value);
   }
 
@@ -208,7 +220,7 @@ export class EnvironmentConfigProvider implements ConfigProvider {
   private setNestedValue(obj: any, path: string, value: any): void {
     const keys = path.split('.');
     let current = obj;
-    
+
     for (let i = 0; i < keys.length - 1; i++) {
       const key = keys[i];
       if (!(key in current) || typeof current[key] !== 'object') {
@@ -216,7 +228,7 @@ export class EnvironmentConfigProvider implements ConfigProvider {
       }
       current = current[key];
     }
-    
+
     current[keys[keys.length - 1]] = value;
   }
 
@@ -225,17 +237,17 @@ export class EnvironmentConfigProvider implements ConfigProvider {
    */
   private flattenConfig(config: any, prefix: string = ''): Record<string, any> {
     const result: Record<string, any> = {};
-    
+
     for (const [key, value] of Object.entries(config)) {
       const newKey = prefix ? `${prefix}.${key}` : key;
-      
+
       if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
         Object.assign(result, this.flattenConfig(value, newKey));
       } else {
         result[newKey] = value;
       }
     }
-    
+
     return result;
   }
 
@@ -278,13 +290,13 @@ export class EnvironmentConfigProvider implements ConfigProvider {
    */
   private getEnvSnapshot(): Record<string, string> {
     const snapshot: Record<string, string> = {};
-    
+
     for (const [key, value] of Object.entries(process.env)) {
       if (key.startsWith(this.envPrefix) && value !== undefined) {
         snapshot[key] = value;
       }
     }
-    
+
     return snapshot;
   }
 
@@ -293,17 +305,17 @@ export class EnvironmentConfigProvider implements ConfigProvider {
    */
   private startPolling(): void {
     const pollIntervalMs = parseInt(process.env.ZK_AGENT_ENV_POLL_INTERVAL || '5000', 10);
-    
+
     this.pollInterval = setInterval(async () => {
       try {
         const currentSnapshot = this.getEnvSnapshot();
         const changes = this.detectChanges(this.lastEnvSnapshot, currentSnapshot);
-        
+
         if (changes.length > 0) {
           this.logger.debug(`Detected ${changes.length} environment variable changes`);
-          
+
           const newConfig = await this.load();
-          
+
           const event: ConfigUpdateEvent = {
             key: 'root',
             oldValue: null,
@@ -311,7 +323,7 @@ export class EnvironmentConfigProvider implements ConfigProvider {
             timestamp: new Date(),
             source: 'env',
           };
-          
+
           this.notifyWatchers(event);
           this.lastEnvSnapshot = currentSnapshot;
         }
@@ -319,30 +331,33 @@ export class EnvironmentConfigProvider implements ConfigProvider {
         this.logger.error('Error during environment polling', { error });
       }
     }, pollIntervalMs);
-    
+
     this.logger.debug(`Started polling environment variables every ${pollIntervalMs}ms`);
   }
 
   /**
    * 检测环境变量变化
    */
-  private detectChanges(oldSnapshot: Record<string, string>, newSnapshot: Record<string, string>): string[] {
+  private detectChanges(
+    oldSnapshot: Record<string, string>,
+    newSnapshot: Record<string, string>
+  ): string[] {
     const changes: string[] = [];
-    
+
     // 检查新增和修改的变量
     for (const [key, value] of Object.entries(newSnapshot)) {
       if (oldSnapshot[key] !== value) {
         changes.push(key);
       }
     }
-    
+
     // 检查删除的变量
     for (const key of Object.keys(oldSnapshot)) {
       if (!(key in newSnapshot)) {
         changes.push(key);
       }
     }
-    
+
     return changes;
   }
 

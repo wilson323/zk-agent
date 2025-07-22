@@ -9,7 +9,7 @@ import { NextRequest } from 'next/server';
 import { createApiRoute, RouteConfigs } from '@/lib/middleware/api-route-wrapper';
 import { ApiResponseWrapper } from '@/lib/utils/api-helper';
 
-import { verifyAdminAuth } from "@/lib/auth/middleware";
+import { verifyAdminAuth } from '@/lib/auth/middleware';
 import { ERROR_CODES } from '@/config/constants';
 
 export const DELETE = createApiRoute(
@@ -18,7 +18,9 @@ export const DELETE = createApiRoute(
     // 验证管理员权限
     const authResult = await verifyAdminAuth(req);
     if (!authResult.success) {
-      return ApiResponseWrapper.error(ERROR_CODES.AUTH_INSUFFICIENT_PERMISSIONS, '权限不足', { status: 403 });
+      return ApiResponseWrapper.error(ERROR_CODES.AUTH_INSUFFICIENT_PERMISSIONS, '权限不足', {
+        status: 403,
+      });
     }
 
     const { id: logId } = await params;
@@ -29,8 +31,7 @@ export const DELETE = createApiRoute(
 
     return ApiResponseWrapper.success({
       success: true,
-      message: "错误日志已删除",
+      message: '错误日志已删除',
     });
   }
 );
-

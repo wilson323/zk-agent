@@ -10,11 +10,11 @@ import { createApiRoute, RouteConfigs } from '@/lib/middleware/api-route-wrapper
 import { ApiResponseWrapper } from '@/lib/utils/api-helper';
 import { login } from '@/lib/services/auth-service';
 import { createUsageStats } from '@/lib/services/stats-service';
-import { z } from "zod"
+import { z } from 'zod';
 
 const loginSchema = z.object({
-  email: z.string().email("请输入有效的邮箱地址"),
-  password: z.string().min(1, "密码不能为空"),
+  email: z.string().email('请输入有效的邮箱地址'),
+  password: z.string().min(1, '密码不能为空'),
   rememberMe: z.boolean().optional(),
 });
 
@@ -24,7 +24,7 @@ export const POST = createApiRoute(
     requireAuth: false,
     rateLimit: { requests: 100, windowMs: 60000 }, // 每分钟100次
     validation: { body: loginSchema },
-    timeout: 60000
+    timeout: 60000,
   },
   async (req: NextRequest, { params, validatedQuery, user, requestId, validatedBody }) => {
     const { email, password, rememberMe } = validatedBody;

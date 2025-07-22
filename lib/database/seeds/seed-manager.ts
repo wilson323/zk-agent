@@ -90,7 +90,7 @@ export class SeedManager {
       skipExisting: true,
       parallelExecution: false,
       maxRetries: 3,
-      ...config
+      ...config,
     };
   }
 
@@ -149,9 +149,7 @@ export class SeedManager {
   private async loadSeeds(): Promise<void> {
     try {
       const files = await fs.readdir(this.config.seedsPath);
-      const seedFiles = files
-        .filter(file => file.endsWith('.ts') || file.endsWith('.js'))
-        .sort();
+      const seedFiles = files.filter(file => file.endsWith('.ts') || file.endsWith('.js')).sort();
 
       for (const file of seedFiles) {
         const filePath = path.join(this.config.seedsPath, file);
@@ -176,7 +174,7 @@ export class SeedManager {
     try {
       const content = await fs.readFile(filePath, 'utf-8');
       const checksum = crypto.createHash('md5').update(content).digest('hex');
-      
+
       // 动态导入种子文件
       const seedModule = await import(filePath);
       const seed = seedModule.default || seedModule;
@@ -191,7 +189,7 @@ export class SeedManager {
         checksum,
         priority: seed.priority || 0,
         environment: seed.environment || ['development'],
-        createdAt: seed.createdAt || new Date()
+        createdAt: seed.createdAt || new Date(),
       };
     } catch (error) {
       logger.error(`Failed to load seed file ${filePath}:`, error);
@@ -222,13 +220,16 @@ export class SeedManager {
     description?: string,
     template?: 'basic' | 'users' | 'products' | 'settings'
   ): Promise<string> {
-    const timestamp = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14);
+    const timestamp = new Date()
+      .toISOString()
+      .replace(/[^0-9]/g, '')
+      .slice(0, 14);
     const id = `${timestamp}_${name.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
     const fileName = `${id}.ts`;
     const filePath = path.join(this.config.seedsPath, fileName);
 
     const seedContent = this.generateSeedTemplate(id, name, description, template);
-    
+
     await fs.mkdir(this.config.seedsPath, { recursive: true });
     await fs.writeFile(filePath, seedContent);
 
@@ -245,7 +246,7 @@ export class SeedManager {
     template?: string
   ): string {
     const templateContent = this.getTemplateContent(template);
-    
+
     return `/**
  * Seed: ${name}
  * ${description ? `Description: ${description}` : ''}
@@ -255,7 +256,9 @@ export class SeedManager {
 import { QueryBuilder } from '../core/query-builder';
 import { BaseModel } from '../core/model';
 import { Seed } from '../seeds/seed-manager';
-import { logger } from '@/lib/utils/logger';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
 
 const seed: Seed = {
   id: '${id}',
@@ -285,7 +288,11 @@ export default seed;
   /**
    * 获取模板内容
    */
-  private getTemplateContent(template?: string): { run: string; rollback: string; validate: string } {
+  private getTemplateContent(template?: string): {
+    run: string;
+    rollback: string;
+    validate: string;
+  } {
     switch (template) {
       case 'users':
         return {
@@ -308,7 +315,7 @@ export default seed;
         updated_at: new Date()
       }
     ];
-    
+
     for (const user of users) {
       await queryBuilder.table('users').insert(user);
     }`,
@@ -320,7 +327,7 @@ export default seed;
     const count = await queryBuilder.table('users')
       .whereIn('email', ['admin@example.com', 'test@example.com'])
       .count('id as total');
-    return count[0].total >= 2;`
+    return count[0].total >= 2;`,
         };
       case 'products':
         return {
@@ -345,7 +352,7 @@ export default seed;
         updated_at: new Date()
       }
     ];
-    
+
     for (const product of products) {
       await queryBuilder.table('products').insert(product);
     }`,
@@ -357,7 +364,7 @@ export default seed;
     const count = await queryBuilder.table('products')
       .where('name', 'like', 'Sample Product%')
       .count('id as total');
-    return count[0].total >= 2;`
+    return count[0].total >= 2;`,
         };
       case 'settings':
         return {
@@ -380,7 +387,7 @@ export default seed;
         updated_at: new Date()
       }
     ];
-    
+
     for (const setting of settings) {
       await queryBuilder.table('settings').insert(setting);
     }`,
@@ -392,7 +399,7 @@ export default seed;
     const count = await queryBuilder.table('settings')
       .whereIn('key', ['app_name', 'maintenance_mode'])
       .count('id as total');
-    return count[0].total >= 2;`
+    return count[0].total >= 2;`,
         };
       default:
         return {
@@ -405,7 +412,7 @@ export default seed;
           validate: `// 实现验证逻辑
     // const count = await queryBuilder.table('your_table').count('id as total');
     // return count[0].total > 0;
-    return true;`
+    return true;`,
         };
     }
   }
@@ -415,37 +422,36 @@ export default seed;
    */
   async runSeeds(options: SeedRunOptions = {}): Promise<SeedRecord[]> {
     await this.ensureInitialized();
-    
+
     const environment = options.environment || this.config.environment;
     const status = await this.getStatus(environment);
-    
+
     let seedsToRun = status.pending;
-    
+
     // 过滤指定的种子
     if (options.seedIds && options.seedIds.length > 0) {
       seedsToRun = seedsToRun.filter(seed => options.seedIds!.includes(seed.id));
     }
-    
+
     // 按优先级排序
     seedsToRun.sort((a, b) => a.priority - b.priority);
-    
+
     if (seedsToRun.length === 0) {
       return [];
     }
 
     if (options.dryRun) {
-
       return [];
     }
 
     const executed: SeedRecord[] = [];
-    
+
     if (options.parallel && this.config.parallelExecution) {
       // 并行执行
       const results = await Promise.allSettled(
         seedsToRun.map(seed => this.executeSeed(seed, environment, options))
       );
-      
+
       results.forEach((result, index) => {
         if (result.status === 'fulfilled') {
           executed.push(result.value);
@@ -489,7 +495,6 @@ export default seed;
         const existing = await this.getSeedRecord(seed.id, environment);
         if (existing && existing.status === 'success') {
           status = 'skipped';
-
         }
       }
 
@@ -504,10 +509,9 @@ export default seed;
           const connection = await this.connectionManager.getConnection('default');
           const queryBuilder = new QueryBuilder(connection);
           const isValid = await seed.validate(queryBuilder);
-          
+
           if (isValid && this.config.skipExisting && !options.force) {
             status = 'skipped';
-
           }
         }
 
@@ -515,9 +519,8 @@ export default seed;
         if (status !== 'skipped') {
           const connection = await this.connectionManager.getConnection('default');
           const queryBuilder = new QueryBuilder(connection);
-          
-          await seed.run(queryBuilder, this.models);
 
+          await seed.run(queryBuilder, this.models);
         }
       }
     } catch (error) {
@@ -527,7 +530,7 @@ export default seed;
     }
 
     const executionTime = Date.now() - startTime;
-    
+
     const record: SeedRecord = {
       id: seed.id,
       name: seed.name,
@@ -536,7 +539,7 @@ export default seed;
       checksum: seed.checksum || '',
       executionTime,
       status,
-      errorMessage
+      errorMessage,
     };
 
     await this.recordSeed(record);
@@ -552,10 +555,10 @@ export default seed;
     }
 
     await this.ensureInitialized();
-    
+
     const env = environment || this.config.environment;
     const executed = await this.getExecutedSeeds(env);
-    
+
     let seedsToRollback = executed;
     if (seedIds && seedIds.length > 0) {
       seedsToRollback = executed.filter(record => seedIds.includes(record.id));
@@ -576,12 +579,11 @@ export default seed;
 
         const connection = await this.connectionManager.getConnection('default');
         const queryBuilder = new QueryBuilder(connection);
-        
+
         await seed.rollback(queryBuilder, this.models);
         await this.removeSeedRecord(record.id, env);
-        
-        rolledBack.push(record);
 
+        rolledBack.push(record);
       } catch (error) {
         logger.error(`Rollback failed: ${record.name}`, error);
       }
@@ -595,15 +597,15 @@ export default seed;
    */
   async getStatus(environment?: string): Promise<SeedStatus> {
     await this.ensureInitialized();
-    
+
     const env = environment || this.config.environment;
     const executed = await this.getExecutedSeeds(env);
     const failed = executed.filter(r => r.status === 'failed');
     const executedIds = new Set(executed.filter(r => r.status === 'success').map(r => r.id));
-    
+
     const allSeeds = Array.from(this.seeds.values());
-    const pending = allSeeds.filter(seed => 
-      seed.environment.includes(env) && !executedIds.has(seed.id)
+    const pending = allSeeds.filter(
+      seed => seed.environment.includes(env) && !executedIds.has(seed.id)
     );
     const skipped = allSeeds.filter(seed => !seed.environment.includes(env));
 
@@ -612,7 +614,7 @@ export default seed;
       executed,
       failed,
       skipped,
-      environment: env
+      environment: env,
     };
   }
 
@@ -622,13 +624,13 @@ export default seed;
   private async getExecutedSeeds(environment: string): Promise<SeedRecord[]> {
     const connection = await this.connectionManager.getConnection('default');
     const queryBuilder = new QueryBuilder(connection);
-    
+
     const results = await queryBuilder
       .table(this.config.tableName)
       .where('environment', environment)
       .orderBy('executed_at', 'desc')
       .get();
-    
+
     return results.map(row => ({
       id: row.id,
       name: row.name,
@@ -637,7 +639,7 @@ export default seed;
       checksum: row.checksum,
       executionTime: row.execution_time,
       status: row.status,
-      errorMessage: row.error_message
+      errorMessage: row.error_message,
     }));
   }
 
@@ -647,15 +649,15 @@ export default seed;
   private async getSeedRecord(id: string, environment: string): Promise<SeedRecord | null> {
     const connection = await this.connectionManager.getConnection('default');
     const queryBuilder = new QueryBuilder(connection);
-    
+
     const results = await queryBuilder
       .table(this.config.tableName)
       .where('id', id)
       .where('environment', environment)
       .first();
-    
+
     if (!results) return null;
-    
+
     return {
       id: results.id,
       name: results.name,
@@ -664,7 +666,7 @@ export default seed;
       checksum: results.checksum,
       executionTime: results.execution_time,
       status: results.status,
-      errorMessage: results.error_message
+      errorMessage: results.error_message,
     };
   }
 
@@ -674,14 +676,14 @@ export default seed;
   private async recordSeed(record: SeedRecord): Promise<void> {
     const connection = await this.connectionManager.getConnection('default');
     const queryBuilder = new QueryBuilder(connection);
-    
+
     // 先删除已存在的记录
     await queryBuilder
       .table(this.config.tableName)
       .where('id', record.id)
       .where('environment', record.environment)
       .delete();
-    
+
     // 插入新记录
     await queryBuilder.table(this.config.tableName).insert({
       id: record.id,
@@ -691,7 +693,7 @@ export default seed;
       checksum: record.checksum,
       execution_time: record.executionTime,
       status: record.status,
-      error_message: record.errorMessage
+      error_message: record.errorMessage,
     });
   }
 
@@ -701,7 +703,7 @@ export default seed;
   private async removeSeedRecord(id: string, environment: string): Promise<void> {
     const connection = await this.connectionManager.getConnection('default');
     const queryBuilder = new QueryBuilder(connection);
-    
+
     await queryBuilder
       .table(this.config.tableName)
       .where('id', id)
@@ -736,23 +738,23 @@ export default seed;
   async validateIntegrity(environment?: string): Promise<{ valid: boolean; errors: string[] }> {
     const errors: string[] = [];
     const env = environment || this.config.environment;
-    
+
     try {
       const executed = await this.getExecutedSeeds(env);
-      
+
       for (const record of executed) {
         const seed = this.seeds.get(record.id);
-        
+
         if (!seed) {
           errors.push(`Seed file not found: ${record.id}`);
           continue;
         }
-        
+
         if (this.config.validateChecksums && seed.checksum !== record.checksum) {
           errors.push(`Checksum mismatch for seed: ${record.id}`);
         }
       }
-      
+
       return { valid: errors.length === 0, errors };
     } catch (error) {
       errors.push(`Validation failed: ${error}`);
@@ -767,20 +769,15 @@ export default seed;
     if (!confirm) {
       throw new Error('Reset requires explicit confirmation');
     }
-    
+
     const connection = await this.connectionManager.getConnection('default');
     const queryBuilder = new QueryBuilder(connection);
-    
-    if (environment) {
-      await queryBuilder
-        .table(this.config.tableName)
-        .where('environment', environment)
-        .delete();
 
+    if (environment) {
+      await queryBuilder.table(this.config.tableName).where('environment', environment).delete();
     } else {
       await queryBuilder.raw(`DROP TABLE IF EXISTS ${this.config.tableName}`);
       await this.createSeedsTable();
-
     }
   }
 }

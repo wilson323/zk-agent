@@ -1,606 +1,491 @@
-# 组件标准库 (Component Standards Library)
+# 多智能体系统完整实现
 
-一个现代化的 React 组件标准库，提供一致性、可访问性、性能优化和开发体验的完整解决方案。
+## 项目简介
 
-## 🌟 特性
+这是一个生产级别的多智能体系统实现，结合了AutoGen、CrewAI和LangGraph三大主流框架的最佳实践。该系统提供了统一的智能体管理接口，支持多种类型的智能体协作和复杂任务编排。
 
-- **🎨 设计系统兼容** - 支持 Tailwind CSS、Styled Components、Emotion 等主流样式方案
-- **♿ 可访问性优先** - 遵循 WCAG 2.1 AA 标准和 WAI-ARIA 最佳实践
-- **⚡ 性能优化** - 内置懒加载、虚拟化、防抖节流等性能优化工具
-- **🔒 类型安全** - 完整的 TypeScript 支持和运行时验证
-- **🧪 测试友好** - 内置测试工具和覆盖率检查
-- **📚 文档完善** - 自动生成文档和 Storybook 集成
-- **🔧 工具链集成** - ESLint、Prettier、Husky 等开发工具支持
-- **📦 渐进式迁移** - 兼容现有项目，支持逐步迁移
+## 🚀 主要特性
 
-## 🔧 最新改进 (2024)
+### 核心功能
+- **多框架集成**: 支持AutoGen、CrewAI、LangGraph三种智能体框架
+- **统一管理**: 提供统一的智能体注册、管理和协调接口
+- **异步处理**: 全异步架构，支持高并发消息处理
+- **角色扮演**: 支持CrewAI风格的角色扮演智能体
+- **工作流编排**: 基于LangGraph的复杂工作流管理
+- **消息系统**: 完整的消息传递和广播机制
+- **协作任务**: 支持多智能体协作执行复杂任务
 
-### 代码质量提升
-- ✅ **ESLint 配置优化** - 增强了代码质量检查规则，包括 TypeScript、React Hooks 和导入顺序检查
-- ✅ **Git Hooks 集成** - 添加了 pre-commit 钩子，自动执行代码检查和格式化
-- ✅ **Lint-staged 配置** - 只对暂存文件执行检查，提高提交效率
+### 技术特性
+- **类型安全**: 使用Python类型注解和Pydantic数据验证
+- **日志记录**: 完整的日志系统和对话记录
+- **错误处理**: 健壮的异常处理和错误恢复机制
+- **状态管理**: 智能体状态跟踪和系统状态监控
+- **可扩展性**: 模块化设计，易于扩展新的智能体类型
 
-### 安全性增强
-- ✅ **环境变量安全** - 移除了硬编码密码，添加了安全配置指南
-- ✅ **安全文档** - 创建了 `SECURITY.md` 文件，提供详细的安全配置指南
-- ✅ **密钥管理** - 添加了 JWT、API 密钥等安全配置项
+## 📋 系统要求
 
-### 监控系统
-- ✅ **性能监控** - 实现了 `PerformanceMonitor` 类，支持请求指标收集和系统监控
-- ✅ **错误追踪** - 创建了 `ErrorTracker` 系统，支持错误分析和告警
-- ✅ **数据库集成** - 错误日志导出功能已从模拟数据改为真实数据库查询
+- Python 3.8+
+- 支持的操作系统: Windows, macOS, Linux
+- 内存: 建议4GB以上
+- 存储: 至少1GB可用空间
 
-### 开发体验
-- ✅ **自动化工具** - 配置了代码格式化和质量检查的自动化流程
-- ✅ **类型安全** - 增强了 TypeScript 配置和类型检查
-- ✅ **文档完善** - 更新了安全配置和开发指南
+## 🤖 AI助手开发规范
 
-## 🚀 快速开始
+本项目提供了专门的AI助手开发规则，确保代码质量和开发效率：
 
-### 自动初始化（推荐）
+### 规则文件
+- **完整版规则**: [`optimized_user_rules.md`](./optimized_user_rules.md) - 详细的开发规范和最佳实践
+- **项目内规则**: [`.trae/rules/enhanced_user_rules.md`](./.trae/rules/enhanced_user_rules.md) - 项目特定规则
+- **Trae配置版**: [`user_rules_for_trae.md`](./user_rules_for_trae.md) - 适用于Trae IDE的简化规则
 
+### 核心要求
+1. **MCP工具强制使用**: 每次开发前必须使用Serena、Mentor等MCP工具进行分析
+2. **开源优先原则**: 优先使用成熟的开源解决方案，避免重复造轮子
+3. **零重复代码**: 严格控制代码重复率，开发前必须检查现有实现
+4. **架构一致性**: 遵循统一的配置管理、组件开发和类型定义规范
+5. **质量门禁**: 70%+测试覆盖率，TypeScript严格模式，性能要求达标
+
+### 使用方法
+将 `user_rules_for_trae.md` 复制到你的Trae配置目录：
 ```bash
-# 使用初始化脚本快速设置
-npx tsx scripts/init-component-standards.ts
+# Windows
+copy user_rules_for_trae.md C:\Users\%USERNAME%\.trae\user_rules.md
 
-# 或者使用自定义配置
-npx tsx scripts/init-component-standards.ts \
-  --name=my-project \
-  --framework=next \
-  --styling=tailwind \
-  --testing=jest
+# macOS/Linux  
+cp user_rules_for_trae.md ~/.trae/user_rules.md
 ```
 
-### 手动安装
+## 🛠️ 安装指南
 
+### 1. 克隆项目
 ```bash
-# 安装核心依赖
-npm install react react-dom zod clsx class-variance-authority
-
-# 安装开发依赖
-npm install -D typescript @types/react @types/react-dom
-
-# 如果使用 Tailwind CSS
-npm install -D tailwindcss autoprefixer postcss tailwind-merge
+git clone <repository-url>
+cd multi-agent-system
 ```
 
-## 📁 项目结构
-
-```
-project/
-├── src/
-│   ├── components/          # 组件目录
-│   │   ├── Button.tsx
-│   │   ├── Button.test.tsx
-│   │   └── Button.stories.tsx
-│   ├── lib/
-│   │   ├── component-standards/  # 组件标准库
-│   │   │   ├── index.ts         # 主入口
-│   │   │   ├── component-factory.ts
-│   │   │   ├── design-tokens.ts
-│   │   │   ├── component-patterns.ts
-│   │   │   ├── validation-schemas.ts
-│   │   │   ├── accessibility-helpers.ts
-│   │   │   └── performance-optimizers.ts
-│   │   └── utils.ts
-│   ├── hooks/              # 自定义 Hooks
-│   ├── types/              # 类型定义
-│   └── styles/             # 样式文件
-├── scripts/                # 工具脚本
-│   ├── init-component-standards.ts
-│   ├── component-standards-checker.ts
-│   ├── migrate-components.ts
-│   └── component-standards.config.json
-├── docs/                   # 文档
-│   ├── component-factory-standards.md
-│   ├── component-standards-usage-examples.md
-│   └── migration-guide.md
-└── .storybook/             # Storybook 配置
-```
-
-## 🎯 核心概念
-
-### 1. 组件工厂模式
-
-使用组件工厂创建一致性的组件变体：
-
-```typescript
-import { createComponentVariants } from '@/lib/component-standards';
-
-const buttonVariants = createComponentVariants({
-  base: "inline-flex items-center justify-center rounded-md",
-  variants: {
-    variant: {
-      default: "bg-primary text-primary-foreground",
-      secondary: "bg-secondary text-secondary-foreground",
-    },
-    size: {
-      sm: "h-9 px-3",
-      lg: "h-11 px-8",
-    },
-  },
-  defaultVariants: {
-    variant: "default",
-    size: "sm",
-  },
-});
-```
-
-### 2. 设计令牌系统
-
-统一的设计令牌管理：
-
-```typescript
-import { designTokens } from '@/lib/component-standards';
-
-const theme = {
-  colors: designTokens.colors.primary,
-  spacing: designTokens.spacing.md,
-  typography: designTokens.typography.body,
-};
-```
-
-### 3. 可访问性辅助
-
-内置可访问性工具：
-
-```typescript
-import { useFocusTrap, useScreenReaderAnnouncement } from '@/lib/component-standards';
-
-function Dialog({ isOpen, children }) {
-  const focusTrapRef = useFocusTrap(isOpen);
-  const announce = useScreenReaderAnnouncement();
-  
-  useEffect(() => {
-    if (isOpen) {
-      announce('对话框已打开');
-    }
-  }, [isOpen]);
-  
-  return (
-    <div ref={focusTrapRef} role="dialog" aria-modal="true">
-      {children}
-    </div>
-  );
-}
-```
-
-### 4. 性能优化
-
-自动性能优化：
-
-```typescript
-import { useVirtualization, useDebounce } from '@/lib/component-standards';
-
-function LargeList({ items }) {
-  const virtualizer = useVirtualization({
-    count: items.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 50,
-  });
-  
-  return (
-    <div ref={parentRef}>
-      {virtualizer.getVirtualItems().map(virtualItem => (
-        <div key={virtualItem.index}>
-          {items[virtualItem.index]}
-        </div>
-      ))}
-    </div>
-  );
-}
-```
-
-## 🛠️ 开发工具
-
-### 组件标准检查
-
+### 2. 创建虚拟环境
 ```bash
-# 检查组件是否符合标准
-npm run component:check
+python -m venv venv
 
-# 详细模式
-npm run component:check:verbose
+# Windows
+venv\Scripts\activate
 
-# 生成报告
-npm run component:check -- --output=report.json
+# macOS/Linux
+source venv/bin/activate
 ```
 
-### 组件迁移
-
+### 3. 安装依赖
 ```bash
-# 自动迁移现有组件
-npm run component:migrate
-
-# 指定源目录
-npm run component:migrate -- --src=./old-components
+pip install -r requirements.txt
 ```
 
-### 测试和验证
+### 4. 环境配置
+创建 `.env` 文件并配置必要的环境变量：
+```env
+# AI模型API密钥
+OPENAI_API_KEY=your_openai_api_key
+ANTHROPIC_API_KEY=your_anthropic_api_key
+COHERE_API_KEY=your_cohere_api_key
 
+# 日志级别
+LOG_LEVEL=INFO
+
+# 数据库配置（可选）
+DATABASE_URL=sqlite:///./agents.db
+
+# Redis配置（可选）
+REDIS_URL=redis://localhost:6379
+```
+
+## 🎯 快速开始
+
+### 运行演示程序
 ```bash
-# 运行测试
-npm run test
-
-# 测试覆盖率
-npm run test:coverage
-
-# 类型检查
-npm run type-check
-
-# 代码检查
-npm run lint
+python multi_agent_system_complete_example.py
 ```
 
-## 📖 使用示例
+### 基本使用示例
 
-### 基础按钮组件
+```python
+import asyncio
+from multi_agent_system_complete_example import (
+    MultiAgentSystem, AutoGenAgent, CrewAIAgent, LangGraphAgent,
+    AgentConfig, AgentType
+)
 
-```typescript
-import React from 'react';
-import { createComponentVariants } from '@/lib/component-standards';
-import { cn } from '@/lib/utils';
-
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'default' | 'primary' | 'secondary';
-  size?: 'sm' | 'md' | 'lg';
-  children: React.ReactNode;
-}
-
-const buttonVariants = createComponentVariants({
-  base: "inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 disabled:opacity-50",
-  variants: {
-    variant: {
-      default: "bg-primary text-primary-foreground hover:bg-primary/90",
-      primary: "bg-blue-600 text-white hover:bg-blue-700",
-      secondary: "bg-gray-200 text-gray-900 hover:bg-gray-300",
-    },
-    size: {
-      sm: "h-9 px-3 text-sm",
-      md: "h-10 px-4 text-sm",
-      lg: "h-11 px-8 text-base",
-    },
-  },
-  defaultVariants: {
-    variant: "default",
-    size: "md",
-  },
-});
-
-const Button = React.forwardRef<HTMLButtonElement, ButtonProps>((
-  { className, variant, size, ...props },
-  ref
-) => {
-  return (
-    <button
-      className={cn(buttonVariants({ variant, size }), className)}
-      ref={ref}
-      {...props}
-    />
-  );
-});
-
-Button.displayName = "Button";
-
-export { Button, type ButtonProps };
-```
-
-### 复杂表单组件
-
-```typescript
-import React from 'react';
-import { 
-  useFormValidation, 
-  useAccessibilityValidation,
-  createAriaDescription 
-} from '@/lib/component-standards';
-
-interface FormFieldProps {
-  label: string;
-  name: string;
-  type?: string;
-  required?: boolean;
-  error?: string;
-  children?: React.ReactNode;
-}
-
-function FormField({ label, name, type = 'text', required, error, children }: FormFieldProps) {
-  const fieldId = `field-${name}`;
-  const errorId = `${fieldId}-error`;
-  const descriptionId = `${fieldId}-description`;
-  
-  const ariaProps = createAriaDescription({
-    describedBy: error ? errorId : descriptionId,
-    invalid: !!error,
-    required,
-  });
-  
-  return (
-    <div className="space-y-2">
-      <label 
-        htmlFor={fieldId}
-        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-      >
-        {label}
-        {required && <span className="text-red-500 ml-1" aria-label="必填">*</span>}
-      </label>
-      
-      {children || (
-        <input
-          id={fieldId}
-          name={name}
-          type={type}
-          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-          {...ariaProps}
-        />
-      )}
-      
-      {error && (
-        <p id={errorId} className="text-sm text-red-600" role="alert">
-          {error}
-        </p>
-      )}
-    </div>
-  );
-}
-
-export { FormField, type FormFieldProps };
-```
-
-## 🔧 配置
-
-### 组件标准配置
-
-在 `scripts/component-standards.config.json` 中配置检查规则：
-
-```json
-{
-  "rules": {
-    "componentNaming": {
-      "enabled": true,
-      "pattern": "PascalCase",
-      "severity": "error"
-    },
-    "propsInterface": {
-      "enabled": true,
-      "requireExplicitTypes": true,
-      "severity": "warning"
-    },
-    "accessibility": {
-      "enabled": true,
-      "requireAriaLabels": true,
-      "checkColorContrast": true,
-      "severity": "error"
-    }
-  }
-}
-```
-
-### Tailwind CSS 配置
-
-```javascript
-// tailwind.config.js
-module.exports = {
-  content: [
-    './src/**/*.{js,ts,jsx,tsx}',
-  ],
-  theme: {
-    extend: {
-      colors: {
-        border: 'hsl(var(--border))',
-        input: 'hsl(var(--input))',
-        ring: 'hsl(var(--ring))',
-        background: 'hsl(var(--background))',
-        foreground: 'hsl(var(--foreground))',
-        primary: {
-          DEFAULT: 'hsl(var(--primary))',
-          foreground: 'hsl(var(--primary-foreground))',
-        },
-        secondary: {
-          DEFAULT: 'hsl(var(--secondary))',
-          foreground: 'hsl(var(--secondary-foreground))',
-        },
-      },
-    },
-  },
-  plugins: [],
-};
-```
-
-## 🧪 测试策略
-
-### 单元测试
-
-```typescript
-import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
-import '@testing-library/jest-dom';
-import { Button } from './Button';
-
-describe('Button', () => {
-  it('renders correctly', () => {
-    render(<Button>Click me</Button>);
-    expect(screen.getByRole('button')).toBeInTheDocument();
-  });
-
-  it('handles click events', () => {
-    const handleClick = jest.fn();
-    render(<Button onClick={handleClick}>Click me</Button>);
+async def main():
+    # 创建多智能体系统
+    system = MultiAgentSystem()
     
-    fireEvent.click(screen.getByRole('button'));
-    expect(handleClick).toHaveBeenCalledTimes(1);
-  });
+    # 创建AutoGen智能体
+    autogen_config = AgentConfig(
+        name="分析师",
+        agent_type=AgentType.AUTOGEN,
+        role="数据分析专家",
+        system_prompt="你是一个专业的数据分析师"
+    )
+    analyst = AutoGenAgent(autogen_config)
+    system.register_agent(analyst)
+    
+    # 创建CrewAI智能体
+    crewai_config = AgentConfig(
+        name="评审员",
+        agent_type=AgentType.CREWAI,
+        role="质量评审专家",
+        system_prompt="你是一个严格的质量评审专家"
+    )
+    reviewer = CrewAIAgent(crewai_config)
+    system.register_agent(reviewer)
+    
+    # 智能体间对话
+    response = await system.send_message(
+        analyst.id, 
+        reviewer.id, 
+        "请评审这份数据分析报告"
+    )
+    
+    print(f"响应: {response.content}")
+    
+    # 执行协作任务
+    result = await system.execute_collaborative_task(
+        "分析用户行为数据并生成报告"
+    )
+    
+    print(f"协作结果: {result['summary']}")
 
-  it('applies variant styles correctly', () => {
-    render(<Button variant="primary">Primary Button</Button>);
-    const button = screen.getByRole('button');
-    expect(button).toHaveClass('bg-blue-600');
-  });
-});
+if __name__ == "__main__":
+    asyncio.run(main())
 ```
 
-### 可访问性测试
+## 🏗️ 架构设计
 
-```typescript
-import { axe, toHaveNoViolations } from 'jest-axe';
-
-expect.extend(toHaveNoViolations);
-
-describe('Button Accessibility', () => {
-  it('should not have accessibility violations', async () => {
-    const { container } = render(<Button>Accessible Button</Button>);
-    const results = await axe(container);
-    expect(results).toHaveNoViolations();
-  });
-});
+### 系统架构图
+```
+┌─────────────────────────────────────────────────────────┐
+│                多智能体系统管理器                          │
+│                MultiAgentSystem                        │
+├─────────────────────────────────────────────────────────┤
+│  消息队列  │  状态管理  │  任务调度  │  日志记录  │  监控   │
+├─────────────────────────────────────────────────────────┤
+│                    智能体基类                            │
+│                   BaseAgent                            │
+├─────────────┬─────────────────┬─────────────────────────┤
+│ AutoGen智能体 │   CrewAI智能体   │   LangGraph智能体        │
+│AutoGenAgent │  CrewAIAgent   │   LangGraphAgent       │
+├─────────────┼─────────────────┼─────────────────────────┤
+│  对话处理    │    角色扮演      │     工作流编排           │
+│  任务执行    │    任务协作      │     状态管理             │
+│  多轮对话    │    专业领域      │     复杂逻辑             │
+└─────────────┴─────────────────┴─────────────────────────┘
 ```
 
-## 📚 文档和故事书
+### 核心组件
 
-### Storybook 集成
+#### 1. 智能体基类 (BaseAgent)
+- 定义所有智能体的通用接口
+- 消息处理和任务执行的抽象方法
+- 状态管理和历史记录功能
 
-```typescript
-// Button.stories.tsx
-import type { Meta, StoryObj } from '@storybook/react';
-import { Button } from './Button';
+#### 2. AutoGen智能体 (AutoGenAgent)
+- 基于AutoGen框架的对话式智能体
+- 支持多轮对话和复杂推理
+- 适用于需要深度交互的场景
 
-const meta: Meta<typeof Button> = {
-  title: 'Components/Button',
-  component: Button,
-  parameters: {
-    layout: 'centered',
-    docs: {
-      description: {
-        component: '一个灵活的按钮组件，支持多种变体和尺寸。',
-      },
-    },
-  },
-  tags: ['autodocs'],
-  argTypes: {
-    variant: {
-      control: { type: 'select' },
-      options: ['default', 'primary', 'secondary'],
-      description: '按钮的视觉变体',
-    },
-    size: {
-      control: { type: 'select' },
-      options: ['sm', 'md', 'lg'],
-      description: '按钮的尺寸',
-    },
-  },
-};
+#### 3. CrewAI智能体 (CrewAIAgent)
+- 基于CrewAI框架的角色扮演智能体
+- 专注于特定角色和专业领域
+- 支持团队协作和任务分工
 
-export default meta;
-type Story = StoryObj<typeof meta>;
+#### 4. LangGraph智能体 (LangGraphAgent)
+- 基于LangGraph的工作流智能体
+- 支持复杂的状态管理和流程控制
+- 适用于需要精确控制执行流程的场景
 
-export const Default: Story = {
-  args: {
-    children: 'Default Button',
-  },
-};
+#### 5. 系统管理器 (MultiAgentSystem)
+- 智能体注册和管理
+- 消息路由和广播
+- 协作任务编排
+- 系统监控和日志
 
-export const AllVariants: Story = {
-  render: () => (
-    <div className="flex gap-4">
-      <Button variant="default">Default</Button>
-      <Button variant="primary">Primary</Button>
-      <Button variant="secondary">Secondary</Button>
-    </div>
-  ),
-};
+## 📚 详细文档
+
+### 智能体配置
+
+```python
+from multi_agent_system_complete_example import AgentConfig, AgentType
+
+# 基础配置
+config = AgentConfig(
+    name="智能体名称",
+    agent_type=AgentType.AUTOGEN,  # 或 CREWAI, LANGGRAPH
+    role="角色描述",
+    model="gpt-4",  # AI模型
+    temperature=0.7,  # 创造性参数
+    max_tokens=2000,  # 最大输出长度
+    system_prompt="系统提示词",
+    tools=["tool1", "tool2"],  # 可用工具
+    metadata={"key": "value"}  # 额外配置
+)
 ```
 
-## 🚀 部署和 CI/CD
+### 消息系统
 
-### GitHub Actions 工作流
+```python
+# 点对点消息
+response = await system.send_message(
+    sender_id="agent1",
+    receiver_id="agent2",
+    content="消息内容"
+)
 
+# 广播消息
+responses = await system.broadcast_message(
+    sender_id="agent1",
+    content="广播内容"
+)
+```
+
+### 协作任务
+
+```python
+# 执行协作任务
+result = await system.execute_collaborative_task(
+    "任务描述：开发一个Web应用"
+)
+
+# 结果包含:
+# - task_id: 任务ID
+# - individual_results: 各智能体的执行结果
+# - summary: 汇总报告
+# - timestamp: 执行时间
+```
+
+### 状态监控
+
+```python
+# 获取系统状态
+status = system.get_system_status()
+
+# 状态信息包含:
+# - 系统总体状态
+# - 智能体数量和状态
+# - 对话记录数量
+# - 各智能体详细信息
+```
+
+## 🔧 高级配置
+
+### 自定义智能体
+
+```python
+from multi_agent_system_complete_example import BaseAgent, AgentConfig
+
+class CustomAgent(BaseAgent):
+    async def process_message(self, message):
+        # 自定义消息处理逻辑
+        pass
+    
+    async def execute_task(self, task):
+        # 自定义任务执行逻辑
+        pass
+
+# 使用自定义智能体
+custom_config = AgentConfig(
+    name="自定义智能体",
+    agent_type=AgentType.CUSTOM,
+    role="专业角色"
+)
+custom_agent = CustomAgent(custom_config)
+system.register_agent(custom_agent)
+```
+
+### 工作流定义
+
+```python
+# LangGraph工作流示例
+workflow_task = {
+    "workflow_type": "sequential",
+    "steps": [
+        "数据收集",
+        "数据清洗",
+        "数据分析",
+        "报告生成"
+    ],
+    "initial_state": {"data_source": "database"}
+}
+
+result = await langgraph_agent.execute_task(workflow_task)
+```
+
+## 🧪 测试
+
+### 运行测试
+```bash
+# 运行所有测试
+pytest
+
+# 运行特定测试
+pytest tests/test_agents.py
+
+# 生成覆盖率报告
+pytest --cov=multi_agent_system_complete_example
+```
+
+### 测试示例
+```python
+import pytest
+from multi_agent_system_complete_example import MultiAgentSystem, AutoGenAgent
+
+@pytest.mark.asyncio
+async def test_agent_communication():
+    system = MultiAgentSystem()
+    
+    # 创建测试智能体
+    config = AgentConfig(name="测试智能体", agent_type=AgentType.AUTOGEN, role="测试")
+    agent = AutoGenAgent(config)
+    system.register_agent(agent)
+    
+    # 测试消息处理
+    message = Message(content="测试消息")
+    response = await agent.process_message(message)
+    
+    assert response is not None
+    assert response.content != ""
+```
+
+## 📊 性能优化
+
+### 并发处理
+- 使用异步编程模型，支持高并发
+- 智能体状态管理，避免资源冲突
+- 消息队列机制，确保消息有序处理
+
+### 内存管理
+- 消息历史自动清理机制
+- 智能体状态持久化选项
+- 大文件处理优化
+
+### 监控指标
+- 智能体响应时间
+- 消息处理吞吐量
+- 系统资源使用情况
+- 错误率和成功率
+
+## 🔒 安全考虑
+
+### 输入验证
+- 所有输入数据使用Pydantic验证
+- 防止注入攻击和恶意输入
+- 消息内容过滤和清理
+
+### 权限控制
+- 智能体权限分级管理
+- API访问控制
+- 敏感信息保护
+
+### 数据保护
+- 对话记录加密存储
+- 个人信息脱敏处理
+- 符合数据保护法规
+
+## 🚀 部署指南
+
+### Docker部署
+```dockerfile
+FROM python:3.9-slim
+
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+COPY . .
+EXPOSE 8000
+
+CMD ["python", "multi_agent_system_complete_example.py"]
+```
+
+### Kubernetes部署
 ```yaml
-# .github/workflows/ci.yml
-name: Component Standards CI
-
-on:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main ]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - uses: actions/checkout@v3
-    
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '18'
-        cache: 'npm'
-    
-    - name: Install dependencies
-      run: npm ci
-    
-    - name: Run TypeScript check
-      run: npm run type-check
-    
-    - name: Run ESLint
-      run: npm run lint
-    
-    - name: Run component standards check
-      run: npm run component:check
-    
-    - name: Run tests
-      run: npm run test:coverage
-    
-    - name: Build Storybook
-      run: npm run build-storybook
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: multi-agent-system
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: multi-agent-system
+  template:
+    metadata:
+      labels:
+        app: multi-agent-system
+    spec:
+      containers:
+      - name: multi-agent-system
+        image: multi-agent-system:latest
+        ports:
+        - containerPort: 8000
 ```
 
 ## 🤝 贡献指南
 
-1. Fork 项目
-2. 创建功能分支 (`git checkout -b feature/amazing-feature`)
-3. 提交更改 (`git commit -m 'feat: add amazing feature'`)
-4. 推送到分支 (`git push origin feature/amazing-feature`)
-5. 打开 Pull Request
+### 开发环境设置
+1. Fork项目仓库
+2. 创建功能分支
+3. 安装开发依赖：`pip install -r requirements-dev.txt`
+4. 运行预提交钩子：`pre-commit install`
 
-### 提交规范
+### 代码规范
+- 使用Black进行代码格式化
+- 遵循PEP 8编码规范
+- 添加类型注解
+- 编写完整的文档字符串
+- 保持测试覆盖率>90%
 
-使用 [Conventional Commits](https://www.conventionalcommits.org/) 规范：
+### 提交流程
+1. 编写测试用例
+2. 确保所有测试通过
+3. 更新文档
+4. 提交Pull Request
 
-- `feat:` 新功能
-- `fix:` 修复 bug
-- `docs:` 文档更新
-- `style:` 代码格式化
-- `refactor:` 代码重构
-- `test:` 测试相关
-- `chore:` 构建过程或辅助工具的变动
-- `component:` 组件相关更改
+## 📝 更新日志
+
+### v1.0.0 (2025-01-27)
+- 初始版本发布
+- 支持AutoGen、CrewAI、LangGraph三种智能体
+- 完整的消息系统和协作机制
+- 异步处理和状态管理
+- 完善的文档和示例
 
 ## 📄 许可证
 
-MIT License - 查看 [LICENSE](LICENSE) 文件了解详情。
+MIT License - 详见 [LICENSE](LICENSE) 文件
 
-## 🙏 致谢
+## 🆘 支持与帮助
 
-感谢以下开源项目的启发和支持：
+### 常见问题
 
-- [Radix UI](https://www.radix-ui.com/) - 无样式、可访问的组件
-- [Tailwind CSS](https://tailwindcss.com/) - 实用优先的 CSS 框架
-- [Class Variance Authority](https://cva.style/) - 组件变体管理
-- [React Hook Form](https://react-hook-form.com/) - 高性能表单库
-- [Storybook](https://storybook.js.org/) - 组件开发环境
-- [Testing Library](https://testing-library.com/) - 简单而完整的测试工具
+**Q: 如何添加新的AI模型支持？**
+A: 在智能体配置中修改`model`参数，并确保相应的API密钥已配置。
 
-## 📞 支持
+**Q: 系统支持多少个智能体？**
+A: 理论上没有限制，但建议根据硬件资源合理配置，通常10-50个智能体可以良好运行。
 
-如果你有任何问题或建议，请：
+**Q: 如何处理智能体执行错误？**
+A: 系统内置错误处理机制，智能体状态会自动切换到ERROR状态，可通过日志查看详细错误信息。
 
-1. 查看 [文档](./docs/)
-2. 搜索 [Issues](../../issues)
-3. 创建新的 [Issue](../../issues/new)
-4. 参与 [Discussions](../../discussions)
+### 联系方式
+- 项目主页: [GitHub Repository]
+- 问题反馈: [GitHub Issues]
+- 邮箱: support@zk-agent.com
+- 文档: [在线文档]
+
+### 社区
+- 微信群: 扫描二维码加入
+- QQ群: 123456789
+- Discord: [邀请链接]
+- 论坛: [社区论坛]
 
 ---
 
-**让我们一起构建更好的组件生态系统！** 🚀
+**感谢使用多智能体系统！如果这个项目对您有帮助，请给我们一个⭐️**

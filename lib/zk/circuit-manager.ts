@@ -4,12 +4,22 @@
  */
 
 import { promises as fs } from 'fs';
-import { join } from 'path';
-import { ZKCircuitConfig, IZKCircuitManager, ZKError, ZKErrorType, ZKEvent, ZKEventType } from './types';
+import {
+  ZKCircuitConfig,
+  IZKCircuitManager,
+  ZKError,
+  ZKErrorType,
+  ZKEvent,
+  ZKEventType,
+} from './types';
 import { DEFAULT_CIRCUITS, ZK_LIMITS } from './constants';
 import { ZKUtils } from './utils';
 import { EventEmitter } from 'events';
-import { logger } from '@/lib/utils/logger';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
+
+const logger = getLogger();
 
 export class ZKCircuitManager extends EventEmitter implements IZKCircuitManager {
   private circuits: Map<string, ZKCircuitConfig> = new Map();
@@ -42,11 +52,7 @@ export class ZKCircuitManager extends EventEmitter implements IZKCircuitManager 
     try {
       // 验证配置
       if (!ZKUtils.validateCircuitConfig(config)) {
-        throw new ZKError(
-          ZKErrorType.INVALID_INPUT,
-          '电路配置无效',
-          config
-        );
+        throw new ZKError(ZKErrorType.INVALID_INPUT, '电路配置无效', config);
       }
 
       // 检查文件是否存在
@@ -65,19 +71,21 @@ export class ZKCircuitManager extends EventEmitter implements IZKCircuitManager 
       this.emitEvent(ZKEventType.CIRCUIT_LOADED, {
         circuitId: config.id,
         name: config.name,
-        constraints: config.constraints
+        constraints: config.constraints,
       });
-
     } catch (error) {
-      const zkError = error instanceof ZKError ? error : new ZKError(
-        ZKErrorType.CIRCUIT_LOAD_FAILED,
-        `电路 ${config.id} 加载失败: ${error.message}`,
-        error
-      );
+      const zkError =
+        error instanceof ZKError
+          ? error
+          : new ZKError(
+            ZKErrorType.CIRCUIT_LOAD_FAILED,
+            `电路 ${config.id} 加载失败: ${error.message}`,
+            error
+          );
 
       this.emitEvent(ZKEventType.ERROR_OCCURRED, {
         error: zkError,
-        circuitId: config.id
+        circuitId: config.id,
       });
 
       throw zkError;
@@ -94,10 +102,7 @@ export class ZKCircuitManager extends EventEmitter implements IZKCircuitManager 
       try {
         await fs.access(filePath);
       } catch {
-        throw new ZKError(
-          ZKErrorType.CIRCUIT_LOAD_FAILED,
-          `电路文件不存在: ${filePath}`
-        );
+        throw new ZKError(ZKErrorType.CIRCUIT_LOAD_FAILED, `电路文件不存在: ${filePath}`);
       }
     }
   }
@@ -105,12 +110,14 @@ export class ZKCircuitManager extends EventEmitter implements IZKCircuitManager 
   /**
    * 加载电路文件
    */
-  private async loadCircuitFiles(config: ZKCircuitConfig): Promise<{ wasm: Buffer; zkey: Buffer; vkey: any }> {
+  private async loadCircuitFiles(
+    config: ZKCircuitConfig
+  ): Promise<{ wasm: Buffer; zkey: Buffer; vkey: any }> {
     try {
       const [wasm, zkey, vkeyContent] = await Promise.all([
         fs.readFile(config.wasmPath),
         fs.readFile(config.zkeyPath),
-        fs.readFile(config.vkeyPath, 'utf8')
+        fs.readFile(config.vkeyPath, 'utf8'),
       ]);
 
       const vkey = JSON.parse(vkeyContent);
@@ -168,7 +175,6 @@ export class ZKCircuitManager extends EventEmitter implements IZKCircuitManager 
     if (removed) {
       this.circuitCache.delete(id);
       this.loadedCircuits.delete(id);
-
     }
     return removed;
   }
@@ -198,7 +204,7 @@ export class ZKCircuitManager extends EventEmitter implements IZKCircuitManager 
       variables: config.variables,
       wasmSize: data.wasm.length,
       zkeySize: data.zkey.length,
-      estimatedProofTime: ZKUtils.estimateProofTime(config.constraints || 1000)
+      estimatedProofTime: ZKUtils.estimateProofTime(config.constraints || 1000),
     };
   }
 
@@ -208,10 +214,7 @@ export class ZKCircuitManager extends EventEmitter implements IZKCircuitManager 
   async reloadCircuit(id: string): Promise<void> {
     const config = this.circuits.get(id);
     if (!config) {
-      throw new ZKError(
-        ZKErrorType.CIRCUIT_NOT_FOUND,
-        `电路 ${id} 不存在`
-      );
+      throw new ZKError(ZKErrorType.CIRCUIT_NOT_FOUND, `电路 ${id} 不存在`);
     }
 
     // 移除旧的电路数据
@@ -228,7 +231,6 @@ export class ZKCircuitManager extends EventEmitter implements IZKCircuitManager 
   clearCache(): void {
     this.circuitCache.clear();
     this.loadedCircuits.clear();
-
   }
 
   /**
@@ -239,7 +241,7 @@ export class ZKCircuitManager extends EventEmitter implements IZKCircuitManager 
       totalCircuits: this.circuits.size,
       loadedCircuits: this.circuitCache.size,
       cacheSize: this.circuitCache.size,
-      availableCircuits: Array.from(this.circuits.keys())
+      availableCircuits: Array.from(this.circuits.keys()),
     };
   }
 
@@ -276,7 +278,7 @@ export class ZKCircuitManager extends EventEmitter implements IZKCircuitManager 
     const event: ZKEvent = {
       type,
       timestamp: Date.now(),
-      data
+      data,
     };
     this.emit('zkEvent', event);
   }
@@ -285,22 +287,19 @@ export class ZKCircuitManager extends EventEmitter implements IZKCircuitManager 
    * 批量加载电路
    */
   async loadCircuits(configs: ZKCircuitConfig[]): Promise<void> {
-    const results = await Promise.allSettled(
-      configs.map(config => this.loadCircuit(config))
-    );
+    const results = await Promise.allSettled(configs.map(config => this.loadCircuit(config)));
 
     const failures = results
       .map((result, index) => ({ result, config: configs[index] }))
       .filter(({ result }) => result.status === 'rejected')
       .map(({ config, result }) => ({
         circuitId: config.id,
-        error: (result as PromiseRejectedResult).reason
+        error: (result as PromiseRejectedResult).reason,
       }));
 
     if (failures.length > 0) {
       logger.warn('部分电路加载失败:', failures);
     }
-
   }
 
   /**

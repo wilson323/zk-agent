@@ -41,7 +41,7 @@ export enum UserRole {
   USER = 'user',
   ADMIN = 'admin',
   PREMIUM = 'premium',
-  SUPER_ADMIN = 'super_admin'
+  SUPER_ADMIN = 'super_admin',
 }
 
 // 用户状态枚举 - 使用与user.types.ts一致的值
@@ -49,7 +49,7 @@ export enum UserStatus {
   ACTIVE = 'active',
   INACTIVE = 'inactive',
   SUSPENDED = 'suspended',
-  DELETED = 'deleted'
+  DELETED = 'deleted',
 }
 
 // 任务状态枚举
@@ -58,36 +58,36 @@ export enum TaskStatus {
   PROCESSING = 'PROCESSING',
   COMPLETED = 'COMPLETED',
   FAILED = 'FAILED',
-  CANCELLED = 'CANCELLED'
+  CANCELLED = 'CANCELLED',
 }
 
 // 错误代码枚举
 export enum ErrorCode {
   // 验证错误
   VALIDATION_ERROR = 'VALIDATION_ERROR',
-  
+
   // 认证和授权错误
   AUTHENTICATION_ERROR = 'AUTHENTICATION_ERROR',
   AUTHORIZATION_ERROR = 'AUTHORIZATION_ERROR',
-  
+
   // 资源错误
   NOT_FOUND = 'NOT_FOUND',
-  
+
   // 服务器错误
   INTERNAL_SERVER_ERROR = 'INTERNAL_SERVER_ERROR',
-  
+
   // 限流错误
   RATE_LIMIT_ERROR = 'RATE_LIMIT_ERROR',
   RATE_LIMIT_EXCEEDED = 'RATE_LIMIT_EXCEEDED',
-  
+
   // 超时错误
   TIMEOUT_ERROR = 'TIMEOUT_ERROR',
-  
+
   // 外部服务错误
   EXTERNAL_SERVICE_ERROR = 'EXTERNAL_SERVICE_ERROR',
-  
+
   // 服务不可用
-  SERVICE_UNAVAILABLE = 'SERVICE_UNAVAILABLE'
+  SERVICE_UNAVAILABLE = 'SERVICE_UNAVAILABLE',
 }
 
 // 导出所有类型

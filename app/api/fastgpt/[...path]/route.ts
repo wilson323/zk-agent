@@ -18,7 +18,11 @@ export const GET = createApiRoute(
       const FASTGPT_API_KEY = process.env.FASTGPT_API_KEY;
 
       if (!FASTGPT_API_URL || !FASTGPT_API_KEY) {
-        return ApiResponseWrapper.error(ErrorCode.CONFIGURATION_ERROR, 'FastGPT configuration missing', null);
+        return ApiResponseWrapper.error(
+          ErrorCode.CONFIGURATION_ERROR,
+          'FastGPT configuration missing',
+          null
+        );
       }
 
       const path = (params?.path as string[])?.join('/') || '';
@@ -37,7 +41,11 @@ export const GET = createApiRoute(
       return ApiResponseWrapper.success(data);
     } catch (error) {
       console.error('GET /api/fastgpt error:', error);
-      return ApiResponseWrapper.error(ErrorCode.INTERNAL_SERVER_ERROR, 'Internal server error', null);
+      return ApiResponseWrapper.error(
+        ErrorCode.INTERNAL_SERVER_ERROR,
+        'Internal server error',
+        null
+      );
     }
   }
 );
@@ -50,7 +58,11 @@ export const POST = createApiRoute(
       const FASTGPT_API_KEY = process.env.FASTGPT_API_KEY;
 
       if (!FASTGPT_API_URL || !FASTGPT_API_KEY) {
-        return ApiResponseWrapper.error(ErrorCode.CONFIGURATION_ERROR, 'FastGPT configuration missing', null);
+        return ApiResponseWrapper.error(
+          ErrorCode.CONFIGURATION_ERROR,
+          'FastGPT configuration missing',
+          null
+        );
       }
 
       const path = (params?.path as string[])?.join('/') || '';
@@ -68,7 +80,11 @@ export const POST = createApiRoute(
       return ApiResponseWrapper.success(data);
     } catch (error) {
       console.error('POST /api/fastgpt error:', error);
-      return ApiResponseWrapper.error(ErrorCode.INTERNAL_SERVER_ERROR, 'Internal server error', null);
+      return ApiResponseWrapper.error(
+        ErrorCode.INTERNAL_SERVER_ERROR,
+        'Internal server error',
+        null
+      );
     }
   }
 );
@@ -81,7 +97,11 @@ export const DELETE = createApiRoute(
       const FASTGPT_API_KEY = process.env.FASTGPT_API_KEY;
 
       if (!FASTGPT_API_URL || !FASTGPT_API_KEY) {
-        return ApiResponseWrapper.error(ErrorCode.CONFIGURATION_ERROR, 'FastGPT configuration missing', null);
+        return ApiResponseWrapper.error(
+          ErrorCode.CONFIGURATION_ERROR,
+          'FastGPT configuration missing',
+          null
+        );
       }
 
       const path = (params?.path as string[])?.join('/') || '';
@@ -100,8 +120,11 @@ export const DELETE = createApiRoute(
       return ApiResponseWrapper.success(data);
     } catch (error) {
       console.error('DELETE /api/fastgpt error:', error);
-      return ApiResponseWrapper.error(ErrorCode.INTERNAL_SERVER_ERROR, 'Internal server error', null);
+      return ApiResponseWrapper.error(
+        ErrorCode.INTERNAL_SERVER_ERROR,
+        'Internal server error',
+        null
+      );
     }
   }
 );
-

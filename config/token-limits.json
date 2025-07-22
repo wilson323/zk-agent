@@ -1,0 +1,256 @@
+{
+  "$schema": "./token-limits.schema.json",
+  "version": "1.0.0",
+  "description": "Token 限制配置文件 - 用于管理各种开发工具的 token 限制",
+  "lastUpdated": "2025-07-22T04:44:00.000Z",
+  
+  "providers": {
+    "claude-code": {
+      "name": "Claude Code",
+      "description": "Anthropic Claude Code Assistant",
+      "limits": {
+        "maxInputTokens": 200000,
+        "maxOutputTokens": 8192,
+        "maxContextWindow": 200000,
+        "recommendedChunkSize": 150000
+      },
+      "endpoints": {
+        "api": "https://api.anthropic.com/v1/messages",
+        "streaming": "https://api.anthropic.com/v1/messages"
+      },
+      "errorPatterns": [
+        "token count.*exceeds.*maximum",
+        "input too long",
+        "context length exceeded"
+      ]
+    },
+    
+    "gemini-cli": {
+      "name": "Google Gemini CLI",
+      "description": "Google Gemini Command Line Interface",
+      "limits": {
+        "maxInputTokens": 1048576,
+        "maxOutputTokens": 8192,
+        "maxContextWindow": 1048576,
+        "recommendedChunkSize": 800000
+      },
+      "endpoints": {
+        "api": "https://cloudcode-pa.googleapis.com/v1internal:streamGenerateContent",
+        "streaming": "https://cloudcode-pa.googleapis.com/v1internal:streamGenerateContent?alt=sse"
+      },
+      "errorPatterns": [
+        "input token count.*exceeds.*maximum number of tokens allowed",
+        "INVALID_ARGUMENT",
+        "badRequest"
+      ]
+    },
+    
+    "openai-gpt": {
+      "name": "OpenAI GPT",
+      "description": "OpenAI GPT Models",
+      "limits": {
+        "gpt-4": {
+          "maxInputTokens": 128000,
+          "maxOutputTokens": 4096,
+          "maxContextWindow": 128000,
+          "recommendedChunkSize": 100000
+        },
+        "gpt-4-turbo": {
+          "maxInputTokens": 128000,
+          "maxOutputTokens": 4096,
+          "maxContextWindow": 128000,
+          "recommendedChunkSize": 100000
+        },
+        "gpt-3.5-turbo": {
+          "maxInputTokens": 16385,
+          "maxOutputTokens": 4096,
+          "maxContextWindow": 16385,
+          "recommendedChunkSize": 12000
+        }
+      },
+      "endpoints": {
+        "api": "https://api.openai.com/v1/chat/completions",
+        "streaming": "https://api.openai.com/v1/chat/completions"
+      },
+      "errorPatterns": [
+        "maximum context length",
+        "token limit exceeded",
+        "too many tokens"
+      ]
+    }
+  },
+  
+  "chunkingStrategies": {
+    "intelligent": {
+      "name": "智能分块",
+      "description": "基于代码结构和语义的智能分块策略",
+      "priority": 1,
+      "config": {
+        "respectCodeBlocks": true,
+        "respectFunctions": true,
+        "respectClasses": true,
+        "overlapLines": 50,
+        "minChunkSize": 1000,
+        "maxChunkSize": 800000
+      }
+    },
+    
+    "fixed-size": {
+      "name": "固定大小分块",
+      "description": "按固定 token 数量分块",
+      "priority": 2,
+      "config": {
+        "chunkSize": 500000,
+        "overlapTokens": 1000
+      }
+    },
+    
+    "file-based": {
+      "name": "文件级分块",
+      "description": "按文件边界分块",
+      "priority": 3,
+      "config": {
+        "maxFilesPerChunk": 10,
+        "maxTokensPerChunk": 600000
+      }
+    }
+  },
+  
+  "fileTypeConfigs": {
+    "typescript": {
+      "extensions": [".ts", ".tsx"],
+      "tokenMultiplier": 1.2,
+      "chunkingStrategy": "intelligent",
+      "preserveImports": true,
+      "preserveExports": true
+    },
+    
+    "javascript": {
+      "extensions": [".js", ".jsx"],
+      "tokenMultiplier": 1.1,
+      "chunkingStrategy": "intelligent",
+      "preserveImports": true,
+      "preserveExports": true
+    },
+    
+    "markdown": {
+      "extensions": [".md", ".mdx"],
+      "tokenMultiplier": 0.8,
+      "chunkingStrategy": "fixed-size",
+      "preserveHeaders": true,
+      "preserveCodeBlocks": true
+    },
+    
+    "json": {
+      "extensions": [".json"],
+      "tokenMultiplier": 0.9,
+      "chunkingStrategy": "file-based",
+      "preserveStructure": true
+    },
+    
+    "yaml": {
+      "extensions": [".yml", ".yaml"],
+      "tokenMultiplier": 0.9,
+      "chunkingStrategy": "file-based",
+      "preserveStructure": true
+    }
+  },
+  
+  "optimizationRules": {
+    "excludePatterns": [
+      "node_modules/**",
+      ".next/**",
+      "dist/**",
+      "build/**",
+      "coverage/**",
+      "reports/**",
+      "*.min.js",
+      "*.bundle.js",
+      "*.map",
+      ".git/**",
+      ".vscode/**",
+      ".idea/**"
+    ],
+    
+    "priorityFiles": [
+      "package.json",
+      "tsconfig.json",
+      "README.md",
+      "src/index.*",
+      "src/main.*",
+      "src/app.*"
+    ],
+    
+    "compressionRules": {
+      "removeComments": false,
+      "removeEmptyLines": false,
+      "minifyWhitespace": false,
+      "preserveFormatting": true
+    },
+    
+    "cachingRules": {
+      "enableCaching": true,
+      "cacheDirectory": "reports/cache",
+      "cacheTTL": 3600,
+      "cacheKey": "file-hash"
+    }
+  },
+  
+  "monitoring": {
+    "enableMetrics": true,
+    "metricsFile": "reports/token-metrics.json",
+    "alertThresholds": {
+      "warningPercentage": 80,
+      "errorPercentage": 95
+    },
+    
+    "reportingConfig": {
+      "generateReports": true,
+      "reportFormat": ["json", "html"],
+      "reportDirectory": "reports/token-analysis",
+      "includeChunkDetails": true,
+      "includeOptimizationSuggestions": true
+    }
+  },
+  
+  "cicdIntegration": {
+    "enablePreCommitCheck": true,
+    "enableCICheck": true,
+    "failOnExceed": false,
+    "warningOnExceed": true,
+    
+    "githubActions": {
+      "enableAnnotations": true,
+      "uploadReports": true,
+      "commentOnPR": true
+    },
+    
+    "hooks": {
+      "preCommit": "npm run tools:chunk -- --check-only",
+      "prePush": "npm run ci:check-compatibility",
+      "ciPipeline": "npm run ci:optimize"
+    }
+  },
+  
+  "emergencyFallbacks": {
+    "autoChunking": {
+      "enabled": true,
+      "maxRetries": 3,
+      "fallbackChunkSize": 100000,
+      "emergencyChunkSize": 50000
+    },
+    
+    "contentFiltering": {
+      "enabled": true,
+      "removeNonEssential": true,
+      "prioritizeCore": true,
+      "maxContentReduction": 50
+    },
+    
+    "providerSwitching": {
+      "enabled": false,
+      "fallbackProviders": ["claude-code", "openai-gpt"],
+      "autoSwitch": false
+    }
+  }
+}

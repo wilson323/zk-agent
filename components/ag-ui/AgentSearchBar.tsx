@@ -28,7 +28,7 @@ export function AgentSearchBar({
   onChange,
   placeholder = '搜索智能体...',
   debounceMs = 300,
-  className = ''
+  className = '',
 }: AgentSearchBarProps) {
   const [internalValue, setInternalValue] = useState(_value);
 
@@ -55,35 +55,38 @@ export function AgentSearchBar({
     onChange('');
   }, [onChange]);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      handleClear();
-    }
-  }, [handleClear]);
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleClear();
+      }
+    },
+    [handleClear]
+  );
 
   return (
     <div className={`relative ${className}`}>
-      <div className="relative">
-        <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      <div className='relative'>
+        <SearchIcon className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground' />
         <Input
-          type="text"
+          type='text'
           value={internalValue}
-          onChange={(e) => setInternalValue(e.target.value)}
+          onChange={e => setInternalValue(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
-          className="pl-10 pr-10"
+          className='pl-10 pr-10'
         />
         {internalValue && (
           <Button
-            variant="ghost"
-            size="sm"
+            variant='ghost'
+            size='sm'
             onClick={handleClear}
-            className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 hover:bg-muted"
+            className='absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 hover:bg-muted'
           >
-            <XIcon className="h-3 w-3" />
+            <XIcon className='h-3 w-3' />
           </Button>
         )}
       </div>
     </div>
   );
-} 
+}

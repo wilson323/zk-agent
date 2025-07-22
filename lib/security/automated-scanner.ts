@@ -6,7 +6,11 @@
  * @security Production-level automated security scanning
  */
 
-import { Logger } from '@/lib/utils/logger';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
+
+const logger = getLogger();
 import { enhancedCacheManager } from '@/lib/cache/enhanced-cache-manager';
 import { codeReviewSystem, CodeReviewResult } from './code-review-system';
 import { securityAuditSystem, SecurityEventType, SecuritySeverity } from './security-audit-system';
@@ -97,15 +101,17 @@ export class AutomatedScanner {
   /**
    * Scan repository for security issues
    */
-  async scanRepository(options: {
-    configId?: string;
-    includePatterns?: string[];
-    excludePatterns?: string[];
-    triggeredBy?: 'schedule' | 'commit' | 'manual' | 'api';
-  } = {}): Promise<string> {
+  async scanRepository(
+    options: {
+      configId?: string;
+      includePatterns?: string[];
+      excludePatterns?: string[];
+      triggeredBy?: 'schedule' | 'commit' | 'manual' | 'api';
+    } = {}
+  ): Promise<string> {
     const configId = options.configId || 'default';
     const config = this.scanConfigs.get(configId);
-    
+
     if (!config) {
       throw new Error(`Scan configuration not found: ${configId}`);
     }
@@ -145,10 +151,13 @@ export class AutomatedScanner {
   /**
    * Scan specific files (for CI/CD integration)
    */
-  async scanFiles(files: Array<{ path: string; content: string }>, options: {
-    configId?: string;
-    rulesets?: string[];
-  } = {}): Promise<{
+  async scanFiles(
+    files: Array<{ path: string; content: string }>,
+    options: {
+      configId?: string;
+      rulesets?: string[];
+    } = {}
+  ): Promise<{
     jobId: string;
     results: CodeReviewResult[];
     passed: boolean;
@@ -156,7 +165,7 @@ export class AutomatedScanner {
   }> {
     const configId = options.configId || 'default';
     const config = this.scanConfigs.get(configId);
-    
+
     if (!config) {
       throw new Error(`Scan configuration not found: ${configId}`);
     }
@@ -187,7 +196,7 @@ export class AutomatedScanner {
 
       // Calculate summary
       const summary = this.calculateScanSummary(results, files.length, startTime);
-      
+
       // Check if scan passed based on thresholds
       const passed = this.checkThresholds(summary, config.thresholds);
 
@@ -217,7 +226,6 @@ export class AutomatedScanner {
       });
 
       return { jobId, results, passed, summary };
-
     } catch (error) {
       logger.error('Files scan failed', {
         jobId,
@@ -230,10 +238,13 @@ export class AutomatedScanner {
   /**
    * Scan changed files (for Git hooks)
    */
-  async scanChangedFiles(changes: FileChange[], options: {
-    configId?: string;
-    baseBranch?: string;
-  } = {}): Promise<{
+  async scanChangedFiles(
+    changes: FileChange[],
+    options: {
+      configId?: string;
+      baseBranch?: string;
+    } = {}
+  ): Promise<{
     jobId: string;
     passed: boolean;
     blockedFiles: string[];
@@ -241,7 +252,7 @@ export class AutomatedScanner {
   }> {
     const configId = options.configId || 'default';
     const config = this.scanConfigs.get(configId);
-    
+
     if (!config) {
       throw new Error(`Scan configuration not found: ${configId}`);
     }
@@ -252,10 +263,9 @@ export class AutomatedScanner {
 
     try {
       // Filter relevant changes
-      const relevantChanges = changes.filter(change => 
-        change.type !== 'deleted' && 
-        change.content &&
-        this.shouldScanFile(change.path, config)
+      const relevantChanges = changes.filter(
+        change =>
+          change.type !== 'deleted' && change.content && this.shouldScanFile(change.path, config)
       );
 
       if (relevantChanges.length === 0) {
@@ -307,7 +317,6 @@ export class AutomatedScanner {
       });
 
       return { jobId, passed, blockedFiles, warnings };
-
     } catch (error) {
       logger.error('Changed files scan failed', {
         jobId,
@@ -359,11 +368,10 @@ export class AutomatedScanner {
     }
 
     // Cache configuration
-    await enhancedCacheManager.set(
-      `security:scan-config:${configId}`,
-      fullConfig,
-      { ttl: 86400000, tags: ['security', 'scan-config'] }
-    );
+    await enhancedCacheManager.set(`security:scan-config:${configId}`, fullConfig, {
+      ttl: 86400000,
+      tags: ['security', 'scan-config'],
+    });
 
     logger.info('Scan configuration created', {
       configId,
@@ -400,11 +408,10 @@ export class AutomatedScanner {
     }
 
     // Update cache
-    await enhancedCacheManager.set(
-      `security:scan-config:${configId}`,
-      updatedConfig,
-      { ttl: 86400000, tags: ['security', 'scan-config'] }
-    );
+    await enhancedCacheManager.set(`security:scan-config:${configId}`, updatedConfig, {
+      ttl: 86400000,
+      tags: ['security', 'scan-config'],
+    });
 
     logger.info('Scan configuration updated', {
       configId,
@@ -417,7 +424,10 @@ export class AutomatedScanner {
   /**
    * Generate CI/CD integration script
    */
-  generateCIScript(configId: string, platform: 'github' | 'gitlab' | 'jenkins' | 'generic'): string {
+  generateCIScript(
+    configId: string,
+    platform: 'github' | 'gitlab' | 'jenkins' | 'generic'
+  ): string {
     const config = this.scanConfigs.get(configId);
     if (!config) {
       throw new Error(`Configuration not found: ${configId}`);
@@ -440,7 +450,7 @@ export class AutomatedScanner {
    */
   private async executeScan(jobId: string, config: ScanConfig, options: any): Promise<void> {
     const job = this.scanJobs.get(jobId)!;
-    
+
     try {
       job.status = 'running';
       job.startedAt = new Date();
@@ -467,7 +477,7 @@ export class AutomatedScanner {
           const result = await codeReviewSystem.scanFile(filePath, content, {
             rules: config.rulesets,
           });
-          
+
           results.push(result);
           scannedFiles++;
         } catch (error) {
@@ -481,7 +491,7 @@ export class AutomatedScanner {
 
       // Calculate results
       const summary = this.calculateScanSummary(results, totalFiles, startTime);
-      
+
       job.results = summary;
       job.status = 'completed';
       job.completedAt = new Date();
@@ -501,7 +511,6 @@ export class AutomatedScanner {
         violations: summary.violations.total,
         riskScore: summary.riskScore,
       });
-
     } catch (error) {
       job.status = 'failed';
       job.error = getErrorMessage(error);
@@ -586,12 +595,14 @@ export class AutomatedScanner {
    * Private: Schedule configuration
    */
   private scheduleConfig(config: ScanConfig): void {
-    if (!config.schedule) {return;}
+    if (!config.schedule) {
+      return;
+    }
 
     // Simple cron-like scheduling (basic implementation)
     // In production, use a proper cron library like node-cron
     const interval = this.parseCronExpression(config.schedule);
-    
+
     const timer = setInterval(async () => {
       try {
         await this.scanRepository({
@@ -652,16 +663,17 @@ export class AutomatedScanner {
   private matchesPattern(filePath: string, pattern: string): boolean {
     // Simple glob pattern matching (basic implementation)
     const regex = new RegExp(
-      pattern
-        .replace(/\*\*/g, '.*')
-        .replace(/\*/g, '[^/]*')
-        .replace(/\?/g, '.'),
+      pattern.replace(/\*\*/g, '.*').replace(/\*/g, '[^/]*').replace(/\?/g, '.'),
       'i'
     );
     return regex.test(filePath);
   }
 
-  private calculateScanSummary(results: CodeReviewResult[], totalFiles: number, startTime: number): ScanJobResult {
+  private calculateScanSummary(
+    results: CodeReviewResult[],
+    totalFiles: number,
+    startTime: number
+  ): ScanJobResult {
     const violations = {
       total: 0,
       critical: 0,
@@ -703,14 +715,14 @@ export class AutomatedScanner {
   private async discoverFiles(config: ScanConfig, options: any): Promise<string[]> {
     // Simple file discovery (in production, use a proper glob library)
     const files: string[] = [];
-    
+
     const scanDir = async (dir: string) => {
       try {
         const entries = await fs.readdir(dir, { withFileTypes: true });
-        
+
         for (const entry of entries) {
           const fullPath = path.join(dir, entry.name);
-          
+
           if (entry.isDirectory()) {
             await scanDir(fullPath);
           } else if (entry.isFile() && this.shouldScanFile(fullPath, config)) {
@@ -729,12 +741,20 @@ export class AutomatedScanner {
   private parseCronExpression(expression: string): number {
     // Simple cron parser (basic implementation)
     // In production, use a proper cron library
-    if (expression === '0 */6 * * *') {return 6 * 60 * 60 * 1000;} // Every 6 hours
-    if (expression === '0 0 * * *') {return 24 * 60 * 60 * 1000;} // Daily
+    if (expression === '0 */6 * * *') {
+      return 6 * 60 * 60 * 1000;
+    } // Every 6 hours
+    if (expression === '0 0 * * *') {
+      return 24 * 60 * 60 * 1000;
+    } // Daily
     return 60 * 60 * 1000; // Default: hourly
   }
 
-  private async sendNotifications(config: ScanConfig, summary: ScanJobResult, jobId: string): Promise<void> {
+  private async sendNotifications(
+    config: ScanConfig,
+    summary: ScanJobResult,
+    jobId: string
+  ): Promise<void> {
     // Implement notification sending
     logger.warn('Security scan thresholds exceeded', {
       configId: config.id,

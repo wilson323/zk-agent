@@ -4,8 +4,12 @@
  */
 
 import { IMonitoringService } from './unified-interfaces';
-import { IMonitoringServiceFactory } from './monitoring-interfaces';
-import { logger } from '@/lib/utils/logger';
+import { IMonitoringServiceFactory } from './unified-interfaces';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
+
+const logger = getLogger();
 
 /**
  * 监控服务注册表
@@ -18,7 +22,7 @@ class MonitoringRegistry {
   private isInitializing = false;
   private initializationPromise: Promise<void> | null = null;
 
-  private constructor() {}
+  private constructor() { }
 
   /**
    * 获取注册表单例实例
@@ -60,7 +64,7 @@ class MonitoringRegistry {
     // 开始初始化
     this.isInitializing = true;
     this.initializationPromise = this.initializeService();
-    
+
     try {
       await this.initializationPromise;
       if (!this.monitoringService) {
@@ -117,7 +121,6 @@ class MonitoringRegistry {
 
     try {
       this.monitoringService = this.factory.createMonitoringService();
-
     } catch (error) {
       logger.error('监控服务初始化失败:', error);
       throw error;

@@ -5,9 +5,13 @@
  * @date 2025-06-25
  */
 
-import { db } from '../database/enhanced-database-manager';
+import { getDb } from '../database/enhanced-database-manager';
 import { NextRequest } from 'next/server';
-import { logger } from '@/lib/utils/logger';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
+
+const logger = getLogger();
 
 /**
  * Creates a usage stats record.
@@ -34,6 +38,7 @@ export const createUsageStats = async ({
     ip: req?.headers.get('x-forwarded-for') || req?.headers.get('x-real-ip'),
   };
 
+  const db = getDb();
   return db?.usageStats
     .create({
       data: {
@@ -43,7 +48,7 @@ export const createUsageStats = async ({
         metadata: enrichedMetadata,
       },
     })
-    .catch((error) => {
+    .catch((error: any) => {
       logger.error(`Failed to log ${action}:`, error);
       return null;
     });
@@ -56,6 +61,7 @@ export const createUsageStats = async ({
  * @returns {Promise<object>} The usage stats.
  */
 export const getUserStats = async (userId: string) => {
+  const db = getDb();
   const stats = await db?.usageStats.groupBy({
     by: ['agentType'],
     where: { userId },
@@ -86,6 +92,7 @@ export const getStatsSummary = async ({
     ...(agentType && { agentType }),
   };
 
+  const db = getDb();
   const [totalCount, actionBreakdown, userBreakdown] = await Promise.all([
     db?.usageStats.count({ where }),
     db?.usageStats.groupBy({
@@ -94,7 +101,7 @@ export const getStatsSummary = async ({
       _count: { id: true },
       orderBy: { _count: { id: 'desc' } },
     }),
-    enhancedDb.prisma.usageStats.groupBy({
+    db?.usageStats.groupBy({
       by: ['userId'],
       where,
       _count: { id: true },

@@ -6,11 +6,13 @@
  */
 
 import { createHash } from 'crypto';
-import { readFile } from 'fs/promises';
 import path from 'path';
-import { z } from 'zod';
 
-import { Logger } from '@/lib/utils/logger';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
+
+const logger = getLogger();
 import { ERROR_CODES } from '@/config/constants';
 import { AppError } from '@/lib/utils/error-handler';
 import { ErrorType, ErrorSeverity } from '@/lib/types/enums';
@@ -57,7 +59,7 @@ enum ThreatType {
   SIZE_VIOLATION = 'SIZE_VIOLATION',
   FORBIDDEN_EXTENSION = 'FORBIDDEN_EXTENSION',
   SUSPICIOUS_CONTENT = 'SUSPICIOUS_CONTENT',
-  ENCRYPTED_ARCHIVE = 'ENCRYPTED_ARCHIVE'
+  ENCRYPTED_ARCHIVE = 'ENCRYPTED_ARCHIVE',
 }
 
 // 文件类型配置
@@ -66,45 +68,94 @@ const FILE_TYPE_CONFIGS = {
     extensions: ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg'],
     mimeTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/svg+xml'],
     maxSize: 10 * 1024 * 1024, // 10MB
-    allowedCategories: ['user-uploads', 'profile-pictures', 'content-images']
+    allowedCategories: ['user-uploads', 'profile-pictures', 'content-images'],
   },
   DOCUMENT: {
     extensions: ['.pdf', '.doc', '.docx', '.txt', '.rtf'],
-    mimeTypes: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain', 'application/rtf'],
+    mimeTypes: [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain',
+      'application/rtf',
+    ],
     maxSize: 50 * 1024 * 1024, // 50MB
-    allowedCategories: ['documents', 'reports', 'user-uploads']
+    allowedCategories: ['documents', 'reports', 'user-uploads'],
   },
   CAD: {
     extensions: ['.dwg', '.dxf', '.step', '.stp', '.iges', '.igs', '.obj', '.stl'],
-    mimeTypes: ['application/acad', 'application/dxf', 'application/step', 'model/obj', 'application/sla'],
+    mimeTypes: [
+      'application/acad',
+      'application/dxf',
+      'application/step',
+      'model/obj',
+      'application/sla',
+    ],
     maxSize: 100 * 1024 * 1024, // 100MB
-    allowedCategories: ['cad-files', 'engineering']
+    allowedCategories: ['cad-files', 'engineering'],
   },
   ARCHIVE: {
     extensions: ['.zip', '.tar', '.gz', '.7z'],
-    mimeTypes: ['application/zip', 'application/x-tar', 'application/gzip', 'application/x-7z-compressed'],
+    mimeTypes: [
+      'application/zip',
+      'application/x-tar',
+      'application/gzip',
+      'application/x-7z-compressed',
+    ],
     maxSize: 200 * 1024 * 1024, // 200MB
-    allowedCategories: ['bulk-uploads', 'backups']
-  }
+    allowedCategories: ['bulk-uploads', 'backups'],
+  },
 };
 
 // 危险文件签名数据库
 const MALWARE_SIGNATURES = [
   // 可执行文件头部
-  { signature: Buffer.from('4D5A', 'hex'), description: 'Windows PE Executable', threat: ThreatType.MALWARE },
-  { signature: Buffer.from('7F454C46', 'hex'), description: 'Linux ELF Executable', threat: ThreatType.MALWARE },
-  
+  {
+    signature: Buffer.from('4D5A', 'hex'),
+    description: 'Windows PE Executable',
+    threat: ThreatType.MALWARE,
+  },
+  {
+    signature: Buffer.from('7F454C46', 'hex'),
+    description: 'Linux ELF Executable',
+    threat: ThreatType.MALWARE,
+  },
+
   // 脚本特征
-  { signature: Buffer.from('<script', 'utf8'), description: 'JavaScript Code', threat: ThreatType.SCRIPT_INJECTION },
-  { signature: Buffer.from('<?php', 'utf8'), description: 'PHP Code', threat: ThreatType.SCRIPT_INJECTION },
-  { signature: Buffer.from('<%', 'utf8'), description: 'Server-side Script', threat: ThreatType.SCRIPT_INJECTION },
-  
+  {
+    signature: Buffer.from('<script', 'utf8'),
+    description: 'JavaScript Code',
+    threat: ThreatType.SCRIPT_INJECTION,
+  },
+  {
+    signature: Buffer.from('<?php', 'utf8'),
+    description: 'PHP Code',
+    threat: ThreatType.SCRIPT_INJECTION,
+  },
+  {
+    signature: Buffer.from('<%', 'utf8'),
+    description: 'Server-side Script',
+    threat: ThreatType.SCRIPT_INJECTION,
+  },
+
   // 路径遍历特征
-  { signature: Buffer.from('../', 'utf8'), description: 'Path Traversal', threat: ThreatType.PATH_TRAVERSAL },
-  { signature: Buffer.from('..\\', 'utf8'), description: 'Windows Path Traversal', threat: ThreatType.PATH_TRAVERSAL },
-  
+  {
+    signature: Buffer.from('../', 'utf8'),
+    description: 'Path Traversal',
+    threat: ThreatType.PATH_TRAVERSAL,
+  },
+  {
+    signature: Buffer.from('..\\', 'utf8'),
+    description: 'Windows Path Traversal',
+    threat: ThreatType.PATH_TRAVERSAL,
+  },
+
   // 加密压缩包特征
-  { signature: Buffer.from('504B0708', 'hex'), description: 'Encrypted ZIP', threat: ThreatType.ENCRYPTED_ARCHIVE }
+  {
+    signature: Buffer.from('504B0708', 'hex'),
+    description: 'Encrypted ZIP',
+    threat: ThreatType.ENCRYPTED_ARCHIVE,
+  },
 ];
 
 export class FileUploadValidator {
@@ -114,7 +165,7 @@ export class FileUploadValidator {
     totalScanned: 0,
     threatsDetected: 0,
     lastScanTime: Date.now(),
-    ruleExecutions: new Map<string, number>()
+    ruleExecutions: new Map<string, number>(),
   };
 
   constructor(quarantineDir = './quarantine') {
@@ -133,7 +184,7 @@ export class FileUploadValidator {
       description: '检查文件大小是否超过限制',
       enabled: true,
       severity: 'HIGH',
-      validator: this.validateFileSize.bind(this)
+      validator: this.validateFileSize.bind(this),
     });
 
     // 文件扩展名验证
@@ -143,7 +194,7 @@ export class FileUploadValidator {
       description: '检查文件扩展名是否在允许列表中',
       enabled: true,
       severity: 'HIGH',
-      validator: this.validateFileExtension.bind(this)
+      validator: this.validateFileExtension.bind(this),
     });
 
     // MIME类型验证
@@ -153,7 +204,7 @@ export class FileUploadValidator {
       description: '检查MIME类型与文件扩展名是否匹配',
       enabled: true,
       severity: 'MEDIUM',
-      validator: this.validateMimeType.bind(this)
+      validator: this.validateMimeType.bind(this),
     });
 
     // 恶意软件签名检查
@@ -163,7 +214,7 @@ export class FileUploadValidator {
       description: '检查文件是否包含已知恶意软件签名',
       enabled: true,
       severity: 'CRITICAL',
-      validator: this.validateMalwareSignatures.bind(this)
+      validator: this.validateMalwareSignatures.bind(this),
     });
 
     // 文件内容扫描
@@ -173,7 +224,7 @@ export class FileUploadValidator {
       description: '扫描文件内容中的可疑代码和模式',
       enabled: true,
       severity: 'HIGH',
-      validator: this.validateFileContent.bind(this)
+      validator: this.validateFileContent.bind(this),
     });
 
     // 文件名安全检查
@@ -183,7 +234,7 @@ export class FileUploadValidator {
       description: '检查文件名是否包含危险字符或路径遍历',
       enabled: true,
       severity: 'MEDIUM',
-      validator: this.validateFileName.bind(this)
+      validator: this.validateFileName.bind(this),
     });
 
     logger.info(`已初始化 ${this.rules.size} 个文件验证规则`);
@@ -233,14 +284,14 @@ export class FileUploadValidator {
 
         try {
           const result = await rule.validator(context);
-          
+
           // 更新统计信息
           const execCount = this.scanStatistics.ruleExecutions.get(rule.id) || 0;
           this.scanStatistics.ruleExecutions.set(rule.id, execCount + 1);
 
           if (!result.isValid) {
             threats.push(result);
-            
+
             // 根据严重性扣分
             const severityPenalty = this.getSeverityPenalty(result.severity as any);
             score -= severityPenalty;
@@ -252,15 +303,15 @@ export class FileUploadValidator {
             logger.warn(`验证规则失败: ${rule.name} - ${result.message}`, {
               ruleId: rule.id,
               severity: result.severity,
-              details: result.details
+              details: result.details,
             });
           }
         } catch (error) {
           logger.error(`验证规则执行失败: ${rule.name}`, {
             ruleId: rule.id,
-            error: error instanceof Error ? error.message : String(error)
+            error: error instanceof Error ? error.message : String(error),
           });
-          
+
           // 规则执行失败视为潜在威胁
           threats.push({
             passed: false,
@@ -268,7 +319,7 @@ export class FileUploadValidator {
             ruleName: rule.name,
             severity: 'MEDIUM',
             message: '验证规则执行失败',
-            details: { error: error instanceof Error ? error.message : String(error) }
+            details: { error: error instanceof Error ? error.message : String(error) },
           });
           score -= 10;
         }
@@ -290,7 +341,7 @@ export class FileUploadValidator {
         isValid,
         threatCount: threats.length,
         score,
-        duration: duration
+        duration: duration,
       });
 
       // 如果检测到威胁，隔离文件
@@ -302,21 +353,20 @@ export class FileUploadValidator {
         isValid,
         threats,
         score,
-        recommendations: [...new Set(recommendations)] // 去重
+        recommendations: [...new Set(recommendations)], // 去重
       };
-
     } catch (error) {
       logger.error(`文件验证过程发生错误: ${context.originalName}`, {
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       });
 
       throw new AppError(
-        ErrorType.SYSTEM,
-        ERROR_CODES.OPERATION_FAILED,
         '文件安全验证失败',
-        500,
+        ERROR_CODES.OPERATION_FAILED,
+        ErrorType.SYSTEM,
         ErrorSeverity.HIGH,
-        { originalError: error instanceof Error ? error.message : String(error) }
+        { originalError: error instanceof Error ? error.message : String(error) },
+        500
       );
     }
   }
@@ -337,22 +387,22 @@ export class FileUploadValidator {
     }
 
     const passed = context.size <= maxSize;
-    
+
     return {
       isValid: passed,
       ruleId: 'file-size-check',
       ruleName: '文件大小检查',
       severity: 'HIGH',
-      message: passed 
-        ? '文件大小验证通过' 
+      message: passed
+        ? '文件大小验证通过'
         : `文件大小超过限制: ${(context.size / 1024 / 1024).toFixed(2)}MB > ${(maxSize / 1024 / 1024).toFixed(2)}MB`,
       details: {
         fileSize: context.size,
         maxAllowed: maxSize,
         fileSizeMB: (context.size / 1024 / 1024).toFixed(2),
-        maxAllowedMB: (maxSize / 1024 / 1024).toFixed(2)
+        maxAllowedMB: (maxSize / 1024 / 1024).toFixed(2),
       },
-      recommendation: passed ? undefined : '请压缩文件或使用支持的文件格式'
+      recommendation: passed ? undefined : '请压缩文件或使用支持的文件格式',
     };
   }
 
@@ -362,27 +412,25 @@ export class FileUploadValidator {
   private async validateFileExtension(context: FileUploadContext): Promise<ValidationResult> {
     const extension = path.extname(context.originalName).toLowerCase();
     const allowedExtensions: string[] = [];
-    
+
     // 收集所有允许的扩展名
     for (const config of Object.values(FILE_TYPE_CONFIGS)) {
       allowedExtensions.push(...config.extensions);
     }
 
     const passed = allowedExtensions.includes(extension);
-    
+
     return {
       isValid: passed,
       ruleId: 'extension-check',
       ruleName: '文件扩展名检查',
       severity: 'HIGH',
-      message: passed 
-        ? '文件扩展名验证通过' 
-        : `不支持的文件扩展名: ${extension}`,
+      message: passed ? '文件扩展名验证通过' : `不支持的文件扩展名: ${extension}`,
       details: {
         fileExtension: extension,
-        allowedExtensions
+        allowedExtensions,
       },
-      recommendation: passed ? undefined : `请使用支持的文件格式: ${allowedExtensions.join(', ')}`
+      recommendation: passed ? undefined : `请使用支持的文件格式: ${allowedExtensions.join(', ')}`,
     };
   }
 
@@ -392,7 +440,7 @@ export class FileUploadValidator {
   private async validateMimeType(context: FileUploadContext): Promise<ValidationResult> {
     const extension = path.extname(context.originalName).toLowerCase();
     let expectedMimeTypes: string[] = [];
-    
+
     // 根据扩展名确定期望的MIME类型
     for (const config of Object.values(FILE_TYPE_CONFIGS)) {
       if (config.extensions.includes(extension)) {
@@ -402,21 +450,21 @@ export class FileUploadValidator {
     }
 
     const passed = expectedMimeTypes.length === 0 || expectedMimeTypes.includes(context.mimetype);
-    
+
     return {
       isValid: passed,
       ruleId: 'mime-type-check',
       ruleName: 'MIME类型检查',
       severity: 'MEDIUM',
-      message: passed 
-        ? 'MIME类型验证通过' 
+      message: passed
+        ? 'MIME类型验证通过'
         : `MIME类型与文件扩展名不匹配: ${context.mimetype} != ${expectedMimeTypes.join('|')}`,
       details: {
         actualMimeType: context.mimetype,
         expectedMimeTypes,
-        fileExtension: extension
+        fileExtension: extension,
       },
-      recommendation: passed ? undefined : '文件可能被伪装，请检查文件真实格式'
+      recommendation: passed ? undefined : '文件可能被伪装，请检查文件真实格式',
     };
   }
 
@@ -424,34 +472,33 @@ export class FileUploadValidator {
    * 恶意软件签名检查
    */
   private async validateMalwareSignatures(context: FileUploadContext): Promise<ValidationResult> {
-    const detectedThreats: Array<{ signature: string; description: string; threat: ThreatType }> = [];
-    
+    const detectedThreats: Array<{ signature: string; description: string; threat: ThreatType }> =
+      [];
+
     for (const malware of MALWARE_SIGNATURES) {
       const index = context.buffer.indexOf(malware.signature);
       if (index !== -1) {
         detectedThreats.push({
           signature: malware.signature.toString('hex'),
           description: malware.description,
-          threat: malware.threat
+          threat: malware.threat,
         });
       }
     }
 
     const passed = detectedThreats.length === 0;
-    
+
     return {
       isValid: passed,
       ruleId: 'malware-signature-check',
       ruleName: '恶意软件签名检查',
       severity: 'CRITICAL',
-      message: passed 
-        ? '恶意软件签名检查通过' 
-        : `检测到 ${detectedThreats.length} 个可疑签名`,
+      message: passed ? '恶意软件签名检查通过' : `检测到 ${detectedThreats.length} 个可疑签名`,
       details: {
         detectedThreats,
-        threatTypes: [...new Set(detectedThreats.map(t => t.threat))]
+        threatTypes: [...new Set(detectedThreats.map(t => t.threat))],
       },
-      recommendation: passed ? undefined : '文件包含恶意代码特征，强烈建议删除'
+      recommendation: passed ? undefined : '文件包含恶意代码特征，强烈建议删除',
     };
   }
 
@@ -470,11 +517,16 @@ export class FileUploadValidator {
       { pattern: /\$_GET\[/gi, description: 'PHP GET参数', risk: 'MEDIUM' },
       { pattern: /\$_POST\[/gi, description: 'PHP POST参数', risk: 'MEDIUM' },
       { pattern: /cmd\.exe/gi, description: 'Windows命令行', risk: 'HIGH' },
-      { pattern: /powershell/gi, description: 'PowerShell脚本', risk: 'HIGH' }
+      { pattern: /powershell/gi, description: 'PowerShell脚本', risk: 'HIGH' },
     ];
 
-    const detectedPatterns: Array<{ pattern: string; description: string; risk: string; matches: number }> = [];
-    
+    const detectedPatterns: Array<{
+      pattern: string;
+      description: string;
+      risk: string;
+      matches: number;
+    }> = [];
+
     for (const { pattern, description, risk } of suspiciousPatterns) {
       const matches = content.match(pattern);
       if (matches) {
@@ -482,27 +534,25 @@ export class FileUploadValidator {
           pattern: pattern.source,
           description,
           risk,
-          matches: matches.length
+          matches: matches.length,
         });
       }
     }
 
     const passed = detectedPatterns.length === 0;
-    
+
     return {
       isValid: passed,
       ruleId: 'content-scan',
       ruleName: '文件内容扫描',
       severity: detectedPatterns.some(p => p.risk === 'HIGH') ? 'HIGH' : 'MEDIUM',
-      message: passed 
-        ? '文件内容扫描通过' 
-        : `检测到 ${detectedPatterns.length} 个可疑模式`,
+      message: passed ? '文件内容扫描通过' : `检测到 ${detectedPatterns.length} 个可疑模式`,
       details: {
         detectedPatterns,
         contentPreview: content.substring(0, 200),
-        scannedBytes: Math.min(context.buffer.length, 64 * 1024)
+        scannedBytes: Math.min(context.buffer.length, 64 * 1024),
       },
-      recommendation: passed ? undefined : '文件包含可疑代码模式，请仔细检查'
+      recommendation: passed ? undefined : '文件包含可疑代码模式，请仔细检查',
     };
   }
 
@@ -514,13 +564,17 @@ export class FileUploadValidator {
     const suspiciousPatterns = [
       { pattern: /\.\./g, description: '路径遍历', risk: 'HIGH' },
       { pattern: /[<>:"|?*]/g, description: '非法字符', risk: 'MEDIUM' },
-      { pattern: /^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/i, description: 'Windows保留名', risk: 'MEDIUM' },
+      {
+        pattern: /^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/i,
+        description: 'Windows保留名',
+        risk: 'MEDIUM',
+      },
       { pattern: /\x00/g, description: '空字节', risk: 'HIGH' },
-      { pattern: /^\./g, description: '隐藏文件', risk: 'LOW' }
+      { pattern: /^\./g, description: '隐藏文件', risk: 'LOW' },
     ];
 
     const issues: Array<{ pattern: string; description: string; risk: string }> = [];
-    
+
     for (const { pattern, description, risk } of suspiciousPatterns) {
       if (pattern.test(fileName)) {
         issues.push({ pattern: pattern.source, description, risk });
@@ -528,38 +582,42 @@ export class FileUploadValidator {
     }
 
     const passed = issues.length === 0;
-    
+
     return {
       isValid: passed,
       ruleId: 'filename-security-check',
       ruleName: '文件名安全检查',
       severity: issues.some(i => i.risk === 'HIGH') ? 'HIGH' : 'MEDIUM',
-      message: passed 
-        ? '文件名安全检查通过' 
-        : `文件名包含 ${issues.length} 个安全问题`,
+      message: passed ? '文件名安全检查通过' : `文件名包含 ${issues.length} 个安全问题`,
       details: {
         fileName,
-        issues
+        issues,
       },
-      recommendation: passed ? undefined : '请使用安全的文件名，避免特殊字符和路径遍历'
+      recommendation: passed ? undefined : '请使用安全的文件名，避免特殊字符和路径遍历',
     };
   }
 
   /**
    * 隔离可疑文件
    */
-  private async quarantineFile(context: FileUploadContext, threats: ValidationResult[]): Promise<void> {
+  private async quarantineFile(
+    context: FileUploadContext,
+    threats: ValidationResult[]
+  ): Promise<void> {
     try {
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const fileHash = createHash('sha256').update(context.buffer).digest('hex').substring(0, 16);
-      const quarantinePath = path.join(this.quarantineDir, `${timestamp}_${fileHash}_${context.originalName}`);
-      
+      const quarantinePath = path.join(
+        this.quarantineDir,
+        `${timestamp}_${fileHash}_${context.originalName}`
+      );
+
       // 创建隔离目录
       await import('fs/promises').then(fs => fs.mkdir(this.quarantineDir, { recursive: true }));
-      
+
       // 写入隔离文件
       await import('fs/promises').then(fs => fs.writeFile(quarantinePath, context.buffer));
-      
+
       // 创建威胁报告
       const reportPath = `${quarantinePath}.report.json`;
       const report = {
@@ -569,20 +627,21 @@ export class FileUploadValidator {
         mimetype: context.mimetype,
         userId: context.userId,
         threats,
-        fileHash
+        fileHash,
       };
-      
-      await import('fs/promises').then(fs => fs.writeFile(reportPath, JSON.stringify(report, null, 2)));
-      
+
+      await import('fs/promises').then(fs =>
+        fs.writeFile(reportPath, JSON.stringify(report, null, 2))
+      );
+
       logger.warn(`文件已隔离: ${context.originalName}`, {
         quarantinePath,
         threatCount: threats.length,
-        fileHash
+        fileHash,
       });
-      
     } catch (error) {
       logger.error(`文件隔离失败: ${context.originalName}`, {
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       });
     }
   }
@@ -592,11 +651,16 @@ export class FileUploadValidator {
    */
   private getSeverityPenalty(severity: string): number {
     switch (severity) {
-      case 'CRITICAL': return 50;
-      case 'HIGH': return 30;
-      case 'MEDIUM': return 15;
-      case 'LOW': return 5;
-      default: return 10;
+      case 'CRITICAL':
+        return 50;
+      case 'HIGH':
+        return 30;
+      case 'MEDIUM':
+        return 15;
+      case 'LOW':
+        return 5;
+      default:
+        return 10;
     }
   }
 
@@ -608,7 +672,7 @@ export class FileUploadValidator {
       ...this.scanStatistics,
       ruleExecutions: Object.fromEntries(this.scanStatistics.ruleExecutions),
       activeRules: Array.from(this.rules.values()).filter(r => r.enabled).length,
-      totalRules: this.rules.size
+      totalRules: this.rules.size,
     };
   }
 
@@ -620,7 +684,7 @@ export class FileUploadValidator {
       totalScanned: 0,
       threatsDetected: 0,
       lastScanTime: Date.now(),
-      ruleExecutions: new Map()
+      ruleExecutions: new Map(),
     };
     logger.info('文件扫描统计信息已重置');
   }

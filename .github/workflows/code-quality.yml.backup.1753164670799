@@ -1,0 +1,120 @@
+name: Code Quality Check
+'on':
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+jobs:
+  quality-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: 缓存依赖和工具
+        uses: actions/cache@v3
+        with:
+          path: |-
+            ~/.npm
+            ~/.cache
+            node_modules
+            .next/cache
+            reports/cache
+          key: >-
+            ${{ runner.os }}-deps-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}-${{
+            hashFiles('scripts/**/*.js') }}
+          restore-keys: |-
+            ${{ runner.os }}-deps-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}-
+            ${{ runner.os }}-deps-
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: npm
+      - name: Install dependencies
+        run: |-
+          set +e
+          for i in {1..3}; do
+            echo "🔄 尝试第 $i 次..."
+            npm ci
+            if [ $? -eq 0 ]; then
+              echo "✅ 成功"
+              break
+            else
+              echo "❌ 失败，等待重试..."
+              sleep $((i * 5))
+            fi
+          done
+          set -e
+      - name: 智能分块处理
+        run: |-
+          # 安装智能分块工具
+          npm install -g js-yaml
+
+          # 运行智能分块处理
+          node scripts/tools/intelligent-chunking.js ./src --max-tokens 800000 --output reports/chunks.json
+
+          # 检查分块结果
+          if [ -f reports/chunks.json ]; then
+            echo "✅ 智能分块处理完成"
+            cat reports/chunks.json | jq '.metadata.stats'
+          else
+            echo "❌ 智能分块处理失败"
+            exit 1
+          fi
+      - name: Run TypeScript check
+        run: npx tsc --noEmit
+      - name: Run ESLint
+        run: npx eslint . --ext .ts,.tsx,.js,.jsx
+      - name: Run code analysis
+        run: npm run analyze:code
+      - name: Run dead code detection
+        run: npm run analyze:dead-code
+      - name: Upload analysis reports
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: code-analysis-reports
+          path: |
+            code-analysis-report.json
+            dead-code-analysis-report.json
+      - name: 失败诊断
+        if: failure()
+        run: |-
+          echo "🔍 收集失败诊断信息..."
+
+          # 系统信息
+          echo "📊 系统信息:"
+          uname -a
+          df -h
+          free -h
+
+          # Node.js 环境
+          echo "📦 Node.js 环境:"
+          node --version
+          npm --version
+          npm config list
+
+          # 项目状态
+          echo "📁 项目状态:"
+          ls -la
+          if [ -f package.json ]; then
+            echo "📄 package.json 存在"
+            cat package.json | jq '.scripts' || echo "无法解析 scripts"
+          fi
+
+          # 日志文件
+          echo "📋 查找日志文件:"
+          find . -name "*.log" -type f -exec echo "发现日志: {}" \; -exec tail -20 {} \;
+
+          # 错误报告
+          echo "📊 生成错误报告..."
+          mkdir -p reports/diagnostics
+          echo "$(date): CI/CD 流程失败" > reports/diagnostics/failure-$(date +%Y%m%d-%H%M%S).log
+env:
+  OPTIMIZED_BY: ZK-Agent Pipeline Optimizer
+  OPTIMIZED_AT: '2025-07-22T05:22:52.025Z'
+  TOKEN_LIMIT_AWARE: 'true'

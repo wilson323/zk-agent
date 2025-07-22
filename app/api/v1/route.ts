@@ -6,7 +6,11 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createApiRoute, RouteConfigs, CommonValidations } from '@/lib/middleware/api-route-wrapper';
+import {
+  createApiRoute,
+  RouteConfigs,
+  CommonValidations,
+} from '@/lib/middleware/api-route-wrapper';
 import { ApiResponseWrapper } from '@/lib/utils/api-helper';
 
 export const GET = createApiRoute(
@@ -18,12 +22,9 @@ export const GET = createApiRoute(
         version: 'v1',
         message: 'API v1 is running',
         timestamp: new Date().toISOString(),
-      })
+      });
     } catch (error) {
-      return ApiResponseWrapper.error(
-        "Internal server error",
-        { status: 500 }
-      )
+      return ApiResponseWrapper.error('Internal server error', { status: 500 });
     }
   }
 );
@@ -32,19 +33,16 @@ export const POST = createApiRoute(
   RouteConfigs.protectedPost(),
   async (req: NextRequest, { params, validatedBody, validatedQuery, user, requestId }) => {
     try {
-      const body = await req.json()
-      
+      const body = await req.json();
+
       return ApiResponseWrapper.success({
         success: true,
         message: 'POST request processed',
         data: body,
         timestamp: new Date().toISOString(),
-      })
+      });
     } catch (error) {
-      return ApiResponseWrapper.error(
-        "Internal server error",
-        { status: 500 }
-      )
+      return ApiResponseWrapper.error('Internal server error', { status: 500 });
     }
   }
 );
@@ -53,19 +51,16 @@ export const PUT = createApiRoute(
   RouteConfigs.protectedPut(),
   async (req: NextRequest, { params, validatedBody, validatedQuery, user, requestId }) => {
     try {
-      const body = await req.json()
-      
+      const body = await req.json();
+
       return ApiResponseWrapper.success({
         success: true,
         message: 'PUT request processed',
         data: body,
         timestamp: new Date().toISOString(),
-      })
+      });
     } catch (error) {
-      return ApiResponseWrapper.error(
-        "Internal server error",
-        { status: 500 }
-      )
+      return ApiResponseWrapper.error('Internal server error', { status: 500 });
     }
   }
 );
@@ -78,12 +73,9 @@ export const DELETE = createApiRoute(
         success: true,
         message: 'DELETE request processed',
         timestamp: new Date().toISOString(),
-      })
+      });
     } catch (error) {
-      return ApiResponseWrapper.error(
-        "Internal server error",
-        { status: 500 }
-      )
+      return ApiResponseWrapper.error('Internal server error', { status: 500 });
     }
   }
 );

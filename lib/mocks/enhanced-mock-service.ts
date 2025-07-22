@@ -7,7 +7,11 @@
  * @purpose 提供完整Mock数据，支持前后端协作
  */
 
-import { Logger } from '@/lib/utils/logger';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
+
+const logger = getLogger();
 
 // Mock数据类型定义
 interface MockUser {
@@ -122,7 +126,8 @@ interface MockMetrics {
 export class EnhancedMockService {
   private static instance: EnhancedMockService;
   private logger = new Logger('EnhancedMockService');
-  private mockEnabled = process.env.NODE_ENV === 'development' || process.env.ENABLE_MOCKS === 'true';
+  private mockEnabled =
+    process.env.NODE_ENV === 'development' || process.env.ENABLE_MOCKS === 'true';
 
   // Mock数据存储
   private mockUsers: MockUser[] = [];
@@ -257,7 +262,10 @@ export class EnhancedMockService {
     const statuses: MockAIModel['status'][] = ['active', 'maintenance', 'deprecated'];
 
     const models = [
-      { name: 'GPT-3.5-Turbo', capabilities: ['text-generation', 'conversation', 'code-completion'] },
+      {
+        name: 'GPT-3.5-Turbo',
+        capabilities: ['text-generation', 'conversation', 'code-completion'],
+      },
       { name: 'Qwen-Turbo', capabilities: ['text-generation', 'translation', 'summarization'] },
       { name: 'DeepSeek-Chat', capabilities: ['conversation', 'reasoning', 'code-generation'] },
       { name: 'GPT-4', capabilities: ['advanced-reasoning', 'multimodal', 'complex-tasks'] },
@@ -333,7 +341,12 @@ export class EnhancedMockService {
    * 生成Mock指标数据
    */
   private generateMockMetrics(): void {
-    const types: MockMetrics['type'][] = ['api_call', 'database_query', 'ai_request', 'user_action'];
+    const types: MockMetrics['type'][] = [
+      'api_call',
+      'database_query',
+      'ai_request',
+      'user_action',
+    ];
     const statuses: MockMetrics['status'][] = ['success', 'error'];
 
     for (let i = 1; i <= 200; i++) {
@@ -355,7 +368,11 @@ export class EnhancedMockService {
   /**
    * 获取Mock用户数据
    */
-  getMockUsers(page = 1, limit = 10, filters?: Partial<MockUser>): {
+  getMockUsers(
+    page = 1,
+    limit = 10,
+    filters?: Partial<MockUser>
+  ): {
     data: MockUser[];
     total: number;
     page: number;
@@ -371,7 +388,9 @@ export class EnhancedMockService {
     if (filters) {
       filteredUsers = this.mockUsers.filter(user => {
         return Object.entries(filters).every(([key, value]) => {
-          if (value === undefined) {return true;}
+          if (value === undefined) {
+            return true;
+          }
           return user[key as keyof MockUser] === value;
         });
       });
@@ -391,7 +410,10 @@ export class EnhancedMockService {
   /**
    * 获取Mock CAD文件数据
    */
-  getMockCADFiles(page = 1, limit = 10): {
+  getMockCADFiles(
+    page = 1,
+    limit = 10
+  ): {
     data: MockCADFile[];
     total: number;
     page: number;
@@ -465,7 +487,7 @@ export class EnhancedMockService {
       return [];
     }
 
-    const cutoffTime = Date.now() - (hours * 60 * 60 * 1000);
+    const cutoffTime = Date.now() - hours * 60 * 60 * 1000;
     let metrics = this.mockMetrics.filter(
       metric => new Date(metric.timestamp).getTime() > cutoffTime
     );
@@ -608,7 +630,8 @@ export const enhancedMockService = EnhancedMockService.getInstance();
 // 导出便捷方法
 export const getMockUsers = enhancedMockService.getMockUsers.bind(enhancedMockService);
 export const getMockCADFiles = enhancedMockService.getMockCADFiles.bind(enhancedMockService);
-export const getMockChatMessages = enhancedMockService.getMockChatMessages.bind(enhancedMockService);
+export const getMockChatMessages =
+  enhancedMockService.getMockChatMessages.bind(enhancedMockService);
 export const getMockAIModels = enhancedMockService.getMockAIModels.bind(enhancedMockService);
 export const getMockPosters = enhancedMockService.getMockPosters.bind(enhancedMockService);
-export const getMockMetrics = enhancedMockService.getMockMetrics.bind(enhancedMockService); 
+export const getMockMetrics = enhancedMockService.getMockMetrics.bind(enhancedMockService);

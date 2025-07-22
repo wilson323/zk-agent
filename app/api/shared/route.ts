@@ -16,13 +16,13 @@ const shareRequestSchema = z.object({
   content: z.string().min(1, '内容不能为空'),
   type: z.enum(['chat', 'document', 'image']).optional().default('chat'),
   expiresAt: z.string().datetime().optional(),
-  isPublic: z.boolean().optional().default(false)
+  isPublic: z.boolean().optional().default(false),
 });
 
 const shareUpdateSchema = z.object({
   content: z.string().optional(),
   expiresAt: z.string().datetime().optional(),
-  isPublic: z.boolean().optional()
+  isPublic: z.boolean().optional(),
 });
 
 /**
@@ -33,16 +33,13 @@ export const GET = createApiRoute(
   async (_req: NextRequest, { user, requestId }) => {
     try {
       const shares = await enhancedShareManager.getUserShares(user.id);
-      
+
       return ApiResponseWrapper.success({
         shares,
-        total: shares.length
+        total: shares.length,
       });
     } catch (error) {
-      return ApiResponseWrapper.error(
-        "获取共享列表失败",
-        { status: 500 }
-      );
+      return ApiResponseWrapper.error('获取共享列表失败', { status: 500 });
     }
   }
 );
@@ -56,18 +53,15 @@ export const POST = createApiRoute(
     try {
       const share = await enhancedShareManager.createShare({
         ...validatedBody,
-        userId: user.id
+        userId: user.id,
       });
-      
+
       return ApiResponseWrapper.success({
         share,
-        message: "共享创建成功"
+        message: '共享创建成功',
       });
     } catch (error) {
-      return ApiResponseWrapper.error(
-        "创建共享失败",
-        { status: 500 }
-      );
+      return ApiResponseWrapper.error('创建共享失败', { status: 500 });
     }
   }
 );
@@ -81,29 +75,19 @@ export const PUT = createApiRoute(
     try {
       const { searchParams } = new URL(req.url);
       const shareId = searchParams.get('id');
-      
+
       if (!shareId) {
-        return ApiResponseWrapper.error(
-          "缺少共享ID参数",
-          { status: 400 }
-        );
+        return ApiResponseWrapper.error('缺少共享ID参数', { status: 400 });
       }
-      
-      const updatedShare = await enhancedShareManager.updateShare(
-        shareId,
-        validatedBody,
-        user.id
-      );
-      
+
+      const updatedShare = await enhancedShareManager.updateShare(shareId, validatedBody, user.id);
+
       return ApiResponseWrapper.success({
         share: updatedShare,
-        message: "共享更新成功"
+        message: '共享更新成功',
       });
     } catch (error) {
-      return ApiResponseWrapper.error(
-        "更新共享失败",
-        { status: 500 }
-      );
+      return ApiResponseWrapper.error('更新共享失败', { status: 500 });
     }
   }
 );
@@ -117,25 +101,19 @@ export const DELETE = createApiRoute(
     try {
       const { searchParams } = new URL(req.url);
       const shareId = searchParams.get('id');
-      
+
       if (!shareId) {
-        return ApiResponseWrapper.error(
-          "缺少共享ID参数",
-          { status: 400 }
-        );
+        return ApiResponseWrapper.error('缺少共享ID参数', { status: 400 });
       }
-      
+
       await enhancedShareManager.deleteShare(shareId, user.id);
-      
+
       return ApiResponseWrapper.success({
         success: true,
-        message: "共享已删除"
+        message: '共享已删除',
       });
     } catch (error) {
-      return ApiResponseWrapper.error(
-        "删除共享失败",
-        { status: 500 }
-      );
+      return ApiResponseWrapper.error('删除共享失败', { status: 500 });
     }
   }
 );

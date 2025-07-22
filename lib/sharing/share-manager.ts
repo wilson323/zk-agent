@@ -1,4 +1,8 @@
-import { logger } from '@/lib/utils/logger';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
+
+const logger = getLogger();
 
 /* eslint-disable */
 // @ts-nocheck
@@ -9,48 +13,49 @@ import { logger } from '@/lib/utils/logger';
  */
 
 export interface ShareableContent {
-  id: string
-  type: "conversation" | "cad_analysis" | "poster_design"
-  title: string
-  content: any
-  userId: string
-  createdAt: Date
-  metadata?: Record<string, any>
+  id: string;
+  type: 'conversation' | 'cad_analysis' | 'poster_design';
+  title: string;
+  content: any;
+  userId: string;
+  createdAt: Date;
+  metadata?: Record<string, any>;
 }
 
 export interface ShareConfig {
-  expiresIn?: number // 过期时间（毫秒）
-  password?: string // 访问密码
-  allowDownload?: boolean // 允许下载
-  allowCopy?: boolean // 允许复制
-  viewLimit?: number // 查看次数限制
-  isPublic?: boolean // 是否公开
+  expiresIn?: number; // 过期时间（毫秒）
+  password?: string; // 访问密码
+  allowDownload?: boolean; // 允许下载
+  allowCopy?: boolean; // 允许复制
+  viewLimit?: number; // 查看次数限制
+  isPublic?: boolean; // 是否公开
 }
 
 export interface ShareLink {
-  id: string
-  shareId: string
-  contentId: string
-  contentType: string
-  url: string
-  config: ShareConfig
-  viewCount: number
-  createdAt: Date
-  expiresAt?: Date
-  isActive: boolean
+  id: string;
+  shareId: string;
+  contentId: string;
+  contentType: string;
+  url: string;
+  config: ShareConfig;
+  viewCount: number;
+  createdAt: Date;
+  expiresAt?: Date;
+  isActive: boolean;
 }
 
 export interface ShareStats {
-  totalShares: number
-  totalViews: number
-  activeShares: number
-  expiredShares: number
+  totalShares: number;
+  totalViews: number;
+  activeShares: number;
+  expiredShares: number;
   popularContent: Array<{
-    contentId: string
-    title: string
-    views: number
-    shares: number
-  }>
+    contentId: string;
+    title: string;
+    views: number;
+    shares: number;
+  }>;
+  timestamp?: number; // 缓存时间戳
 }
 
 /**
@@ -58,22 +63,22 @@ export interface ShareStats {
  * 高性能、轻量级的分享功能实现
  */
 export class ShareManager {
-  private shareCache = new Map<string, ShareLink>()
-  private contentCache = new Map<string, ShareableContent>()
-  private statsCache: ShareStats | null = null
-  private cacheExpiry = 5 * 60 * 1000 // 5分钟缓存
+  private shareCache = new Map<string, ShareLink>();
+  private contentCache = new Map<string, ShareableContent>();
+  private statsCache: ShareStats | null = null;
+  private cacheExpiry = 5 * 60 * 1000; // 5分钟缓存
 
   /**
    * 创建分享链接
    */
   async createShareLink(
     contentId: string,
-    contentType: "conversation" | "cad_analysis" | "poster_design",
-    config: ShareConfig = {},
+    contentType: 'conversation' | 'cad_analysis' | 'poster_design',
+    config: ShareConfig = {}
   ): Promise<ShareLink> {
     try {
       // 生成唯一分享ID
-      const shareId: any = this.generateShareId()
+      const shareId: any = this.generateShareId();
 
       // 设置默认配置
       const defaultConfig: ShareConfig = {
@@ -83,13 +88,15 @@ export class ShareManager {
         viewLimit: 1000,
         isPublic: false,
         ...config,
-      }
+      };
 
       // 计算过期时间
-      const expiresAt: any = defaultConfig.expiresIn ? new Date(Date.now() + defaultConfig.expiresIn) : undefined
+      const expiresAt: any = defaultConfig.expiresIn
+        ? new Date(Date.now() + defaultConfig.expiresIn)
+        : undefined;
 
       // 生成分享URL
-      const url: any = `/shared/${shareId}`
+      const url: any = `/shared/${shareId}`;
 
       const shareLink: ShareLink = {
         id: `share_${Date.now()}`,
@@ -102,21 +109,21 @@ export class ShareManager {
         createdAt: new Date(),
         expiresAt,
         isActive: true,
-      }
+      };
 
       // 保存到数据库
-      await this.saveShareLink(shareLink)
+      await this.saveShareLink(shareLink);
 
       // 更新缓存
-      this.shareCache.set(shareId, shareLink)
+      this.shareCache.set(shareId, shareLink);
 
       // 清除统计缓存
-      this.statsCache = null
+      this.statsCache = null;
 
-      return shareLink
+      return shareLink;
     } catch (error) {
-      logger.error("创建分享链接失败:", error)
-      throw new Error("创建分享链接失败")
+      logger.error('创建分享链接失败:', error);
+      throw new Error('创建分享链接失败');
     }
   }
 
@@ -125,50 +132,50 @@ export class ShareManager {
    */
   async getSharedContent(
     shareId: string,
-    password?: string,
+    password?: string
   ): Promise<{
-    content: ShareableContent
-    shareLink: ShareLink
+    content: ShareableContent;
+    shareLink: ShareLink;
   }> {
     try {
       // 从缓存获取分享链接
-      let shareLink: any = this.shareCache.get(shareId)
+      let shareLink: any = this.shareCache.get(shareId);
 
       if (!shareLink) {
-        shareLink = await this.loadShareLink(shareId)
+        shareLink = await this.loadShareLink(shareId);
         if (shareLink) {
-          this.shareCache.set(shareId, shareLink)
+          this.shareCache.set(shareId, shareLink);
         }
       }
 
       if (!shareLink) {
-        throw new Error("分享链接不存在")
+        throw new Error('分享链接不存在');
       }
 
       // 检查分享链接是否有效
-      this.validateShareLink(shareLink, password)
+      this.validateShareLink(shareLink, password);
 
       // 获取内容
-      let content: any = this.contentCache.get(shareLink.contentId)
+      let content: any = this.contentCache.get(shareLink.contentId);
 
       if (!content) {
-        content = await this.loadContent(shareLink.contentId, shareLink.contentType)
+        content = await this.loadContent(shareLink.contentId, shareLink.contentType);
         if (content) {
-          this.contentCache.set(shareLink.contentId, content)
+          this.contentCache.set(shareLink.contentId, content);
         }
       }
 
       if (!content) {
-        throw new Error("分享内容不存在")
+        throw new Error('分享内容不存在');
       }
 
       // 增加查看次数
-      await this.incrementViewCount(shareId)
+      await this.incrementViewCount(shareId);
 
-      return { content, shareLink }
+      return { content, shareLink };
     } catch (error) {
-      logger.error("获取分享内容失败:", error)
-      throw error
+      logger.error('获取分享内容失败:', error);
+      throw error;
     }
   }
 
@@ -178,31 +185,31 @@ export class ShareManager {
   async getUserShares(
     userId: string,
     page = 1,
-    limit = 20,
+    limit = 20
   ): Promise<{
-    shares: ShareLink[]
-    total: number
-    hasMore: boolean
+    shares: ShareLink[];
+    total: number;
+    hasMore: boolean;
   }> {
     try {
-      const offset: any = (page - 1) * limit
+      const offset: any = (page - 1) * limit;
 
       // 从数据库获取分享列表
-      const { shares, total } = await this.loadUserShares(userId, offset, limit)
+      const { shares, total } = await this.loadUserShares(userId, offset, limit);
 
       // 更新缓存
-      shares.forEach((share) => {
-        this.shareCache.set(share.shareId, share)
-      })
+      shares.forEach(share => {
+        this.shareCache.set(share.shareId, share);
+      });
 
       return {
         shares,
         total,
         hasMore: offset + shares.length < total,
-      }
+      };
     } catch (error) {
-      logger.error("获取用户分享列表失败:", error)
-      throw new Error("获取分享列表失败")
+      logger.error('获取用户分享列表失败:', error);
+      throw new Error('获取分享列表失败');
     }
   }
 
@@ -212,64 +219,70 @@ export class ShareManager {
   async deleteShareLink(shareId: string, userId: string): Promise<void> {
     try {
       // 验证权限
-      const shareLink: any = await this.loadShareLink(shareId)
+      const shareLink: any = await this.loadShareLink(shareId);
       if (!shareLink) {
-        throw new Error("分享链接不存在")
+        throw new Error('分享链接不存在');
       }
 
-      const content: any = await this.loadContent(shareLink.contentId, shareLink.contentType)
+      const content: any = await this.loadContent(shareLink.contentId, shareLink.contentType);
       if (!content || content.userId !== userId) {
-        throw new Error("无权限删除此分享")
+        throw new Error('无权限删除此分享');
       }
 
       // 从数据库删除
-      await this.removeShareLink(shareId)
+      await this.removeShareLink(shareId);
 
       // 清除缓存
-      this.shareCache.delete(shareId)
-      this.statsCache = null
+      this.shareCache.delete(shareId);
+      this.statsCache = null;
     } catch (error) {
-      logger.error("删除分享链接失败:", error)
-      throw error
+      logger.error('删除分享链接失败:', error);
+      throw error;
     }
   }
 
   /**
    * 更新分享配置
    */
-  async updateShareConfig(shareId: string, userId: string, config: Partial<ShareConfig>): Promise<ShareLink> {
+  async updateShareConfig(
+    shareId: string,
+    userId: string,
+    config: Partial<ShareConfig>
+  ): Promise<ShareLink> {
     try {
-      const shareLink: any = await this.loadShareLink(shareId)
+      const shareLink: any = await this.loadShareLink(shareId);
       if (!shareLink) {
-        throw new Error("分享链接不存在")
+        throw new Error('分享链接不存在');
       }
 
-      const content: any = await this.loadContent(shareLink.contentId, shareLink.contentType)
+      const content: any = await this.loadContent(shareLink.contentId, shareLink.contentType);
       if (!content || content.userId !== userId) {
-        throw new Error("无权限修改此分享")
+        throw new Error('无权限修改此分享');
       }
 
       // 更新配置
       const updatedShareLink: ShareLink = {
         ...shareLink,
         config: { ...shareLink.config, ...config },
-      }
+      };
 
       // 重新计算过期时间
       if (config.expiresIn !== undefined) {
-        updatedShareLink.expiresAt = config.expiresIn ? new Date(Date.now() + config.expiresIn) : undefined
+        updatedShareLink.expiresAt = config.expiresIn
+          ? new Date(Date.now() + config.expiresIn)
+          : undefined;
       }
 
       // 保存到数据库
-      await this.saveShareLink(updatedShareLink)
+      await this.saveShareLink(updatedShareLink);
 
       // 更新缓存
-      this.shareCache.set(shareId, updatedShareLink)
+      this.shareCache.set(shareId, updatedShareLink);
 
-      return updatedShareLink
+      return updatedShareLink;
     } catch (error) {
-      logger.error("更新分享配置失败:", error)
-      throw error
+      logger.error('更新分享配置失败:', error);
+      throw error;
     }
   }
 
@@ -279,20 +292,20 @@ export class ShareManager {
   async getShareStats(userId?: string): Promise<ShareStats> {
     try {
       // 检查缓存
-      if (this.statsCache && Date.now() - this.statsCache.timestamp < this.cacheExpiry) {
-        return this.statsCache
+      if (this.statsCache?.timestamp && Date.now() - this.statsCache.timestamp < this.cacheExpiry) {
+        return this.statsCache;
       }
 
       // 从数据库获取统计数据
-      const stats: any = await this.loadShareStats(userId)
+      const stats: any = await this.loadShareStats(userId);
 
       // 更新缓存
-      this.statsCache = { ...stats, timestamp: Date.now() }
+      this.statsCache = { ...stats, timestamp: Date.now() };
 
-      return stats
+      return stats;
     } catch (error) {
-      logger.error("获取分享统计失败:", error)
-      throw new Error("获取统计数据失败")
+      logger.error('获取分享统计失败:', error);
+      throw new Error('获取统计数据失败');
     }
   }
 
@@ -301,23 +314,23 @@ export class ShareManager {
    */
   async cleanupExpiredShares(): Promise<number> {
     try {
-      const now: any = new Date()
-      const expiredCount: any = await this.removeExpiredShares(now)
+      const now: any = new Date();
+      const expiredCount: any = await this.removeExpiredShares(now);
 
       // 清除缓存中的过期项
       for (const [shareId, shareLink] of this.shareCache.entries()) {
         if (shareLink.expiresAt && shareLink.expiresAt < now) {
-          this.shareCache.delete(shareId)
+          this.shareCache.delete(shareId);
         }
       }
 
       // 清除统计缓存
-      this.statsCache = null
+      this.statsCache = null;
 
-      return expiredCount
+      return expiredCount;
     } catch (error) {
-      logger.error("清理过期分享失败:", error)
-      return 0
+      logger.error('清理过期分享失败:', error);
+      return 0;
     }
   }
 
@@ -327,9 +340,9 @@ export class ShareManager {
    * 生成分享ID
    */
   private generateShareId(): string {
-    const timestamp: any = Date.now().toString(36)
-    const random: any = Math.random().toString(36).substring(2, 8)
-    return `${timestamp}${random}`
+    const timestamp: any = Date.now().toString(36);
+    const random: any = Math.random().toString(36).substring(2, 8);
+    return `${timestamp}${random}`;
   }
 
   /**
@@ -338,22 +351,22 @@ export class ShareManager {
   private validateShareLink(shareLink: ShareLink, password?: string): void {
     // 检查是否激活
     if (!shareLink.isActive) {
-      throw new Error("分享链接已被禁用")
+      throw new Error('分享链接已被禁用');
     }
 
     // 检查是否过期
     if (shareLink.expiresAt && shareLink.expiresAt < new Date()) {
-      throw new Error("分享链接已过期")
+      throw new Error('分享链接已过期');
     }
 
     // 检查查看次数限制
     if (shareLink.config.viewLimit && shareLink.viewCount >= shareLink.config.viewLimit) {
-      throw new Error("分享链接查看次数已达上限")
+      throw new Error('分享链接查看次数已达上限');
     }
 
     // 检查密码
     if (shareLink.config.password && shareLink.config.password !== password) {
-      throw new Error("密码错误")
+      throw new Error('密码错误');
     }
   }
 
@@ -362,13 +375,13 @@ export class ShareManager {
    */
   private async saveShareLink(shareLink: ShareLink): Promise<void> {
     // 模拟数据库操作
-    const shareData: any = JSON.stringify(shareLink)
-    localStorage.setItem(`share_${shareLink.shareId}`, shareData)
+    const shareData: any = JSON.stringify(shareLink);
+    localStorage.setItem(`share_${shareLink.shareId}`, shareData);
 
     // 更新分享列表
-    const userShares: any = this.getUserSharesList(shareLink.contentId)
-    userShares.push(shareLink.shareId)
-    localStorage.setItem(`user_shares_${shareLink.contentId}`, JSON.stringify(userShares))
+    const userShares: any = this.getUserSharesList(shareLink.contentId);
+    userShares.push(shareLink.shareId);
+    localStorage.setItem(`user_shares_${shareLink.contentId}`, JSON.stringify(userShares));
   }
 
   /**
@@ -376,53 +389,56 @@ export class ShareManager {
    */
   private async loadShareLink(shareId: string): Promise<ShareLink | null> {
     try {
-      const shareData: any = localStorage.getItem(`share_${shareId}`)
-      if (!shareData) return null
+      const shareData: any = localStorage.getItem(`share_${shareId}`);
+      if (!shareData) return null;
 
-      const shareLink: any = JSON.parse(shareData) as ShareLink
+      const shareLink: any = JSON.parse(shareData) as ShareLink;
 
       // 转换日期字符串为Date对象
-      shareLink.createdAt = new Date(shareLink.createdAt)
+      shareLink.createdAt = new Date(shareLink.createdAt);
       if (shareLink.expiresAt) {
-        shareLink.expiresAt = new Date(shareLink.expiresAt)
+        shareLink.expiresAt = new Date(shareLink.expiresAt);
       }
 
-      return shareLink
+      return shareLink;
     } catch (error) {
-      logger.error("加载分享链接失败:", error)
-      return null
+      logger.error('加载分享链接失败:', error);
+      return null;
     }
   }
 
   /**
    * 加载内容
    */
-  private async loadContent(contentId: string, contentType: string): Promise<ShareableContent | null> {
+  private async loadContent(
+    contentId: string,
+    contentType: string
+  ): Promise<ShareableContent | null> {
     try {
       // 根据内容类型从不同的存储位置加载
-      let contentData: string | null = null
+      let contentData: string | null = null;
 
       switch (contentType) {
-        case "conversation":
-          contentData = localStorage.getItem(`conversation_${contentId}`)
-          break
-        case "cad_analysis":
-          contentData = localStorage.getItem(`cad_analysis_${contentId}`)
-          break
-        case "poster_design":
-          contentData = localStorage.getItem(`poster_design_${contentId}`)
-          break
+        case 'conversation':
+          contentData = localStorage.getItem(`conversation_${contentId}`);
+          break;
+        case 'cad_analysis':
+          contentData = localStorage.getItem(`cad_analysis_${contentId}`);
+          break;
+        case 'poster_design':
+          contentData = localStorage.getItem(`poster_design_${contentId}`);
+          break;
       }
 
-      if (!contentData) return null
+      if (!contentData) return null;
 
-      const content: any = JSON.parse(contentData) as ShareableContent
-      content.createdAt = new Date(content.createdAt)
+      const content: any = JSON.parse(contentData) as ShareableContent;
+      content.createdAt = new Date(content.createdAt);
 
-      return content
+      return content;
     } catch (error) {
-      logger.error("加载内容失败:", error)
-      return null
+      logger.error('加载内容失败:', error);
+      return null;
     }
   }
 
@@ -431,13 +447,13 @@ export class ShareManager {
    */
   private async incrementViewCount(shareId: string): Promise<void> {
     try {
-      const shareLink: any = this.shareCache.get(shareId)
+      const shareLink: any = this.shareCache.get(shareId);
       if (shareLink) {
-        shareLink.viewCount++
-        await this.saveShareLink(shareLink)
+        shareLink.viewCount++;
+        await this.saveShareLink(shareLink);
       }
     } catch (error) {
-      logger.error("更新查看次数失败:", error)
+      logger.error('更新查看次数失败:', error);
     }
   }
 
@@ -446,10 +462,10 @@ export class ShareManager {
    */
   private getUserSharesList(userId: string): string[] {
     try {
-      const sharesData: any = localStorage.getItem(`user_shares_${userId}`)
-      return sharesData ? JSON.parse(sharesData) : []
+      const sharesData: any = localStorage.getItem(`user_shares_${userId}`);
+      return sharesData ? JSON.parse(sharesData) : [];
     } catch (error) {
-      return []
+      return [];
     }
   }
 
@@ -459,29 +475,29 @@ export class ShareManager {
   private async loadUserShares(
     userId: string,
     offset: number,
-    limit: number,
+    limit: number
   ): Promise<{
-    shares: ShareLink[]
-    total: number
+    shares: ShareLink[];
+    total: number;
   }> {
     try {
-      const shareIds: any = this.getUserSharesList(userId)
-      const total: any = shareIds.length
+      const shareIds: any = this.getUserSharesList(userId);
+      const total: any = shareIds.length;
 
-      const paginatedIds: any = shareIds.slice(offset, offset + limit)
-      const shares: ShareLink[] = []
+      const paginatedIds: any = shareIds.slice(offset, offset + limit);
+      const shares: ShareLink[] = [];
 
       for (const shareId of paginatedIds) {
-        const shareLink: any = await this.loadShareLink(shareId)
+        const shareLink: any = await this.loadShareLink(shareId);
         if (shareLink) {
-          shares.push(shareLink)
+          shares.push(shareLink);
         }
       }
 
-      return { shares, total }
+      return { shares, total };
     } catch (error) {
-      logger.error("加载用户分享失败:", error)
-      return { shares: [], total: 0 }
+      logger.error('加载用户分享失败:', error);
+      return { shares: [], total: 0 };
     }
   }
 
@@ -489,7 +505,7 @@ export class ShareManager {
    * 删除分享链接
    */
   private async removeShareLink(shareId: string): Promise<void> {
-    localStorage.removeItem(`share_${shareId}`)
+    localStorage.removeItem(`share_${shareId}`);
   }
 
   /**
@@ -504,35 +520,35 @@ export class ShareManager {
         activeShares: 0,
         expiredShares: 0,
         popularContent: [],
-      }
+      };
 
       // 遍历所有分享链接计算统计
-      const allShares: any = this.getAllShares()
-      const now: any = new Date()
+      const allShares: any = this.getAllShares();
+      const now: any = new Date();
 
       for (const shareLink of allShares) {
         if (!userId || this.isUserContent(shareLink.contentId, userId)) {
-          stats.totalShares++
-          stats.totalViews += shareLink.viewCount
+          stats.totalShares++;
+          stats.totalViews += shareLink.viewCount;
 
           if (shareLink.isActive && (!shareLink.expiresAt || shareLink.expiresAt > now)) {
-            stats.activeShares++
+            stats.activeShares++;
           } else {
-            stats.expiredShares++
+            stats.expiredShares++;
           }
         }
       }
 
-      return stats
+      return stats;
     } catch (error) {
-      logger.error("加载分享统计失败:", error)
+      logger.error('加载分享统计失败:', error);
       return {
         totalShares: 0,
         totalViews: 0,
         activeShares: 0,
         expiredShares: 0,
         popularContent: [],
-      }
+      };
     }
   }
 
@@ -540,28 +556,28 @@ export class ShareManager {
    * 获取所有分享
    */
   private getAllShares(): ShareLink[] {
-    const shares: ShareLink[] = []
+    const shares: ShareLink[] = [];
 
     for (let i: any = 0; i < localStorage.length; i++) {
-      const key: any = localStorage.key(i)
-      if (key && key.startsWith("share_")) {
+      const key: any = localStorage.key(i);
+      if (key && key.startsWith('share_')) {
         try {
-          const shareData: any = localStorage.getItem(key)
+          const shareData: any = localStorage.getItem(key);
           if (shareData) {
-            const shareLink: any = JSON.parse(shareData) as ShareLink
-            shareLink.createdAt = new Date(shareLink.createdAt)
+            const shareLink: any = JSON.parse(shareData) as ShareLink;
+            shareLink.createdAt = new Date(shareLink.createdAt);
             if (shareLink.expiresAt) {
-              shareLink.expiresAt = new Date(shareLink.expiresAt)
+              shareLink.expiresAt = new Date(shareLink.expiresAt);
             }
-            shares.push(shareLink)
+            shares.push(shareLink);
           }
         } catch (error) {
-          logger.error("解析分享数据失败:", error)
+          logger.error('解析分享数据失败:', error);
         }
       }
     }
 
-    return shares
+    return shares;
   }
 
   /**
@@ -569,36 +585,36 @@ export class ShareManager {
    */
   private isUserContent(contentId: string, userId: string): boolean {
     // 简化实现，实际应该查询数据库
-    return true
+    return true;
   }
 
   /**
    * 删除过期分享
    */
   private async removeExpiredShares(now: Date): Promise<number> {
-    let expiredCount: any = 0
-    const allShares: any = this.getAllShares()
+    let expiredCount: any = 0;
+    const allShares: any = this.getAllShares();
 
     for (const shareLink of allShares) {
       if (shareLink.expiresAt && shareLink.expiresAt < now) {
-        await this.removeShareLink(shareLink.shareId)
-        expiredCount++
+        await this.removeShareLink(shareLink.shareId);
+        expiredCount++;
       }
     }
 
-    return expiredCount
+    return expiredCount;
   }
 }
 
 // 全局分享管理器实例
-export const shareManager: any = new ShareManager()
+export const shareManager: any = new ShareManager();
 
 // 定期清理过期分享（每小时执行一次）
-if (typeof window !== "undefined") {
+if (typeof window !== 'undefined') {
   setInterval(
     () => {
-      shareManager.cleanupExpiredShares().catch(console.error)
+      shareManager.cleanupExpiredShares().catch(console.error);
     },
-    60 * 60 * 1000,
-  )
+    60 * 60 * 1000
+  );
 }

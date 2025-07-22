@@ -11,7 +11,11 @@ import { z } from 'zod';
 
 import { fileUploadValidator, type FileUploadContext } from '@/lib/security/file-upload-validator';
 import { ApiResponseWrapper } from '@/lib/utils/api-helper';
-import { Logger } from '@/lib/utils/logger';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
+
+const logger = getLogger();
 import { ERROR_CODES } from '@/config/constants';
 
 const logger = new Logger('FileUploadSecurity');
@@ -19,12 +23,25 @@ const logger = new Logger('FileUploadSecurity');
 // 文件上传配置验证模式
 const UploadConfigSchema = z.object({
   maxFiles: z.number().min(1).max(10).default(1),
-  maxTotalSize: z.number().min(1024).max(500 * 1024 * 1024).default(100 * 1024 * 1024), // 默认100MB
+  maxTotalSize: z
+    .number()
+    .min(1024)
+    .max(500 * 1024 * 1024)
+    .default(100 * 1024 * 1024), // 默认100MB
   allowedTypes: z.array(z.string()).optional(),
-  category: z.enum(['user-uploads', 'profile-pictures', 'content-images', 'documents', 'cad-files', 'bulk-uploads']).default('user-uploads'),
+  category: z
+    .enum([
+      'user-uploads',
+      'profile-pictures',
+      'content-images',
+      'documents',
+      'cad-files',
+      'bulk-uploads',
+    ])
+    .default('user-uploads'),
   requireAuth: z.boolean().default(true),
   virusScanEnabled: z.boolean().default(true),
-  contentScanEnabled: z.boolean().default(true)
+  contentScanEnabled: z.boolean().default(true),
 });
 
 type UploadConfig = z.infer<typeof UploadConfigSchema>;
@@ -53,7 +70,6 @@ interface UploadResult {
   errors: string[];
 }
 
-import type { NextApiRequest } from 'next';
 
 interface ExpressMulterFile {
   fieldname: string;
@@ -71,7 +87,7 @@ interface ExpressMulterFile {
 declare global {
   namespace Express {
     namespace Multer {
-      interface File extends ExpressMulterFile {}
+      interface File extends ExpressMulterFile { }
     }
   }
 }
@@ -81,39 +97,41 @@ declare global {
  */
 export function createSecureFileUploadMiddleware(config: Partial<UploadConfig> = {}) {
   const validConfig = UploadConfigSchema.parse(config);
-  
+
   // 配置Multer存储
   const storage = multer.memoryStorage();
-  
+
   const upload = multer({
     storage,
     limits: {
       fileSize: validConfig.maxTotalSize,
-      files: validConfig.maxFiles
+      files: validConfig.maxFiles,
     },
     fileFilter: (req: any, file: any, cb: any) => {
       // 基础文件过滤
       if (validConfig.allowedTypes && validConfig.allowedTypes.length > 0) {
-        const isAllowed = validConfig.allowedTypes.some(type => 
-          file.mimetype.includes(type) || file.originalname.toLowerCase().includes(type)
+        const isAllowed = validConfig.allowedTypes.some(
+          type => file.mimetype.includes(type) || file.originalname.toLowerCase().includes(type)
         );
         if (!isAllowed) {
           return cb(new Error(`不支持的文件类型: ${file.mimetype}`));
         }
       }
       cb(null, true);
-    }
+    },
   });
 
   return {
     middleware: upload.array('files', validConfig.maxFiles),
-    validator: async (req: NextRequest & { files?: (Express.Multer.File | File)[] }): Promise<UploadResult> => {
+    validator: async (
+      req: NextRequest & { files?: (Express.Multer.File | File)[] }
+    ): Promise<UploadResult> => {
       const result: UploadResult = {
         success: true,
         files: [],
         totalSize: 0,
         warnings: [],
-        errors: []
+        errors: [],
       };
 
       if (!req.files || req.files.length === 0) {
@@ -130,7 +148,9 @@ export function createSecureFileUploadMiddleware(config: Partial<UploadConfig> =
 
       if (totalSize > validConfig.maxTotalSize) {
         result.success = false;
-        result.errors.push(`总文件大小超过限制: ${(totalSize / 1024 / 1024).toFixed(2)}MB > ${(validConfig.maxTotalSize / 1024 / 1024).toFixed(2)}MB`);
+        result.errors.push(
+          `总文件大小超过限制: ${(totalSize / 1024 / 1024).toFixed(2)}MB > ${(validConfig.maxTotalSize / 1024 / 1024).toFixed(2)}MB`
+        );
         return result;
       }
 
@@ -145,13 +165,13 @@ export function createSecureFileUploadMiddleware(config: Partial<UploadConfig> =
             metadata: {
               fieldname: (file as Express.Multer.File).fieldname,
               uploadCategory: validConfig.category,
-              timestamp: new Date().toISOString()
-            }
+              timestamp: new Date().toISOString(),
+            },
           };
 
           // 执行安全验证
           const validationResult = await fileUploadValidator.validateFile(context);
-          
+
           const fileResult = {
             fieldname: (file as Express.Multer.File).fieldname,
             originalname: (file as Express.Multer.File).originalname,
@@ -165,35 +185,39 @@ export function createSecureFileUploadMiddleware(config: Partial<UploadConfig> =
               ruleId: threat.ruleId,
               ruleName: threat.ruleName,
               severity: threat.severity,
-              message: threat.message
-            }))
+              message: threat.message,
+            })),
           };
 
           result.files.push(fileResult);
 
           // 处理验证结果
           if (!validationResult.isValid) {
-            const criticalThreats = validationResult.threats.filter(t => 
+            const criticalThreats = validationResult.threats.filter(t =>
               ['CRITICAL', 'HIGH'].includes(t.severity)
             );
-            
+
             if (criticalThreats.length > 0) {
               result.success = false;
-              result.errors.push(`文件 ${(file as Express.Multer.File).originalname} 包含严重安全威胁`);
-              
+              result.errors.push(
+                `文件 ${(file as Express.Multer.File).originalname} 包含严重安全威胁`
+              );
+
               // 记录安全事件
               logger.error(`文件上传安全威胁检测`, {
                 filename: (file as Express.Multer.File).originalname,
                 threats: criticalThreats.map(t => t.message),
-                score: validationResult.score
+                score: validationResult.score,
               });
             } else {
-              result.warnings.push(`文件 ${(file as Express.Multer.File).originalname} 存在潜在安全问题 (评分: ${validationResult.score})`);
-              
+              result.warnings.push(
+                `文件 ${(file as Express.Multer.File).originalname} 存在潜在安全问题 (评分: ${validationResult.score})`
+              );
+
               logger.warn(`文件上传安全警告`, {
                 filename: (file as Express.Multer.File).originalname,
                 score: validationResult.score,
-                threats: validationResult.threats.length
+                threats: validationResult.threats.length,
               });
             }
           }
@@ -202,14 +226,15 @@ export function createSecureFileUploadMiddleware(config: Partial<UploadConfig> =
           if (validationResult.recommendations.length > 0) {
             result.warnings.push(...validationResult.recommendations);
           }
-
         } catch (error) {
           result.success = false;
-          result.errors.push(`文件 ${(file as Express.Multer.File).originalname} 验证失败: ${error instanceof Error ? error.message : String(error)}`);
-          
+          result.errors.push(
+            `文件 ${(file as Express.Multer.File).originalname} 验证失败: ${error instanceof Error ? error.message : String(error)}`
+          );
+
           logger.error(`文件验证异常`, {
             filename: file.originalname,
-            error: error instanceof Error ? error.message : String(error)
+            error: error instanceof Error ? error.message : String(error),
           });
         }
       }
@@ -223,11 +248,11 @@ export function createSecureFileUploadMiddleware(config: Partial<UploadConfig> =
         totalFiles: req.files.length,
         success: result.success,
         errors: result.errors.length,
-        warnings: result.warnings.length
+        warnings: result.warnings.length,
       });
 
       return result;
-    }
+    },
   };
 }
 
@@ -236,13 +261,13 @@ export function createSecureFileUploadMiddleware(config: Partial<UploadConfig> =
  */
 export function createFileUploadHandler(config: Partial<UploadConfig> = {}) {
   const { middleware, validator } = createSecureFileUploadMiddleware(config);
-  
+
   return async (req: NextRequest) => {
     try {
       // 这里需要适配Next.js 13+ App Router的FormData处理
       const formData = await req.formData();
       const files: File[] = [];
-      
+
       // 提取文件
       for (const [key, value] of formData.entries()) {
         if (value instanceof File) {
@@ -259,7 +284,7 @@ export function createFileUploadHandler(config: Partial<UploadConfig> = {}) {
 
       // 转换为Multer格式以供验证器使用
       const multerFiles: Array<Express.Multer.File & { buffer: Buffer }> = [];
-      
+
       for (const file of files) {
         const buffer = Buffer.from(await file.arrayBuffer());
         multerFiles.push({
@@ -272,7 +297,7 @@ export function createFileUploadHandler(config: Partial<UploadConfig> = {}) {
           destination: '',
           filename: '',
           path: '',
-          stream: null as never
+          stream: null as never,
         });
       }
 
@@ -291,8 +316,8 @@ export function createFileUploadHandler(config: Partial<UploadConfig> = {}) {
               name: f.originalname,
               isSecure: f.isSecure,
               score: f.securityScore,
-              threatCount: f.threats.length
-            }))
+              threatCount: f.threats.length,
+            })),
           }
         );
       }
@@ -302,12 +327,11 @@ export function createFileUploadHandler(config: Partial<UploadConfig> = {}) {
         message: '文件上传验证通过',
         files: result.files,
         totalSize: result.totalSize,
-        warnings: result.warnings
+        warnings: result.warnings,
       });
-
     } catch (error) {
       logger.error('文件上传处理异常', {
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
       });
 
       return ApiResponseWrapper.error(
@@ -329,21 +353,21 @@ export function secureFileUpload(config: Partial<UploadConfig> = {}) {
 
     descriptor.value = async function (...args: any[]) {
       const req = args[0] as NextRequest;
-      
+
       // 检查是否为文件上传请求
       const contentType = req.headers.get('content-type');
       if (contentType?.includes('multipart/form-data')) {
         const validationResult = await uploadHandler(req);
-        
+
         // 如果验证失败，直接返回错误
         if (!validationResult.ok) {
           return validationResult;
         }
-        
+
         // 将验证结果附加到请求对象
         (req as any).uploadValidation = await validationResult.json();
       }
-      
+
       return await method.apply(this, args);
     };
   };

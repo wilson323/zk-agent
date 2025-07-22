@@ -62,18 +62,22 @@ psql -h localhost -p 5432 -U postgres -d zk_agent -f scripts/init-zk-agent-db.sq
 数据库包含以下核心表：
 
 ### 用户管理
+
 - `users` - 用户信息表
 - `api_keys` - API密钥管理表
 
 ### 对话系统
+
 - `conversations` - 对话记录表
 - `messages` - 消息记录表
 
 ### 功能模块
+
 - `cad_analyses` - CAD分析记录表
 - `poster_generations` - 海报生成记录表
 
 ### 系统管理
+
 - `system_configs` - 系统配置表
 - `audit_logs` - 审计日志表
 
@@ -97,6 +101,7 @@ psql -h localhost -p 5432 -U postgres -d zk_agent -f scripts/init-zk-agent-db.sq
 ### 常见问题
 
 1. **PostgreSQL 服务未运行**
+
    ```powershell
    # 启动 PostgreSQL 服务
    Start-Service postgresql*

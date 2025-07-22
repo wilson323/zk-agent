@@ -37,7 +37,12 @@ export const GET = createApiRoute(
       return ApiResponseWrapper.success(userProfile);
     } catch (error) {
       console.error('Get profile error:', error);
-      return ApiResponseWrapper.error(ErrorCode.INTERNAL_SERVER_ERROR, 'Internal server error', null, 500);
+      return ApiResponseWrapper.error(
+        ErrorCode.INTERNAL_SERVER_ERROR,
+        'Internal server error',
+        null,
+        500
+      );
     }
   }
 );
@@ -51,7 +56,7 @@ export const PUT = createApiRoute(
       }
 
       const { name, avatar } = validatedBody;
-      
+
       // 模拟更新用户信息
       const updatedUser = {
         id: user.id,
@@ -71,7 +76,12 @@ export const PUT = createApiRoute(
       return ApiResponseWrapper.success(updatedUser);
     } catch (error) {
       console.error('Update profile error:', error);
-      return ApiResponseWrapper.error(ErrorCode.INTERNAL_SERVER_ERROR, 'Internal server error', null, 500);
+      return ApiResponseWrapper.error(
+        ErrorCode.INTERNAL_SERVER_ERROR,
+        'Internal server error',
+        null,
+        500
+      );
     }
   }
 );

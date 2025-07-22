@@ -17,7 +17,7 @@ jest.mock('../../../lib/services/v1-api-service', () => ({
   checkV1RateLimit: jest.fn(),
   getV1ApiMetrics: jest.fn(),
   validateV1Endpoint: jest.fn(),
-  migrateV1ToV2: jest.fn()
+  migrateV1ToV2: jest.fn(),
 }));
 
 jest.mock('../../../lib/services/legacy-support', () => ({
@@ -25,7 +25,7 @@ jest.mock('../../../lib/services/legacy-support', () => ({
   convertLegacyFormat: jest.fn(),
   validateLegacyData: jest.fn(),
   mapLegacyEndpoints: jest.fn(),
-  getLegacyCompatibility: jest.fn()
+  getLegacyCompatibility: jest.fn(),
 }));
 
 jest.mock('../../../lib/services/version-manager', () => ({
@@ -33,20 +33,20 @@ jest.mock('../../../lib/services/version-manager', () => ({
   checkVersionCompatibility: jest.fn(),
   getVersionMetadata: jest.fn(),
   validateVersionAccess: jest.fn(),
-  getDeprecationInfo: jest.fn()
+  getDeprecationInfo: jest.fn(),
 }));
 
 jest.mock('../../../lib/auth/api-key-validator', () => ({
   validateApiKey: jest.fn(),
   checkApiKeyPermissions: jest.fn(),
   getApiKeyMetadata: jest.fn(),
-  trackApiKeyUsage: jest.fn()
+  trackApiKeyUsage: jest.fn(),
 }));
 
 jest.mock('../../../lib/middleware/rate-limiter', () => ({
   checkRateLimit: jest.fn(),
   updateRateLimit: jest.fn(),
-  getRateLimitInfo: jest.fn()
+  getRateLimitInfo: jest.fn(),
 }));
 
 jest.mock('../../../lib/storage/v1-data-store', () => ({
@@ -54,7 +54,7 @@ jest.mock('../../../lib/storage/v1-data-store', () => ({
   getV1Data: jest.fn(),
   updateV1Data: jest.fn(),
   deleteV1Data: jest.fn(),
-  queryV1Data: jest.fn()
+  queryV1Data: jest.fn(),
 }));
 
 describe('V1 API Error Handling', () => {
@@ -72,7 +72,7 @@ describe('V1 API Error Handling', () => {
       validateV1ApiKey.mockRejectedValue(new Error('Invalid or expired V1 API key'));
 
       const request = new NextRequest('http://localhost:3000/api/v1/users', {
-        headers: { 'X-API-Key': 'invalid-key' }
+        headers: { 'X-API-Key': 'invalid-key' },
       });
 
       const response = await GET(request);
@@ -98,7 +98,7 @@ describe('V1 API Error Handling', () => {
       validateV1Endpoint.mockRejectedValue(new Error('V1 endpoint not found'));
 
       const request = new NextRequest('http://localhost:3000/api/v1/nonexistent', {
-        headers: { 'X-API-Key': 'valid-key' }
+        headers: { 'X-API-Key': 'valid-key' },
       });
 
       const response = await GET(request);
@@ -114,11 +114,11 @@ describe('V1 API Error Handling', () => {
       getDeprecationInfo.mockResolvedValue({
         deprecated: true,
         deprecationDate: '2024-12-31',
-        migrationGuide: 'https://docs.example.com/v2-migration'
+        migrationGuide: 'https://docs.example.com/v2-migration',
       });
 
       const request = new NextRequest('http://localhost:3000/api/v1/users', {
-        headers: { 'X-API-Key': 'valid-key' }
+        headers: { 'X-API-Key': 'valid-key' },
       });
 
       const response = await GET(request);
@@ -134,7 +134,7 @@ describe('V1 API Error Handling', () => {
       checkV1RateLimit.mockRejectedValue(new Error('V1 API rate limit exceeded'));
 
       const request = new NextRequest('http://localhost:3000/api/v1/users', {
-        headers: { 'X-API-Key': 'valid-key' }
+        headers: { 'X-API-Key': 'valid-key' },
       });
 
       const response = await GET(request);
@@ -150,7 +150,7 @@ describe('V1 API Error Handling', () => {
       handleV1Request.mockRejectedValue(new Error('V1 API service temporarily unavailable'));
 
       const request = new NextRequest('http://localhost:3000/api/v1/users', {
-        headers: { 'X-API-Key': 'valid-key' }
+        headers: { 'X-API-Key': 'valid-key' },
       });
 
       const response = await GET(request);
@@ -165,7 +165,7 @@ describe('V1 API Error Handling', () => {
       processV1Data.mockRejectedValue(new Error('V1 data format no longer supported'));
 
       const request = new NextRequest('http://localhost:3000/api/v1/data?format=legacy', {
-        headers: { 'X-API-Key': 'valid-key' }
+        headers: { 'X-API-Key': 'valid-key' },
       });
 
       const response = await GET(request);
@@ -176,9 +176,12 @@ describe('V1 API Error Handling', () => {
     });
 
     it('should handle V1 query parameter validation errors', async () => {
-      const request = new NextRequest('http://localhost:3000/api/v1/users?limit=-1&offset=invalid', {
-        headers: { 'X-API-Key': 'valid-key' }
-      });
+      const request = new NextRequest(
+        'http://localhost:3000/api/v1/users?limit=-1&offset=invalid',
+        {
+          headers: { 'X-API-Key': 'valid-key' },
+        }
+      );
 
       const response = await GET(request);
       const data = await response.json();
@@ -193,7 +196,7 @@ describe('V1 API Error Handling', () => {
       transformV1Response.mockRejectedValue(new Error('Failed to transform V1 response format'));
 
       const request = new NextRequest('http://localhost:3000/api/v1/users', {
-        headers: { 'X-API-Key': 'valid-key' }
+        headers: { 'X-API-Key': 'valid-key' },
       });
 
       const response = await GET(request);
@@ -208,10 +211,10 @@ describe('V1 API Error Handling', () => {
       checkVersionCompatibility.mockRejectedValue(new Error('V1 API version mismatch'));
 
       const request = new NextRequest('http://localhost:3000/api/v1/users', {
-        headers: { 
+        headers: {
           'X-API-Key': 'valid-key',
-          'X-API-Version': '1.5' // Unsupported sub-version
-        }
+          'X-API-Version': '1.5', // Unsupported sub-version
+        },
       });
 
       const response = await GET(request);
@@ -233,15 +236,17 @@ describe('V1 API Error Handling', () => {
           content: 'Test content',
           metadata: {
             version: '1.0',
-            format: 'text'
-          }
-        }
+            format: 'text',
+          },
+        },
       };
     });
 
     it('should handle V1 data validation errors', async () => {
       const { processV1Data } = require('../../../lib/services/v1-api-service');
-      processV1Data.mockRejectedValue(new Error('V1 data validation failed: missing required fields'));
+      processV1Data.mockRejectedValue(
+        new Error('V1 data validation failed: missing required fields')
+      );
 
       const invalidData = { ...validV1Data };
       delete invalidData.name;
@@ -250,10 +255,10 @@ describe('V1 API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/v1/items', {
         method: 'POST',
         body: JSON.stringify(invalidData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'X-API-Key': 'valid-key'
-        }
+          'X-API-Key': 'valid-key',
+        },
       });
 
       const response = await POST(request);
@@ -271,16 +276,16 @@ describe('V1 API Error Handling', () => {
       const legacyData = {
         ...validV1Data,
         format: 'legacy-v1',
-        encoding: 'deprecated'
+        encoding: 'deprecated',
       };
 
       const request = new NextRequest('http://localhost:3000/api/v1/items', {
         method: 'POST',
         body: JSON.stringify(legacyData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'X-API-Key': 'valid-key'
-        }
+          'X-API-Key': 'valid-key',
+        },
       });
 
       const response = await POST(request);
@@ -294,17 +299,17 @@ describe('V1 API Error Handling', () => {
       const largeData = {
         ...validV1Data,
         data: {
-          content: 'x'.repeat(10 * 1024 * 1024) // 10MB content
-        }
+          content: 'x'.repeat(10 * 1024 * 1024), // 10MB content
+        },
       };
 
       const request = new NextRequest('http://localhost:3000/api/v1/items', {
         method: 'POST',
         body: JSON.stringify(largeData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'X-API-Key': 'valid-key'
-        }
+          'X-API-Key': 'valid-key',
+        },
       });
 
       const response = await POST(request);
@@ -322,10 +327,10 @@ describe('V1 API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/v1/items', {
         method: 'POST',
         body: JSON.stringify(validV1Data),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'X-API-Key': 'quota-exceeded-key'
-        }
+          'X-API-Key': 'quota-exceeded-key',
+        },
       });
 
       const response = await POST(request);
@@ -341,16 +346,16 @@ describe('V1 API Error Handling', () => {
 
       const duplicateData = {
         ...validV1Data,
-        id: 'existing-item-id'
+        id: 'existing-item-id',
       };
 
       const request = new NextRequest('http://localhost:3000/api/v1/items', {
         method: 'POST',
         body: JSON.stringify(duplicateData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'X-API-Key': 'valid-key'
-        }
+          'X-API-Key': 'valid-key',
+        },
       });
 
       const response = await POST(request);
@@ -363,15 +368,17 @@ describe('V1 API Error Handling', () => {
 
     it('should handle V1 API permission denied', async () => {
       const { checkApiKeyPermissions } = require('../../../lib/auth/api-key-validator');
-      checkApiKeyPermissions.mockRejectedValue(new Error('API key does not have V1 write permissions'));
+      checkApiKeyPermissions.mockRejectedValue(
+        new Error('API key does not have V1 write permissions')
+      );
 
       const request = new NextRequest('http://localhost:3000/api/v1/items', {
         method: 'POST',
         body: JSON.stringify(validV1Data),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'X-API-Key': 'read-only-key'
-        }
+          'X-API-Key': 'read-only-key',
+        },
       });
 
       const response = await POST(request);
@@ -386,10 +393,10 @@ describe('V1 API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/v1/items', {
         method: 'POST',
         body: '{invalid json}',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'X-API-Key': 'valid-key'
-        }
+          'X-API-Key': 'valid-key',
+        },
       });
 
       const response = await POST(request);
@@ -404,10 +411,10 @@ describe('V1 API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/v1/items', {
         method: 'POST',
         body: 'xml-data',
-        headers: { 
+        headers: {
           'Content-Type': 'application/xml',
-          'X-API-Key': 'valid-key'
-        }
+          'X-API-Key': 'valid-key',
+        },
       });
 
       const response = await POST(request);
@@ -425,16 +432,16 @@ describe('V1 API Error Handling', () => {
 
       const updateData = {
         id: 'nonexistent-item',
-        name: 'Updated Item'
+        name: 'Updated Item',
       };
 
       const request = new NextRequest('http://localhost:3000/api/v1/items/nonexistent-item', {
         method: 'PUT',
         body: JSON.stringify(updateData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'X-API-Key': 'valid-key'
-        }
+          'X-API-Key': 'valid-key',
+        },
       });
 
       const response = await PUT(request);
@@ -452,16 +459,16 @@ describe('V1 API Error Handling', () => {
       const updateData = {
         id: 'item-123',
         name: 'Updated Item',
-        version: 1
+        version: 1,
       };
 
       const request = new NextRequest('http://localhost:3000/api/v1/items/item-123', {
         method: 'PUT',
         body: JSON.stringify(updateData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'X-API-Key': 'valid-key'
-        }
+          'X-API-Key': 'valid-key',
+        },
       });
 
       const response = await PUT(request);
@@ -474,21 +481,23 @@ describe('V1 API Error Handling', () => {
 
     it('should handle V1 update validation errors', async () => {
       const { processV1Data } = require('../../../lib/services/v1-api-service');
-      processV1Data.mockRejectedValue(new Error('V1 update validation failed: invalid field values'));
+      processV1Data.mockRejectedValue(
+        new Error('V1 update validation failed: invalid field values')
+      );
 
       const invalidUpdateData = {
         id: 'item-123',
         name: '', // Empty name
-        type: 'invalid-type'
+        type: 'invalid-type',
       };
 
       const request = new NextRequest('http://localhost:3000/api/v1/items/item-123', {
         method: 'PUT',
         body: JSON.stringify(invalidUpdateData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'X-API-Key': 'valid-key'
-        }
+          'X-API-Key': 'valid-key',
+        },
       });
 
       const response = await PUT(request);
@@ -504,16 +513,16 @@ describe('V1 API Error Handling', () => {
       updateV1Data.mockRejectedValue(new Error('V1 API does not support partial updates'));
 
       const partialUpdateData = {
-        name: 'Updated Name' // Missing other required fields
+        name: 'Updated Name', // Missing other required fields
       };
 
       const request = new NextRequest('http://localhost:3000/api/v1/items/item-123', {
         method: 'PUT',
         body: JSON.stringify(partialUpdateData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'X-API-Key': 'valid-key'
-        }
+          'X-API-Key': 'valid-key',
+        },
       });
 
       const response = await PUT(request);
@@ -531,7 +540,7 @@ describe('V1 API Error Handling', () => {
 
       const request = new NextRequest('http://localhost:3000/api/v1/items/nonexistent-item', {
         method: 'DELETE',
-        headers: { 'X-API-Key': 'valid-key' }
+        headers: { 'X-API-Key': 'valid-key' },
       });
 
       const response = await DELETE(request);
@@ -544,11 +553,13 @@ describe('V1 API Error Handling', () => {
 
     it('should handle V1 resource with dependencies', async () => {
       const { deleteV1Data } = require('../../../lib/storage/v1-data-store');
-      deleteV1Data.mockRejectedValue(new Error('Cannot delete V1 resource: has active dependencies'));
+      deleteV1Data.mockRejectedValue(
+        new Error('Cannot delete V1 resource: has active dependencies')
+      );
 
       const request = new NextRequest('http://localhost:3000/api/v1/items/item-with-deps', {
         method: 'DELETE',
-        headers: { 'X-API-Key': 'valid-key' }
+        headers: { 'X-API-Key': 'valid-key' },
       });
 
       const response = await DELETE(request);
@@ -560,11 +571,13 @@ describe('V1 API Error Handling', () => {
 
     it('should handle V1 deletion permission denied', async () => {
       const { checkApiKeyPermissions } = require('../../../lib/auth/api-key-validator');
-      checkApiKeyPermissions.mockRejectedValue(new Error('API key does not have V1 delete permissions'));
+      checkApiKeyPermissions.mockRejectedValue(
+        new Error('API key does not have V1 delete permissions')
+      );
 
       const request = new NextRequest('http://localhost:3000/api/v1/items/item-123', {
         method: 'DELETE',
-        headers: { 'X-API-Key': 'no-delete-key' }
+        headers: { 'X-API-Key': 'no-delete-key' },
       });
 
       const response = await DELETE(request);
@@ -581,7 +594,7 @@ describe('V1 API Error Handling', () => {
 
       const request = new NextRequest('http://localhost:3000/api/v1/items/item-123', {
         method: 'DELETE',
-        headers: { 'X-API-Key': 'valid-key' }
+        headers: { 'X-API-Key': 'valid-key' },
       });
 
       const response = await DELETE(request);
@@ -598,7 +611,7 @@ describe('V1 API Error Handling', () => {
       mapLegacyEndpoints.mockRejectedValue(new Error('Legacy endpoint mapping failed'));
 
       const request = new NextRequest('http://localhost:3000/api/v1/legacy/old-endpoint', {
-        headers: { 'X-API-Key': 'valid-key' }
+        headers: { 'X-API-Key': 'valid-key' },
       });
 
       const response = await GET(request);
@@ -610,15 +623,17 @@ describe('V1 API Error Handling', () => {
 
     it('should handle V1 to V2 migration errors', async () => {
       const { migrateV1ToV2 } = require('../../../lib/services/v1-api-service');
-      migrateV1ToV2.mockRejectedValue(new Error('V1 to V2 migration failed: incompatible data format'));
+      migrateV1ToV2.mockRejectedValue(
+        new Error('V1 to V2 migration failed: incompatible data format')
+      );
 
       const request = new NextRequest('http://localhost:3000/api/v1/migrate', {
         method: 'POST',
         body: JSON.stringify({ resourceId: 'item-123' }),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'X-API-Key': 'valid-key'
-        }
+          'X-API-Key': 'valid-key',
+        },
       });
 
       const response = await POST(request);
@@ -634,16 +649,16 @@ describe('V1 API Error Handling', () => {
 
       const legacyRequest = {
         format: 'legacy-xml',
-        data: '<invalid>xml</data>'
+        data: '<invalid>xml</data>',
       };
 
       const request = new NextRequest('http://localhost:3000/api/v1/legacy/import', {
         method: 'POST',
         body: JSON.stringify(legacyRequest),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'X-API-Key': 'valid-key'
-        }
+          'X-API-Key': 'valid-key',
+        },
       });
 
       const response = await POST(request);
@@ -658,10 +673,10 @@ describe('V1 API Error Handling', () => {
       getLegacyCompatibility.mockRejectedValue(new Error('Legacy compatibility check failed'));
 
       const request = new NextRequest('http://localhost:3000/api/v1/compatibility', {
-        headers: { 
+        headers: {
           'X-API-Key': 'valid-key',
-          'X-Legacy-Version': '0.9'
-        }
+          'X-Legacy-Version': '0.9',
+        },
       });
 
       const response = await GET(request);
@@ -678,7 +693,7 @@ describe('V1 API Error Handling', () => {
       getV1ApiMetrics.mockRejectedValue(new Error('Failed to collect V1 API metrics'));
 
       const request = new NextRequest('http://localhost:3000/api/v1/metrics', {
-        headers: { 'X-API-Key': 'admin-key' }
+        headers: { 'X-API-Key': 'admin-key' },
       });
 
       const response = await GET(request);
@@ -693,7 +708,7 @@ describe('V1 API Error Handling', () => {
       trackApiKeyUsage.mockRejectedValue(new Error('Failed to track V1 API usage'));
 
       const request = new NextRequest('http://localhost:3000/api/v1/users', {
-        headers: { 'X-API-Key': 'valid-key' }
+        headers: { 'X-API-Key': 'valid-key' },
       });
 
       const response = await GET(request);
@@ -709,7 +724,7 @@ describe('V1 API Error Handling', () => {
       getRateLimitInfo.mockRejectedValue(new Error('Failed to get V1 rate limit info'));
 
       const request = new NextRequest('http://localhost:3000/api/v1/rate-limit', {
-        headers: { 'X-API-Key': 'valid-key' }
+        headers: { 'X-API-Key': 'valid-key' },
       });
 
       const response = await GET(request);
@@ -726,7 +741,7 @@ describe('V1 API Error Handling', () => {
       handleV1Request.mockRejectedValue(new Error('Temporary V1 API service outage'));
 
       const request = new NextRequest('http://localhost:3000/api/v1/users', {
-        headers: { 'X-API-Key': 'valid-key' }
+        headers: { 'X-API-Key': 'valid-key' },
       });
 
       const response = await GET(request);
@@ -742,7 +757,7 @@ describe('V1 API Error Handling', () => {
       handleV1Request.mockRejectedValue(new Error('Test error'));
 
       const request = new NextRequest('http://localhost:3000/api/v1/users', {
-        headers: { 'X-API-Key': 'valid-key' }
+        headers: { 'X-API-Key': 'valid-key' },
       });
 
       await GET(request);
@@ -756,7 +771,7 @@ describe('V1 API Error Handling', () => {
       handleV1Request.mockRejectedValue(new Error('Test error'));
 
       const request = new NextRequest('http://localhost:3000/api/v1/users', {
-        headers: { 'X-API-Key': 'valid-key' }
+        headers: { 'X-API-Key': 'valid-key' },
       });
 
       const response = await GET(request);
@@ -773,7 +788,7 @@ describe('V1 API Error Handling', () => {
       handleV1Request.mockRejectedValue(new Error('V1 endpoint deprecated'));
 
       const request = new NextRequest('http://localhost:3000/api/v1/deprecated-endpoint', {
-        headers: { 'X-API-Key': 'valid-key' }
+        headers: { 'X-API-Key': 'valid-key' },
       });
 
       const response = await GET(request);

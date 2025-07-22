@@ -18,11 +18,11 @@ import type { ValidationResult, FileInfo } from '../types/interfaces';
  * @param allowedTypes - 允许的文件类型数组
  * @returns 验证结果
  */
-export function validateFileType(file: File, allowedTypes: string[]): ValidationResult {
+export function validateFileType(file: File, allowedTypes: readonly string[] | ReadonlyArray<string>): ValidationResult {
   const isValid = allowedTypes.includes(file.type);
   return {
     isValid,
-    errors: isValid ? [] : [`不支持的文件类型: ${file.type}`]
+    errors: isValid ? [] : [`不支持的文件类型: ${file.type}`],
   };
 }
 
@@ -36,7 +36,7 @@ export function validateFileSize(file: File, maxSize: number): ValidationResult 
   const isValid = file.size <= maxSize;
   return {
     isValid,
-    errors: isValid ? [] : [`文件大小超出限制，最大允许 ${formatFileSize(maxSize)}`]
+    errors: isValid ? [] : [`文件大小超出限制，最大允许 ${formatFileSize(maxSize)}`],
   };
 }
 
@@ -50,7 +50,7 @@ export function validateImageFile(file: File): ValidationResult {
   if (!typeValidation.isValid) {
     return typeValidation;
   }
-  
+
   return validateFileSize(file, FILE_SIZE_LIMITS.IMAGE);
 }
 
@@ -64,7 +64,7 @@ export function validateDocumentFile(file: File): ValidationResult {
   if (!typeValidation.isValid) {
     return typeValidation;
   }
-  
+
   return validateFileSize(file, FILE_SIZE_LIMITS.DOCUMENT);
 }
 
@@ -78,7 +78,7 @@ export function validateCADFile(file: File): ValidationResult {
   if (!typeValidation.isValid) {
     return typeValidation;
   }
-  
+
   return validateFileSize(file, FILE_SIZE_LIMITS.CAD);
 }
 
@@ -92,7 +92,7 @@ export function validateAudioFile(file: File): ValidationResult {
   if (!typeValidation.isValid) {
     return typeValidation;
   }
-  
+
   return validateFileSize(file, FILE_SIZE_LIMITS.GENERAL);
 }
 
@@ -106,7 +106,7 @@ export function validateVideoFile(file: File): ValidationResult {
   if (!typeValidation.isValid) {
     return typeValidation;
   }
-  
+
   return validateFileSize(file, FILE_SIZE_LIMITS.VIDEO);
 }
 
@@ -143,12 +143,12 @@ export function getFileNameWithoutExtension(filename: string): string {
 export function generateUniqueFileName(originalName: string, timestamp = true): string {
   const extension = getFileExtension(originalName);
   const nameWithoutExt = getFileNameWithoutExtension(originalName);
-  
+
   if (timestamp) {
     const now = Date.now();
     return `${nameWithoutExt}_${now}.${extension}`;
   }
-  
+
   const randomSuffix = Math.random().toString(36).substring(2, 8);
   return `${nameWithoutExt}_${randomSuffix}.${extension}`;
 }
@@ -257,29 +257,29 @@ export function compressImage(
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     const img = new Image();
-    
+
     img.onload = () => {
       // 计算新的尺寸
       let { width, height } = img;
-      
+
       if (width > maxWidth) {
         height = (height * maxWidth) / width;
         width = maxWidth;
       }
-      
+
       if (height > maxHeight) {
         width = (width * maxHeight) / height;
         height = maxHeight;
       }
-      
+
       canvas.width = width;
       canvas.height = height;
-      
+
       // 绘制压缩后的图片
       ctx?.drawImage(img, 0, 0, width, height);
-      
+
       canvas.toBlob(
-        (blob) => {
+        blob => {
           if (blob) {
             resolve(blob);
           } else {
@@ -290,7 +290,7 @@ export function compressImage(
         quality
       );
     };
-    
+
     img.onerror = () => reject(new Error('Failed to load image'));
     img.src = URL.createObjectURL(file);
   });
@@ -307,26 +307,22 @@ export function createImageThumbnail(file: File, size = 150): Promise<string> {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     const img = new Image();
-    
+
     img.onload = () => {
       canvas.width = size;
       canvas.height = size;
-      
+
       // 计算裁剪区域（居中裁剪）
       const { width, height } = img;
       const minDimension = Math.min(width, height);
       const x = (width - minDimension) / 2;
       const y = (height - minDimension) / 2;
-      
-      ctx?.drawImage(
-        img,
-        x, y, minDimension, minDimension,
-        0, 0, size, size
-      );
-      
+
+      ctx?.drawImage(img, x, y, minDimension, minDimension, 0, 0, size, size);
+
       resolve(canvas.toDataURL());
     };
-    
+
     img.onerror = () => reject(new Error('Failed to create thumbnail'));
     img.src = URL.createObjectURL(file);
   });
@@ -348,7 +344,7 @@ export function downloadFile(
   mimeType?: string
 ): void {
   let blob: Blob;
-  
+
   if (data instanceof Blob) {
     blob = data;
   } else if (data instanceof ArrayBuffer) {
@@ -356,7 +352,7 @@ export function downloadFile(
   } else {
     blob = new Blob([data], { type: mimeType || 'text/plain' });
   }
-  
+
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
@@ -383,21 +379,17 @@ export function downloadJSON(data: any, filename: string): void {
  * @param filename - 文件名
  * @param headers - 表头
  */
-export function downloadCSV(
-  data: string[][],
-  filename: string,
-  headers?: string[]
-): void {
+export function downloadCSV(data: string[][], filename: string, headers?: string[]): void {
   const csvContent = [];
-  
+
   if (headers) {
     csvContent.push(headers.join(','));
   }
-  
+
   data.forEach(row => {
     csvContent.push(row.map(cell => `"${cell}"`).join(','));
   });
-  
+
   downloadFile(csvContent.join('\n'), filename, 'text/csv');
 }
 
@@ -419,13 +411,13 @@ export function createUploadFormData(
 ): FormData {
   const formData = new FormData();
   formData.append(fieldName, file);
-  
+
   if (additionalData) {
     Object.entries(additionalData).forEach(([key, value]) => {
       formData.append(key, String(value));
     });
   }
-  
+
   return formData;
 }
 
@@ -442,17 +434,17 @@ export function createBatchUploadFormData(
   additionalData?: Record<string, string | number | boolean>
 ): FormData {
   const formData = new FormData();
-  
+
   files.forEach(file => {
     formData.append(fieldName, file);
   });
-  
+
   if (additionalData) {
     Object.entries(additionalData).forEach(([key, value]) => {
       formData.append(key, String(value));
     });
   }
-  
+
   return formData;
 }
 
@@ -468,13 +460,13 @@ export function createBatchUploadFormData(
  */
 export function formatFileSize(bytes: number, decimals = 2): string {
   if (bytes === 0) return '0 Bytes';
-  
+
   const k = 1024;
   const dm = decimals < 0 ? 0 : decimals;
   const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
-  
+
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  
+
   return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 }
 
@@ -485,43 +477,59 @@ export function formatFileSize(bytes: number, decimals = 2): string {
  */
 export function getFileTypeIcon(fileType: string): string {
   const type = fileType.toLowerCase();
-  
+
   if (type.includes('image/') || ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(type)) {
     return '🖼️';
   }
-  
+
   if (type.includes('video/') || ['mp4', 'avi', 'mov', 'wmv', 'flv'].includes(type)) {
     return '🎥';
   }
-  
+
   if (type.includes('audio/') || ['mp3', 'wav', 'ogg', 'm4a', 'flac'].includes(type)) {
     return '🎵';
   }
-  
+
   if (type.includes('pdf') || type === 'pdf') {
     return '📄';
   }
-  
+
   if (type.includes('word') || ['doc', 'docx'].includes(type)) {
     return '📝';
   }
-  
-  if (type.includes('excel') || type.includes('spreadsheet') || ['xls', 'xlsx', 'csv'].includes(type)) {
+
+  if (
+    type.includes('excel') ||
+    type.includes('spreadsheet') ||
+    ['xls', 'xlsx', 'csv'].includes(type)
+  ) {
     return '📊';
   }
-  
-  if (type.includes('powerpoint') || type.includes('presentation') || ['ppt', 'pptx'].includes(type)) {
+
+  if (
+    type.includes('powerpoint') ||
+    type.includes('presentation') ||
+    ['ppt', 'pptx'].includes(type)
+  ) {
     return '📈';
   }
-  
-  if (type.includes('zip') || type.includes('rar') || type.includes('7z') || ['zip', 'rar', '7z', 'tar', 'gz'].includes(type)) {
+
+  if (
+    type.includes('zip') ||
+    type.includes('rar') ||
+    type.includes('7z') ||
+    ['zip', 'rar', '7z', 'tar', 'gz'].includes(type)
+  ) {
     return '🗜️';
   }
-  
-  if (type.includes('text/') || ['txt', 'md', 'json', 'xml', 'html', 'css', 'js', 'ts'].includes(type)) {
+
+  if (
+    type.includes('text/') ||
+    ['txt', 'md', 'json', 'xml', 'html', 'css', 'js', 'ts'].includes(type)
+  ) {
     return '📄';
   }
-  
+
   return '📁';
 }
 
@@ -536,9 +544,9 @@ export function getFileTypeIcon(fileType: string): string {
  */
 export function handleDropFiles(event: DragEvent): File[] {
   event.preventDefault();
-  
+
   const files: File[] = [];
-  
+
   if (event.dataTransfer?.items) {
     // 使用DataTransferItemList接口
     for (let i = 0; i < event.dataTransfer.items.length; i++) {
@@ -556,7 +564,7 @@ export function handleDropFiles(event: DragEvent): File[] {
       files.push(event.dataTransfer.files[i]);
     }
   }
-  
+
   return files;
 }
 
@@ -567,6 +575,6 @@ export function handleDropFiles(event: DragEvent): File[] {
  */
 export function isDragEventWithFiles(event: DragEvent): boolean {
   if (!event.dataTransfer) return false;
-  
+
   return Array.from(event.dataTransfer.types).includes('Files');
 }

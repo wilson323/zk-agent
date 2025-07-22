@@ -41,8 +41,8 @@ describe('FastGPT API Routes Error Handling', () => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            messages: [{ role: 'user', content: 'Hello' }]
-          })
+            messages: [{ role: 'user', content: 'Hello' }],
+          }),
         });
 
         const response = await chatHandler(request);
@@ -63,8 +63,8 @@ describe('FastGPT API Routes Error Handling', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: 'invalid format'
-        })
+          messages: 'invalid format',
+        }),
       });
 
       const response = await chatHandler(request);
@@ -78,18 +78,17 @@ describe('FastGPT API Routes Error Handling', () => {
     it('should handle FastGPT API timeout error', async () => {
       // Mock fetch to simulate timeout
       const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>;
-      mockFetch.mockImplementation(() => 
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Request timeout')), 100)
-        )
+      mockFetch.mockImplementation(
+        () =>
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Request timeout')), 100))
       );
 
       const request = new NextRequest('http://localhost:3000/api/fastgpt/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: [{ role: 'user', content: 'Hello' }]
-        })
+          messages: [{ role: 'user', content: 'Hello' }],
+        }),
       });
 
       const response = await chatHandler(request);
@@ -106,15 +105,15 @@ describe('FastGPT API Routes Error Handling', () => {
       mockFetch.mockResolvedValue({
         ok: false,
         status: 429,
-        json: () => Promise.resolve({ error: 'Rate limit exceeded' })
+        json: () => Promise.resolve({ error: 'Rate limit exceeded' }),
       } as Response);
 
       const request = new NextRequest('http://localhost:3000/api/fastgpt/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: [{ role: 'user', content: 'Hello' }]
-        })
+          messages: [{ role: 'user', content: 'Hello' }],
+        }),
       });
 
       const response = await chatHandler(request);
@@ -131,15 +130,15 @@ describe('FastGPT API Routes Error Handling', () => {
       mockFetch.mockResolvedValue({
         ok: false,
         status: 500,
-        json: () => Promise.resolve({ error: 'Internal server error' })
+        json: () => Promise.resolve({ error: 'Internal server error' }),
       } as Response);
 
       const request = new NextRequest('http://localhost:3000/api/fastgpt/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: [{ role: 'user', content: 'Hello' }]
-        })
+          messages: [{ role: 'user', content: 'Hello' }],
+        }),
       });
 
       const response = await chatHandler(request);
@@ -157,8 +156,8 @@ describe('FastGPT API Routes Error Handling', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          useProxy: false
-        })
+          useProxy: false,
+        }),
       });
 
       const response = await testConnectionHandler(request);
@@ -175,8 +174,8 @@ describe('FastGPT API Routes Error Handling', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           baseUrl: 'invalid-url',
-          useProxy: false
-        })
+          useProxy: false,
+        }),
       });
 
       const response = await testConnectionHandler(request);
@@ -197,8 +196,8 @@ describe('FastGPT API Routes Error Handling', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           baseUrl: 'https://unreachable-server.com',
-          useProxy: false
-        })
+          useProxy: false,
+        }),
       });
 
       const response = await testConnectionHandler(request);
@@ -216,11 +215,11 @@ describe('FastGPT API Routes Error Handling', () => {
       global.fetch = jest.fn().mockResolvedValue({
         ok: false,
         status: 503,
-        json: () => Promise.resolve({ error: 'Service unavailable' })
+        json: () => Promise.resolve({ error: 'Service unavailable' }),
       }) as Response;
 
       const request = new NextRequest('http://localhost:3000/api/fastgpt/health', {
-        method: 'GET'
+        method: 'GET',
       });
 
       const response = await healthHandler(request);
@@ -237,7 +236,7 @@ describe('FastGPT API Routes Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/fastgpt/init-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({})
+        body: JSON.stringify({}),
       });
 
       const response = await initChatHandler(request);
@@ -254,7 +253,7 @@ describe('FastGPT API Routes Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/fastgpt/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({})
+        body: JSON.stringify({}),
       });
 
       const response = await feedbackHandler(request);
@@ -271,8 +270,8 @@ describe('FastGPT API Routes Error Handling', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           rating: 10, // Invalid rating (should be 1-5)
-          comment: 'Test feedback'
-        })
+          comment: 'Test feedback',
+        }),
       });
 
       const response = await feedbackHandler(request);
@@ -294,7 +293,7 @@ describe('FastGPT API Routes Error Handling', () => {
         }
         return Promise.resolve({
           ok: true,
-          json: () => Promise.resolve({ success: true })
+          json: () => Promise.resolve({ success: true }),
         });
       }) as MockedFunction<typeof fetch>;
 
@@ -302,26 +301,28 @@ describe('FastGPT API Routes Error Handling', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: [{ role: 'user', content: 'Hello' }]
-        })
+          messages: [{ role: 'user', content: 'Hello' }],
+        }),
       });
 
       const response = await chatHandler(request);
-      
+
       expect(callCount).toBe(3);
       expect(response.status).toBe(200);
     });
 
     it('should fallback to cached response on API failure', async () => {
       // Mock persistent API failure
-      global.fetch = jest.fn().mockRejectedValue(new Error('API unavailable')) as MockedFunction<typeof fetch>;
+      global.fetch = jest.fn().mockRejectedValue(new Error('API unavailable')) as MockedFunction<
+        typeof fetch
+      >;
 
       const request = new NextRequest('http://localhost:3000/api/fastgpt/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: [{ role: 'user', content: 'Hello' }]
-        })
+          messages: [{ role: 'user', content: 'Hello' }],
+        }),
       });
 
       const response = await chatHandler(request);
@@ -337,11 +338,17 @@ describe('FastGPT API Routes Error Handling', () => {
     it('should open circuit breaker after consecutive failures', async () => {
       // Configure low threshold for testing
       const originalThreshold = (errorHandler as any).errorThreshold;
-      Object.defineProperty(errorHandler, 'errorThreshold', { value: 2, writable: true, configurable: true });
+      Object.defineProperty(errorHandler, 'errorThreshold', {
+        value: 2,
+        writable: true,
+        configurable: true,
+      });
 
       try {
         // Mock persistent failures
-        global.fetch = jest.fn().mockRejectedValue(new Error('API failure')) as MockedFunction<typeof fetch>;
+        global.fetch = jest.fn().mockRejectedValue(new Error('API failure')) as MockedFunction<
+          typeof fetch
+        >;
 
         // Trigger multiple failures
         for (let i = 0; i < 3; i++) {
@@ -349,28 +356,36 @@ describe('FastGPT API Routes Error Handling', () => {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              messages: [{ role: 'user', content: 'Hello' }]
-            })
+              messages: [{ role: 'user', content: 'Hello' }],
+            }),
           });
           await chatHandler(request).catch(() => {});
         }
 
         expect(errorHandler.isCircuitBreakerOpen()).toBe(true);
       } finally {
-        Object.defineProperty(errorHandler, 'errorThreshold', { value: originalThreshold, writable: true, configurable: true });
+        Object.defineProperty(errorHandler, 'errorThreshold', {
+          value: originalThreshold,
+          writable: true,
+          configurable: true,
+        });
       }
     });
 
     it('should return circuit breaker response when open', async () => {
       // Open circuit breaker
-      Object.defineProperty(errorHandler, 'circuitBreakerOpen', { value: true, writable: true, configurable: true });
+      Object.defineProperty(errorHandler, 'circuitBreakerOpen', {
+        value: true,
+        writable: true,
+        configurable: true,
+      });
 
       const request = new NextRequest('http://localhost:3000/api/fastgpt/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: [{ role: 'user', content: 'Hello' }]
-        })
+          messages: [{ role: 'user', content: 'Hello' }],
+        }),
       });
 
       const response = await chatHandler(request);

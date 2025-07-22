@@ -6,14 +6,22 @@
  * @features 内存缓存、Redis缓存、智能预热、性能监控
  */
 
-import { Logger } from '@/lib/utils/logger';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
+
+const logger = getLogger();
 import { EventEmitter } from 'events';
 import { createHash } from 'crypto';
 import { CacheStrategy } from '@/lib/types/enums';
 
 // 自定义错误类
 export class CacheError extends Error {
-  constructor(message: string, public code: string, public originalError?: Error) {
+  constructor(
+    message: string,
+    public code: string,
+    public originalError?: Error
+  ) {
     super(message);
     this.name = 'CacheError';
   }
@@ -33,7 +41,6 @@ export class CacheSerializationError extends CacheError {
 
 // 缓存层级枚举
 
-
 // 导入统一的缓存类型定义
 import {
   CacheItem,
@@ -42,7 +49,7 @@ import {
   CacheStats,
   CacheMetrics,
   CacheLayer,
-  ICacheManager
+  ICacheManager,
 } from '../shared/cache-types';
 
 // 保持向后兼容的类型别名
@@ -63,11 +70,13 @@ class MemoryCache {
     private readonly maxSize: number,
     private readonly maxItems: number,
     private readonly strategy: CacheStrategy
-  ) {}
+  ) { }
 
   get(key: string): CacheItem | null {
     const item = this.cache.get(key);
-    if (!item) {return null;}
+    if (!item) {
+      return null;
+    }
 
     // 检查TTL
     if (item.ttl && Date.now() > item.createdAt + item.ttl) {
@@ -118,7 +127,9 @@ class MemoryCache {
 
   delete(key: string): boolean {
     const item = this.cache.get(key);
-    if (!item) {return false;}
+    if (!item) {
+      return false;
+    }
 
     this.cache.delete(key);
     this.accessOrder.delete(key);
@@ -136,7 +147,9 @@ class MemoryCache {
 
   has(key: string): boolean {
     const item = this.cache.get(key);
-    if (!item) {return false;}
+    if (!item) {
+      return false;
+    }
 
     // 检查TTL
     if (item.ttl && Date.now() > item.createdAt + item.ttl) {
@@ -160,9 +173,7 @@ class MemoryCache {
   }
 
   getByTag(tag: string): CacheItem[] {
-    return Array.from(this.cache.values()).filter(item => 
-      item.tags && item.tags.includes(tag)
-    );
+    return Array.from(this.cache.values()).filter(item => item.tags && item.tags.includes(tag));
   }
 
   deleteByTag(tag: string): number {
@@ -177,15 +188,12 @@ class MemoryCache {
   }
 
   private needsEviction(newItemSize: number): boolean {
-    return (
-      this.cache.size >= this.maxItems ||
-      this.currentSize + newItemSize > this.maxSize
-    );
+    return this.cache.size >= this.maxItems || this.currentSize + newItemSize > this.maxSize;
   }
 
   private evict(requiredSpace: number): void {
     const itemsToEvict = this.selectItemsForEviction(requiredSpace);
-    
+
     for (const key of itemsToEvict) {
       this.delete(key);
     }
@@ -211,7 +219,7 @@ class MemoryCache {
         items.sort((a, b) => {
           const aTtl = a[1].ttl || 0;
           const bTtl = b[1].ttl || 0;
-          return (a[1].createdAt + aTtl) - (b[1].createdAt + bTtl);
+          return a[1].createdAt + aTtl - (b[1].createdAt + bTtl);
         });
         break;
     }
@@ -220,7 +228,7 @@ class MemoryCache {
     for (const [key, item] of items) {
       toEvict.push(key);
       freedSpace += item.size;
-      
+
       if (freedSpace >= requiredSpace && toEvict.length >= 1) {
         break;
       }
@@ -289,8 +297,10 @@ class RedisAdapter {
   }
 
   async get(key: string): Promise<any> {
-    if (!this.connected) {return null;}
-    
+    if (!this.connected) {
+      return null;
+    }
+
     try {
       // 模拟Redis GET操作
       await new Promise(resolve => setTimeout(resolve, 1));
@@ -301,8 +311,10 @@ class RedisAdapter {
   }
 
   async set(key: string, value: any, ttl: number): Promise<boolean> {
-    if (!this.connected) {return false;}
-    
+    if (!this.connected) {
+      return false;
+    }
+
     try {
       // 模拟Redis SET操作
       await new Promise(resolve => setTimeout(resolve, 1));
@@ -313,8 +325,10 @@ class RedisAdapter {
   }
 
   async delete(key: string): Promise<boolean> {
-    if (!this.connected) {return false;}
-    
+    if (!this.connected) {
+      return false;
+    }
+
     try {
       // 模拟Redis DEL操作
       await new Promise(resolve => setTimeout(resolve, 1));
@@ -325,8 +339,10 @@ class RedisAdapter {
   }
 
   async exists(key: string): Promise<boolean> {
-    if (!this.connected) {return false;}
-    
+    if (!this.connected) {
+      return false;
+    }
+
     try {
       // 模拟Redis EXISTS操作
       await new Promise(resolve => setTimeout(resolve, 1));
@@ -337,8 +353,10 @@ class RedisAdapter {
   }
 
   async clear(): Promise<void> {
-    if (!this.connected) {return;}
-    
+    if (!this.connected) {
+      return;
+    }
+
     try {
       // 模拟Redis FLUSHDB操作
       await new Promise(resolve => setTimeout(resolve, 10));
@@ -394,7 +412,7 @@ export class ProductionCacheManager extends EventEmitter {
 
   private constructor() {
     super();
-    
+
     this.memoryCache = new MemoryCache(
       this.config.maxMemorySize || 104857600, // 默认100MB
       this.config.maxMemoryItems || 1000, // 默认1000项
@@ -444,7 +462,7 @@ export class ProductionCacheManager extends EventEmitter {
   private cleanupMetrics(): void {
     const maxAge = 3600000; // 1小时
     const now = Date.now();
-    
+
     for (const [key, metrics] of this.metrics.entries()) {
       if (now - metrics.timestamp > maxAge) {
         this.metrics.delete(key);
@@ -456,7 +474,7 @@ export class ProductionCacheManager extends EventEmitter {
       const entries = Array.from(this.metrics.entries())
         .sort((a, b) => b[1].timestamp - a[1].timestamp)
         .slice(0, 1000);
-      
+
       this.metrics.clear();
       for (const [key, metrics] of entries) {
         this.metrics.set(key, metrics);
@@ -468,7 +486,9 @@ export class ProductionCacheManager extends EventEmitter {
    * 预加载缓存
    */
   private async preloadCache(): Promise<void> {
-    if (!this.config.preloadKeys || this.config.preloadKeys.length === 0) {return;}
+    if (!this.config.preloadKeys || this.config.preloadKeys.length === 0) {
+      return;
+    }
 
     this.logger.info('Starting cache preload', {
       keys: this.config.preloadKeys.length,
@@ -505,7 +525,9 @@ export class ProductionCacheManager extends EventEmitter {
     duration: number,
     size: number = 0
   ): void {
-    if (!this.config.enableMetrics) {return;}
+    if (!this.config.enableMetrics) {
+      return;
+    }
 
     const metricsKey = `${operation}_${Date.now()}_${Math.random()}`;
     const metrics: CacheMetrics = {
@@ -537,13 +559,13 @@ export class ProductionCacheManager extends EventEmitter {
           this.stats.memoryHits++;
           const duration = Date.now() - startTime;
           this.recordMetrics('get', key, CacheLayer.MEMORY, true, duration, memoryItem.size);
-          
+
           // 解压缩
           let value = memoryItem.value;
           if (memoryItem.compressed && value.__compressed) {
             value = value.data; // 简化的解压缩
           }
-          
+
           return value as T;
         }
         this.stats.memoryMisses++;
@@ -556,17 +578,12 @@ export class ProductionCacheManager extends EventEmitter {
           this.stats.redisHits++;
           const duration = Date.now() - startTime;
           this.recordMetrics('get', key, CacheLayer.REDIS, true, duration);
-          
+
           // 回填内存缓存
           if (!options.skipMemory) {
-            this.memoryCache.set(
-              hashedKey,
-              redisValue,
-              this.config.defaultTTL,
-              options
-            );
+            this.memoryCache.set(hashedKey, redisValue, this.config.defaultTTL, options);
           }
-          
+
           return redisValue as T;
         }
         this.stats.redisMisses++;
@@ -598,11 +615,11 @@ export class ProductionCacheManager extends EventEmitter {
 
     try {
       // 确定是否压缩
-      const shouldCompress = options.compress ?? (
-        this.config.enableCompression &&
-        typeof value === 'string' &&
-        value.length > (this.config.compressionThreshold || 1024) // 默认1KB
-      );
+      const shouldCompress =
+        options.compress ??
+        (this.config.enableCompression &&
+          typeof value === 'string' &&
+          value.length > (this.config.compressionThreshold || 1024)); // 默认1KB
 
       const finalOptions = { ...options, compress: shouldCompress };
       let success = false;
@@ -736,13 +753,15 @@ export class ProductionCacheManager extends EventEmitter {
     const totalHits = this.stats.memoryHits + this.stats.redisHits;
     const totalMisses = this.stats.memoryMisses + this.stats.redisMisses;
     const totalRequests = totalHits + totalMisses;
-    
-    const recentMetrics = Array.from(this.metrics.values())
-      .filter(m => Date.now() - m.timestamp < 3600000); // 最近1小时
-    
-    const averageResponseTime = recentMetrics.length > 0
-      ? recentMetrics.reduce((sum, m) => sum + (m.duration || 0), 0) / recentMetrics.length
-      : 0;
+
+    const recentMetrics = Array.from(this.metrics.values()).filter(
+      m => Date.now() - m.timestamp < 3600000
+    ); // 最近1小时
+
+    const averageResponseTime =
+      recentMetrics.length > 0
+        ? recentMetrics.reduce((sum, m) => sum + (m.duration || 0), 0) / recentMetrics.length
+        : 0;
 
     return {
       // 基础统计 - 满足CacheStats接口要求
@@ -753,7 +772,7 @@ export class ProductionCacheManager extends EventEmitter {
       hitRate: totalRequests > 0 ? totalHits / totalRequests : 0,
       sets: this.stats.sets || 0,
       deletes: this.stats.deletes || 0,
-      
+
       // 分层统计
       memoryHits: this.stats.memoryHits,
       memoryMisses: this.stats.memoryMisses,
@@ -761,11 +780,11 @@ export class ProductionCacheManager extends EventEmitter {
       redisMisses: this.stats.redisMisses,
       totalHits,
       totalMisses,
-      
+
       // 大小统计
       memoryUsage: this.memoryCache.memoryUsage(),
       memoryItems: this.memoryCache.size(),
-      
+
       // 其他统计
       redisConnected: this.redisAdapter?.isConnected() || false,
       averageResponseTime,
@@ -801,7 +820,7 @@ export class ProductionCacheManager extends EventEmitter {
   public async warmup(keys: string[], loader: (key: string) => Promise<any>): Promise<void> {
     this.logger.info('Starting cache warmup', { keys: keys.length });
 
-    const promises = keys.map(async (key) => {
+    const promises = keys.map(async key => {
       try {
         const value = await loader(key);
         await this.set(key, value);
@@ -833,16 +852,16 @@ export class ProductionCacheManager extends EventEmitter {
       }
 
       this.memoryCache.clear();
-      
+
       if (this.redisAdapter) {
         await this.redisAdapter.disconnect();
       }
 
       this.metrics.clear();
       this.removeAllListeners();
-      
+
       ProductionCacheManager.instance = null;
-      
+
       this.logger.info('Cache manager cleaned up successfully');
     } catch (error) {
       this.logger.error('Error during cache cleanup', {

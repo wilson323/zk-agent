@@ -5,10 +5,56 @@
  * @version 1.0.0
  */
 
-import { ApiResponse, ErrorInfo, RequestConfig, RetryConfig, RequestInterceptor } from '../types/interfaces';
-import { HTTP_STATUS, API_ENDPOINTS, REQUEST_HEADERS, CONTENT_TYPES, API_REQUEST_DEFAULT_CONFIG } from '../constants';
+import {
+  ApiResponse,
+  ErrorInfo,
+  RequestConfig,
+  RetryConfig,
+  RequestInterceptor,
+} from '../types/interfaces';
+import {
+  HTTP_STATUS,
+  API_PATHS,
+  HEADERS,
+  CONTENT_TYPES,
+  API_REQUEST_DEFAULT_CONFIG,
+  DEFAULT_RETRY_CONFIG,
+  DEFAULT_CONFIG,
+} from '../constants';
 import { AppError as ApiError, NetworkError, TimeoutError } from '@/lib/errors/app-error';
 import { delay } from './index';
+
+/**
+ * 创建带超时的fetch请求
+ */
+function createTimeoutFetch(url: string, config: RequestConfig): Promise<Response> {
+  const timeout = config.timeout || DEFAULT_CONFIG.timeout;
+
+  return new Promise((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      reject(new TimeoutError(`Request timeout after ${timeout}ms`));
+    }, timeout);
+
+    fetch(url, config as RequestInit)
+      .then(response => {
+        clearTimeout(timeoutId);
+        resolve(response);
+      })
+      .catch(error => {
+        clearTimeout(timeoutId);
+        reject(error);
+      });
+  });
+}
+
+/**
+ * 请求拦截器
+ */
+const interceptors = {
+  processRequest: async (config: RequestConfig) => config,
+  processResponse: async (response: Response) => response,
+  processError: async (error: any) => error,
+};
 
 /**
  * 计算重试延迟时间
@@ -34,22 +80,21 @@ async function requestWithRetry(
   retryConfig: RetryConfig = DEFAULT_RETRY_CONFIG
 ): Promise<Response> {
   let lastError: any;
-  
+
   for (let attempt = 1; attempt <= retryConfig.maxRetries + 1; attempt++) {
     try {
       const response = await createTimeoutFetch(url, config);
-      
+
       // 检查响应状态
       if (!response.ok) {
         const error = new ApiError(
           `HTTP ${response.status}: ${response.statusText}`,
-          response.status,
-          response.statusText,
-          null,
-          url,
-          config.method || 'GET'
+          'HTTP_ERROR' as any,
+          'NETWORK' as any,
+          'MEDIUM' as any,
+          { status: response.status, statusText: response.statusText, url, method: config.method || 'GET' }
         );
-        
+
         // 检查是否需要重试
         if (attempt <= retryConfig.maxRetries && retryConfig.retryCondition?.(error, attempt)) {
           lastError = error;
@@ -57,25 +102,25 @@ async function requestWithRetry(
           await delay(delayTime);
           continue;
         }
-        
+
         throw error;
       }
-      
+
       return response;
     } catch (error) {
       lastError = error;
-      
+
       // 检查是否需要重试
       if (attempt <= retryConfig.maxRetries && retryConfig.retryCondition?.(error, attempt)) {
         const delayTime = calculateRetryDelay(attempt, retryConfig);
         await delay(delayTime);
         continue;
       }
-      
+
       throw error;
     }
   }
-  
+
   throw lastError;
 }
 
@@ -100,15 +145,17 @@ export async function request<T = any>(
       ...config,
       headers: {
         ...DEFAULT_CONFIG.headers,
-        ...config.headers
-      }
+        ...config.headers,
+      },
     };
 
     // 处理请求体
     if (mergedConfig.body && typeof mergedConfig.body === 'object') {
-      if (mergedConfig.headers?.[REQUEST_HEADERS.CONTENT_TYPE] === CONTENT_TYPES.JSON) {
+      if (mergedConfig.headers?.[HEADERS.CONTENT_TYPE] === CONTENT_TYPES.JSON) {
         mergedConfig.body = JSON.stringify(mergedConfig.body);
-      } else if (mergedConfig.headers?.[REQUEST_HEADERS.CONTENT_TYPE] === CONTENT_TYPES.FORM_URLENCODED) {
+      } else if (
+        mergedConfig.headers?.[HEADERS.CONTENT_TYPE] === CONTENT_TYPES.URL_ENCODED
+      ) {
         mergedConfig.body = new URLSearchParams(mergedConfig.body).toString();
       }
     }
@@ -125,13 +172,13 @@ export async function request<T = any>(
     // 解析响应数据
     let data: T;
     const contentType = response.headers.get('content-type');
-    
+
     if (contentType?.includes('application/json')) {
       data = await response.json();
     } else if (contentType?.includes('text/')) {
-      data = await response.text() as any;
+      data = (await response.text()) as any;
     } else {
-      data = await response.blob() as any;
+      data = (await response.blob()) as any;
     }
 
     return {
@@ -143,13 +190,13 @@ export async function request<T = any>(
         requestId: crypto.randomUUID(),
         version: '1.0.0',
         status: response.status,
-        headers: Object.fromEntries(response.headers.entries())
-      }
+        headers: Object.fromEntries(response.headers.entries()),
+      },
     };
   } catch (error) {
     // 应用错误拦截器
     const processedError = await interceptors.processError(error);
-    
+
     return {
       success: false,
       data: null as any,
@@ -157,14 +204,17 @@ export async function request<T = any>(
       error: {
         code: processedError.code || 'UNKNOWN_ERROR',
         message: processedError.message || 'Unknown error',
-        details: processedError.details || processedError
+        type: processedError.type || 'NETWORK_ERROR' as any,
+        severity: processedError.severity || 'ERROR' as any,
+        details: processedError.details || processedError,
+        timestamp: new Date().toISOString(),
       },
       meta: {
         timestamp: new Date().toISOString(),
         requestId: crypto.randomUUID(),
         version: '1.0.0',
-        status: processedError.status || 0
-      }
+        status: processedError.status || 0,
+      },
     };
   }
 }
@@ -263,25 +313,25 @@ export function uploadFile<T = any>(
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     const formData = new FormData();
-    
+
     // 添加文件
     formData.append(fieldName, file);
-    
+
     // 添加额外数据
     Object.entries(additionalData).forEach(([key, value]) => {
       formData.append(key, value);
     });
-    
+
     // 监听进度
     if (onProgress) {
-      xhr.upload.addEventListener('progress', (event) => {
+      xhr.upload.addEventListener('progress', event => {
         if (event.lengthComputable) {
           const progress = (event.loaded / event.total) * 100;
           onProgress(progress);
         }
       });
     }
-    
+
     // 监听完成
     xhr.addEventListener('load', () => {
       if (xhr.status >= 200 && xhr.status < 300) {
@@ -291,34 +341,40 @@ export function uploadFile<T = any>(
             success: true,
             data,
             message: 'Upload successful',
-            status: xhr.status
+            meta: {
+              timestamp: new Date().toISOString(),
+              requestId: crypto.randomUUID(),
+            },
           });
         } catch (error) {
           resolve({
             success: true,
             data: xhr.responseText as any,
             message: 'Upload successful',
-            status: xhr.status
+            meta: {
+              timestamp: new Date().toISOString(),
+              requestId: crypto.randomUUID(),
+            },
           });
         }
       } else {
-        reject(new ApiError(
-          `Upload failed: ${xhr.statusText}`,
-          'UPLOAD_FAILED',
-          xhr.statusText,
-          xhr.status,
-          xhr.responseText,
-          url,
-          'POST'
-        ));
+        reject(
+          new ApiError(
+            `Upload failed: ${xhr.statusText}`,
+            'UPLOAD_FAILED' as any,
+            'NETWORK' as any,
+            'MEDIUM' as any,
+            { status: xhr.status, statusText: xhr.statusText, responseText: xhr.responseText, url, method: 'POST' }
+          )
+        );
       }
     });
-    
+
     // 监听错误
     xhr.addEventListener('error', () => {
       reject(new NetworkError('Upload failed'));
     });
-    
+
     // 发送请求
     xhr.open('POST', url);
     xhr.send(formData);
@@ -342,11 +398,11 @@ export async function uploadFiles<T = any>(
   onProgress?: (progress: number, fileIndex: number) => void
 ): Promise<ApiResponse<T>[]> {
   const results: ApiResponse<T>[] = [];
-  
+
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
     const progressCallback = onProgress ? (progress: number) => onProgress(progress, i) : undefined;
-    
+
     try {
       const result = await uploadFile<T>(url, file, fieldName, additionalData, progressCallback);
       results.push(result);
@@ -358,12 +414,12 @@ export async function uploadFiles<T = any>(
         error: {
           code: error instanceof ApiError ? error.code : 'UNKNOWN_ERROR',
           message: error instanceof Error ? error.message : 'Upload failed',
-          details: error
-        }
+          details: error,
+        },
       });
     }
   }
-  
+
   return results;
 }
 
@@ -384,19 +440,19 @@ export function buildApiUrl(
   baseUrl: string = ''
 ): string {
   let url = baseUrl ? `${baseUrl}${endpoint}` : endpoint;
-  
+
   const queryParams = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
     if (value !== null && value !== undefined) {
       queryParams.append(key, String(value));
     }
   });
-  
+
   const queryString = queryParams.toString();
   if (queryString) {
     url += `?${queryString}`;
   }
-  
+
   return url;
 }
 
@@ -406,17 +462,14 @@ export function buildApiUrl(
  * @param params - 路径参数
  * @returns 替换后的URL
  */
-export function replaceUrlParams(
-  url: string,
-  params: Record<string, string | number>
-): string {
+export function replaceUrlParams(url: string, params: Record<string, string | number>): string {
   let result = url;
-  
+
   Object.entries(params).forEach(([key, value]) => {
     result = result.replace(new RegExp(`:${key}\\b`, 'g'), String(value));
     result = result.replace(new RegExp(`{${key}}`, 'g'), String(value));
   });
-  
+
   return result;
 }
 
@@ -438,22 +491,22 @@ class ApiCache {
     this.cache.set(key, {
       data,
       timestamp: Date.now(),
-      ttl
+      ttl,
     });
   }
 
   get<T>(key: string): T | null {
     const entry = this.cache.get(key);
-    
+
     if (!entry) {
       return null;
     }
-    
+
     if (Date.now() - entry.timestamp > entry.ttl) {
       this.cache.delete(key);
       return null;
     }
-    
+
     return entry.data;
   }
 
@@ -501,21 +554,21 @@ export async function getCached<T = any>(
   cacheTTL?: number
 ): Promise<ApiResponse<T>> {
   const key = cacheKey || url;
-  
+
   // 检查缓存
   const cached = apiCache.get<ApiResponse<T>>(key);
   if (cached) {
     return cached;
   }
-  
+
   // 发送请求
   const response = await get<T>(url, config);
-  
+
   // 只缓存成功的响应
   if (response.success) {
     apiCache.set(key, response, cacheTTL);
   }
-  
+
   return response;
 }
 
@@ -534,16 +587,16 @@ export function createCancelableRequest<T = any>(
   config: RequestConfig = {}
 ): { promise: Promise<ApiResponse<T>>; cancel: () => void } {
   const controller = new AbortController();
-  
+
   const promise = request<T>(url, {
     ...config,
-    signal: controller.signal
+    signal: controller.signal,
   });
-  
+
   const cancel = () => {
     controller.abort();
   };
-  
+
   return { promise, cancel };
 }
 
@@ -572,12 +625,12 @@ export async function sequentialRequests(
   requests: Array<{ url: string; config?: RequestConfig }>
 ): Promise<ApiResponse<any>[]> {
   const results: ApiResponse<any>[] = [];
-  
+
   for (const { url, config } of requests) {
     const result = await request(url, config);
     results.push(result);
   }
-  
+
   return results;
 }
 
@@ -591,14 +644,11 @@ export async function sequentialRequests(
  * @param timeout - 超时时间
  * @returns Promise<boolean>
  */
-export async function checkApiHealth(
-  url: string,
-  timeout: number = 5000
-): Promise<boolean> {
+export async function checkApiHealth(url: string, timeout: number = 5000): Promise<boolean> {
   try {
     const response = await request(url, {
       method: 'GET',
-      timeout
+      timeout,
     });
     return response.success;
   } catch (error) {
@@ -623,11 +673,11 @@ export async function waitForApi(
     if (isHealthy) {
       return true;
     }
-    
+
     if (i < maxAttempts - 1) {
       await delay(interval);
     }
   }
-  
+
   return false;
 }

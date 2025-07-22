@@ -7,7 +7,6 @@
  * @features 多云存储支持、自动故障转移、性能优化
  */
 
-import { Logger } from '@/lib/utils/logger';
 import { enhancedCacheManager } from '@/lib/cache/enhanced-cache-manager';
 
 const logger = new Logger('CloudStorageAdapter');
@@ -111,7 +110,7 @@ class AWSS3Client implements StorageClient {
         getFileInfo: jest.fn().mockResolvedValue({ size: 100, lastModified: new Date() }),
         listFiles: jest.fn().mockResolvedValue([]),
         getSignedUrl: jest.fn().mockResolvedValue('https://example.com/signed-url'),
-        getStats: jest.fn().mockResolvedValue({ size: 0, objectCount: 0 })
+        getStats: jest.fn().mockResolvedValue({ size: 0, objectCount: 0 }),
       };
     } else {
       // 生产环境下初始化真实的AWS S3客户端
@@ -141,16 +140,19 @@ class AWSS3Client implements StorageClient {
         return {
           key: options.key,
           url: `https://${this.config.bucket}.s3.${this.config.region}.amazonaws.com/${options.key}`,
-          cdnUrl: this.config.cdnDomain ? `https://${this.config.cdnDomain}/${options.key}` : undefined,
+          cdnUrl: this.config.cdnDomain
+            ? `https://${this.config.cdnDomain}/${options.key}`
+            : undefined,
           etag: `"${Date.now().toString(16)}"`,
           size: buffer.length,
-          contentType: options.contentType
+          contentType: options.contentType,
         };
       }
 
       // 生产环境下使用真实的AWS SDK
-      throw new Error('AWS S3 upload requires valid credentials. Please configure AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY');
-
+      throw new Error(
+        'AWS S3 upload requires valid credentials. Please configure AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY'
+      );
     } catch (error) {
       logger.error('AWS S3 upload failed', {
         key: options.key,
@@ -178,8 +180,9 @@ class AWSS3Client implements StorageClient {
       }
 
       // 生产环境下使用真实的AWS SDK
-      throw new Error('AWS S3 download requires valid credentials. Please configure AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY');
-
+      throw new Error(
+        'AWS S3 download requires valid credentials. Please configure AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY'
+      );
     } catch (error) {
       logger.error('AWS S3 download failed', {
         key: options.key,
@@ -192,12 +195,11 @@ class AWSS3Client implements StorageClient {
   async delete(key: string): Promise<void> {
     try {
       logger.info('Deleting file from AWS S3', { key });
-      
+
       // 模拟AWS S3删除
       // 移除模拟网络延迟
-      
-      logger.info('File deleted from AWS S3 successfully', { key });
 
+      logger.info('File deleted from AWS S3 successfully', { key });
     } catch (error) {
       logger.error('AWS S3 delete failed', {
         key,
@@ -220,8 +222,9 @@ class AWSS3Client implements StorageClient {
       }
 
       // 生产环境下使用真实的AWS SDK
-      throw new Error('AWS S3 exists check requires valid credentials. Please configure AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY');
-
+      throw new Error(
+        'AWS S3 exists check requires valid credentials. Please configure AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY'
+      );
     } catch (error) {
       logger.error('AWS S3 exists check failed', {
         key,
@@ -242,11 +245,11 @@ class AWSS3Client implements StorageClient {
         etag: this.generateETag(Buffer.from(key)),
         contentType: 'application/octet-stream',
         url: `https://${this.config.bucket}.s3.${this.config.region}.amazonaws.com/${key}`,
-        cdnUrl: this.config.enableCDN && this.config.cdnDomain 
-          ? `https://${this.config.cdnDomain}/${key}`
-          : undefined,
+        cdnUrl:
+          this.config.enableCDN && this.config.cdnDomain
+            ? `https://${this.config.cdnDomain}/${key}`
+            : undefined,
       };
-
     } catch (error) {
       logger.error('AWS S3 getFileInfo failed', {
         key,
@@ -277,7 +280,6 @@ class AWSS3Client implements StorageClient {
       }
 
       return files;
-
     } catch (error) {
       logger.error('AWS S3 listFiles failed', {
         prefix,
@@ -288,15 +290,18 @@ class AWSS3Client implements StorageClient {
     }
   }
 
-  async getSignedUrl(key: string, operation: 'get' | 'put', expiresIn: number = 3600): Promise<string> {
+  async getSignedUrl(
+    key: string,
+    operation: 'get' | 'put',
+    expiresIn: number = 3600
+  ): Promise<string> {
     try {
       // 移除模拟网络延迟
 
       const timestamp = Date.now() + expiresIn * 1000;
       const signature = this.generateSignature(key, operation, timestamp);
-      
-      return `https://${this.config.bucket}.s3.${this.config.region}.amazonaws.com/${key}?X-Amz-Expires=${expiresIn}&X-Amz-Signature=${signature}`;
 
+      return `https://${this.config.bucket}.s3.${this.config.region}.amazonaws.com/${key}?X-Amz-Expires=${expiresIn}&X-Amz-Signature=${signature}`;
     } catch (error) {
       logger.error('AWS S3 getSignedUrl failed', {
         key,
@@ -321,7 +326,6 @@ class AWSS3Client implements StorageClient {
           download: Math.floor(Math.random() * 200) + 50,
         },
       };
-
     } catch (error) {
       logger.error('AWS S3 getStats failed', {
         error: error.message,
@@ -359,7 +363,7 @@ class AliyunOSSClient implements StorageClient {
     if (process.env.NODE_ENV === 'test') {
       this.ossClient = {
         initialized: true,
-        mockClient: true
+        mockClient: true,
       };
     } else {
       // 生产环境下初始化真实的阿里云OSS客户端
@@ -382,9 +386,10 @@ class AliyunOSSClient implements StorageClient {
 
       const etag = this.generateETag(buffer);
       const url = `https://${this.config.bucket}.${this.config.region}.aliyuncs.com/${options.key}`;
-      const cdnUrl = this.config.enableCDN && this.config.cdnDomain 
-        ? `https://${this.config.cdnDomain}/${options.key}`
-        : undefined;
+      const cdnUrl =
+        this.config.enableCDN && this.config.cdnDomain
+          ? `https://${this.config.cdnDomain}/${options.key}`
+          : undefined;
 
       const result: UploadResult = {
         key: options.key,
@@ -397,7 +402,6 @@ class AliyunOSSClient implements StorageClient {
 
       logger.info('File uploaded to Aliyun OSS successfully', result);
       return result;
-
     } catch (error) {
       logger.error('Aliyun OSS upload failed', {
         key: options.key,
@@ -420,14 +424,13 @@ class AliyunOSSClient implements StorageClient {
 
       const result = await this.ossClient.get(options.key);
       const buffer = Buffer.from(result.content);
-      
+
       logger.info('File downloaded from Aliyun OSS successfully', {
         key: options.key,
         size: buffer.length,
       });
 
       return buffer;
-
     } catch (error) {
       logger.error('Aliyun OSS download failed', {
         key: options.key,
@@ -440,15 +443,14 @@ class AliyunOSSClient implements StorageClient {
   async delete(key: string): Promise<void> {
     try {
       logger.info('Deleting file from Aliyun OSS', { key });
-      
+
       if (!this.ossClient) {
         throw new Error('OSS client not initialized');
       }
 
       await this.ossClient.delete(key);
-      
-      logger.info('File deleted from Aliyun OSS successfully', { key });
 
+      logger.info('File deleted from Aliyun OSS successfully', { key });
     } catch (error) {
       logger.error('Aliyun OSS delete failed', {
         key,
@@ -466,7 +468,6 @@ class AliyunOSSClient implements StorageClient {
 
       const result = await this.ossClient.head(key);
       return !!result;
-
     } catch (error) {
       if (error.code === 'NoSuchKey' || error.status === 404) {
         return false;
@@ -486,7 +487,7 @@ class AliyunOSSClient implements StorageClient {
       }
 
       const result = await this.ossClient.head(key);
-      
+
       return {
         key,
         size: parseInt(result.headers['content-length'] || '0'),
@@ -494,11 +495,11 @@ class AliyunOSSClient implements StorageClient {
         etag: result.headers.etag?.replace(/"/g, '') || '',
         contentType: result.headers['content-type'] || 'application/octet-stream',
         url: `https://${this.config.bucket}.${this.config.region}.aliyuncs.com/${key}`,
-        cdnUrl: this.config.enableCDN && this.config.cdnDomain 
-          ? `https://${this.config.cdnDomain}/${key}`
-          : undefined,
+        cdnUrl:
+          this.config.enableCDN && this.config.cdnDomain
+            ? `https://${this.config.cdnDomain}/${key}`
+            : undefined,
       };
-
     } catch (error) {
       logger.error('Aliyun OSS getFileInfo failed', {
         key,
@@ -528,7 +529,6 @@ class AliyunOSSClient implements StorageClient {
       }
 
       return files;
-
     } catch (error) {
       logger.error('Aliyun OSS listFiles failed', {
         prefix,
@@ -539,15 +539,18 @@ class AliyunOSSClient implements StorageClient {
     }
   }
 
-  async getSignedUrl(key: string, operation: 'get' | 'put', expiresIn: number = 3600): Promise<string> {
+  async getSignedUrl(
+    key: string,
+    operation: 'get' | 'put',
+    expiresIn: number = 3600
+  ): Promise<string> {
     try {
       // 移除模拟网络延迟
 
       const timestamp = Date.now() + expiresIn * 1000;
       const signature = this.generateSignature(key, operation, timestamp);
-      
-      return `https://${this.config.bucket}.${this.config.region}.aliyuncs.com/${key}?Expires=${timestamp}&OSSAccessKeyId=${this.config.accessKeyId}&Signature=${signature}`;
 
+      return `https://${this.config.bucket}.${this.config.region}.aliyuncs.com/${key}?Expires=${timestamp}&OSSAccessKeyId=${this.config.accessKeyId}&Signature=${signature}`;
     } catch (error) {
       logger.error('Aliyun OSS getSignedUrl failed', {
         key,
@@ -572,7 +575,6 @@ class AliyunOSSClient implements StorageClient {
           download: Math.floor(Math.random() * 180) + 60,
         },
       };
-
     } catch (error) {
       logger.error('Aliyun OSS getStats failed', {
         error: error.message,
@@ -635,7 +637,7 @@ export class CloudStorageAdapter {
       }
 
       this.clients.set(provider, client);
-      
+
       if (configs[0].provider === provider) {
         this.primaryProvider = provider;
       } else {
@@ -658,7 +660,9 @@ export class CloudStorageAdapter {
     for (const provider of providers) {
       try {
         const client = this.clients.get(provider);
-        if (!client) {continue;}
+        if (!client) {
+          continue;
+        }
 
         const circuitBreaker = this.circuitBreakers.get(provider);
         if (circuitBreaker && circuitBreaker.isOpen()) {
@@ -667,13 +671,12 @@ export class CloudStorageAdapter {
         }
 
         const result = await client.upload(buffer, options);
-        
+
         // 缓存上传结果
-        await enhancedCacheManager.set(
-          `file:${options.key}`,
-          result,
-          { ttl: 3600000, tags: ['file-upload'] }
-        );
+        await enhancedCacheManager.set(`file:${options.key}`, result, {
+          ttl: 3600000,
+          tags: ['file-upload'],
+        });
 
         logger.info('File uploaded successfully', {
           provider,
@@ -682,7 +685,6 @@ export class CloudStorageAdapter {
         });
 
         return result;
-
       } catch (error) {
         logger.error('Upload failed with provider', {
           provider,
@@ -722,7 +724,9 @@ export class CloudStorageAdapter {
     for (const provider of providers) {
       try {
         const client = this.clients.get(provider);
-        if (!client) {continue;}
+        if (!client) {
+          continue;
+        }
 
         const circuitBreaker = this.circuitBreakers.get(provider);
         if (circuitBreaker && circuitBreaker.isOpen()) {
@@ -731,9 +735,10 @@ export class CloudStorageAdapter {
         }
 
         const buffer = await client.download(options);
-        
+
         // 缓存下载结果（小文件）
-        if (buffer.length < 1024 * 1024) { // 小于1MB
+        if (buffer.length < 1024 * 1024) {
+          // 小于1MB
           await enhancedCacheManager.set(
             `file:download:${options.key}`,
             buffer,
@@ -748,7 +753,6 @@ export class CloudStorageAdapter {
         });
 
         return buffer;
-
       } catch (error) {
         logger.error('Download failed with provider', {
           provider,
@@ -780,16 +784,17 @@ export class CloudStorageAdapter {
     for (const provider of providers) {
       try {
         const client = this.clients.get(provider);
-        if (!client) {continue;}
+        if (!client) {
+          continue;
+        }
 
         await client.delete(key);
-        
+
         // 清除相关缓存
         await enhancedCacheManager.delete(`file:${key}`);
         await enhancedCacheManager.delete(`file:download:${key}`);
 
         logger.info('File deleted successfully', { provider, key });
-
       } catch (error) {
         logger.error('Delete failed with provider', {
           provider,
@@ -901,7 +906,7 @@ export class CloudStorageAdapter {
   private initializeClients(): void {
     // 默认配置可以从环境变量读取
     const defaultConfigs = this.getDefaultConfigs();
-    
+
     for (const config of defaultConfigs) {
       try {
         this.configure([config]);

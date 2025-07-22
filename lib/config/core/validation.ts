@@ -213,7 +213,11 @@ export const dashboardConfigSchema = z.object({
 });
 
 // 配置验证函数
-export function validateConfig(config: any): { isValid: boolean; errors: string[]; warnings: string[] } {
+export function validateConfig(config: any): {
+  isValid: boolean;
+  errors: string[];
+  warnings: string[];
+} {
   try {
     configSchema.parse(config);
     return {
@@ -238,7 +242,11 @@ export function validateConfig(config: any): { isValid: boolean; errors: string[
 }
 
 // 部分配置验证函数
-export function validatePartialConfig(config: any): { isValid: boolean; errors: string[]; warnings: string[] } {
+export function validatePartialConfig(config: any): {
+  isValid: boolean;
+  errors: string[];
+  warnings: string[];
+} {
   try {
     configSchema.partial().parse(config);
     return {

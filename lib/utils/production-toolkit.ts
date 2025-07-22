@@ -2,7 +2,6 @@ import { createHash, randomBytes } from 'crypto';
 import { z } from 'zod';
 import helmet from 'helmet';
 import { Request, Response, NextFunction } from 'express';
-import winston from 'winston';
 import { performance } from 'perf_hooks';
 
 // Note: DOMPurify, express-rate-limit, and express-slow-down are not available
@@ -13,21 +12,30 @@ import { performance } from 'perf_hooks';
 // ============================================================================
 
 export class ValidationError extends Error {
-  constructor(message: string, public field?: string) {
+  constructor(
+    message: string,
+    public field?: string
+  ) {
     super(message);
     this.name = 'ValidationError';
   }
 }
 
 export class SecurityError extends Error {
-  constructor(message: string, public code?: string) {
+  constructor(
+    message: string,
+    public code?: string
+  ) {
     super(message);
     this.name = 'SecurityError';
   }
 }
 
 export class RateLimitError extends Error {
-  constructor(message: string, public retryAfter?: number) {
+  constructor(
+    message: string,
+    public retryAfter?: number
+  ) {
     super(message);
     this.name = 'RateLimitError';
   }
@@ -94,52 +102,18 @@ export interface PerformanceMetrics {
 // 生产级日志记录器
 // ============================================================================
 
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
+
 export class ProductionLogger {
   private static instance: ProductionLogger;
-  private logger: winston.Logger;
+  private logger: any;
   private metrics: Map<string, PerformanceMetrics> = new Map();
 
   private constructor() {
-    this.logger = winston.createLogger({
-      level: process.env.LOG_LEVEL || 'info',
-      format: winston.format.combine(
-        winston.format.timestamp(),
-        winston.format.errors({ stack: true }),
-        winston.format.json(),
-        winston.format.printf(({ timestamp, level, message, ...meta }) => {
-          return JSON.stringify({
-            timestamp,
-            level,
-            message,
-            ...meta,
-            environment: process.env.NODE_ENV || 'development'
-          });
-        })
-      ),
-      defaultMeta: {
-        service: 'zk-agent',
-        version: process.env.APP_VERSION || '1.0.0'
-      },
-      transports: [
-        new winston.transports.Console({
-          format: winston.format.combine(
-            winston.format.colorize(),
-            winston.format.simple()
-          )
-        }),
-        new winston.transports.File({
-          filename: 'logs/error.log',
-          level: 'error',
-          maxsize: 5242880, // 5MB
-          maxFiles: 5
-        }),
-        new winston.transports.File({
-          filename: 'logs/combined.log',
-          maxsize: 5242880, // 5MB
-          maxFiles: 5
-        })
-      ]
-    });
+    // 使用统一的logger实例，避免重复创建
+    this.logger = defaultLogger;
   }
 
   public static getInstance(): ProductionLogger {
@@ -173,7 +147,7 @@ export class ProductionLogger {
       ip: req.ip,
       userAgent: req.get('User-Agent'),
       statusCode: res.statusCode,
-      duration
+      duration,
     };
 
     if (res.statusCode >= 400) {
@@ -190,7 +164,7 @@ export class ProductionLogger {
       requestCount: 0,
       averageResponseTime: 0,
       errorRate: 0,
-      lastUpdated: new Date()
+      lastUpdated: new Date(),
     };
 
     current.requestCount++;
@@ -220,7 +194,7 @@ export class InputSanitizer {
     /javascript:/gi,
     /on\w+\s*=/gi,
     /data:text\/html/gi,
-    /vbscript:/gi
+    /vbscript:/gi,
   ];
 
   public static sanitizeString(input: string): string {
@@ -327,40 +301,40 @@ export class RateLimiter {
       const key = req.ip || 'unknown';
       const now = Date.now();
       const windowStart = now - config.windowMs;
-      
+
       // Clean old entries
       for (const [k, v] of this.requestCounts.entries()) {
         if (v.resetTime < now) {
           this.requestCounts.delete(k);
         }
       }
-      
+
       const current = this.requestCounts.get(key) || { count: 0, resetTime: now + config.windowMs };
-      
+
       if (current.resetTime < now) {
         current.count = 0;
         current.resetTime = now + config.windowMs;
       }
-      
+
       current.count++;
       this.requestCounts.set(key, current);
-      
+
       if (current.count > config.max) {
         const logger = ProductionLogger.getInstance();
         logger.warn('Rate limit exceeded', {
           ip: req.ip,
           userAgent: req.get('User-Agent'),
-          url: req.url
+          url: req.url,
         });
-        
+
         res.status(429).json({
           error: 'Rate limit exceeded',
           message: config.message || 'Too many requests, please try again later.',
-          retryAfter: Math.ceil((current.resetTime - now) / 1000)
+          retryAfter: Math.ceil((current.resetTime - now) / 1000),
         });
         return; // Add return here
       }
-      
+
       next();
     };
   }
@@ -377,7 +351,7 @@ export class RateLimiter {
     return this.createStandardLimiter({
       windowMs: 15 * 60 * 1000, // 15 minutes
       max: 100, // limit each IP to 100 requests per windowMs
-      message: 'Too many API requests, please try again later.'
+      message: 'Too many API requests, please try again later.',
     });
   }
 
@@ -386,7 +360,7 @@ export class RateLimiter {
       windowMs: 15 * 60 * 1000, // 15 minutes
       max: 5, // limit each IP to 5 auth requests per windowMs
       message: 'Too many authentication attempts, please try again later.',
-      skipSuccessfulRequests: true
+      skipSuccessfulRequests: true,
     });
   }
 }
@@ -408,16 +382,16 @@ export class ApiKeyValidator {
     return (req: Request, res: Response, next: NextFunction) => {
       try {
         const apiKey = this.extractApiKey(req);
-        
+
         if (!apiKey) {
           this.logger.warn('Missing API key', {
             ip: req.ip,
             url: req.url,
-            userAgent: req.get('User-Agent')
+            userAgent: req.get('User-Agent'),
           });
           res.status(401).json({
             error: 'Unauthorized',
-            message: 'API key is required'
+            message: 'API key is required',
           });
           return; // Add return here
         }
@@ -427,11 +401,11 @@ export class ApiKeyValidator {
             ip: req.ip,
             url: req.url,
             userAgent: req.get('User-Agent'),
-            apiKeyPrefix: apiKey.substring(0, 8) + '...'
+            apiKeyPrefix: apiKey.substring(0, 8) + '...',
           });
           res.status(401).json({
             error: 'Unauthorized',
-            message: 'Invalid API key'
+            message: 'Invalid API key',
           });
           return; // Add return here
         }
@@ -442,11 +416,11 @@ export class ApiKeyValidator {
       } catch (error) {
         this.logger.error('API key validation error', error as Error, {
           ip: req.ip,
-          url: req.url
+          url: req.url,
         });
         res.status(500).json({
           error: 'Internal Server Error',
-          message: 'API key validation failed'
+          message: 'API key validation failed',
         });
         return; // Add return here
       }
@@ -456,7 +430,7 @@ export class ApiKeyValidator {
   private extractApiKey(req: Request): string | null {
     // 从头部获取
     let apiKey = req.get(this.config.headerName);
-    
+
     // 从查询参数获取（如果配置了）
     if (!apiKey && this.config.queryParam) {
       apiKey = req.query[this.config.queryParam] as string;
@@ -500,18 +474,20 @@ export class SecurityMiddleware {
           fontSrc: ["'self'"],
           objectSrc: ["'none'"],
           mediaSrc: ["'self'"],
-          frameSrc: ["'none'"]
-        }
+          frameSrc: ["'none'"],
+        },
       },
       crossOriginEmbedderPolicy: false,
-      hsts: config.enableHSTS ? {
-        maxAge: 31536000,
-        includeSubDomains: true,
-        preload: true
-      } : false,
+      hsts: config.enableHSTS
+        ? {
+          maxAge: 31536000,
+          includeSubDomains: true,
+          preload: true,
+        }
+        : false,
       noSniff: config.enableContentTypeNoSniff,
       frameguard: config.enableFrameGuard ? { action: 'deny' } : false,
-      xssFilter: config.enableXSS
+      xssFilter: config.enableXSS,
     });
   }
 
@@ -526,15 +502,15 @@ export class SecurityMiddleware {
 
   public static performanceMonitor() {
     const logger = ProductionLogger.getInstance();
-    
+
     return (req: Request, res: Response, next: NextFunction) => {
       const startTime = performance.now();
-      
+
       res.on('finish', () => {
         const duration = performance.now() - startTime;
         logger.logRequest(req, res, duration);
       });
-      
+
       next();
     };
   }
@@ -591,20 +567,22 @@ export class UtilityFunctions {
       if (!inThrottle) {
         func.apply(this, args);
         inThrottle = true;
-        setTimeout(() => inThrottle = false, limit);
+        setTimeout(() => (inThrottle = false), limit);
       }
     };
   }
 
   public static formatBytes(bytes: number, decimals: number = 2): string {
-    if (bytes === 0) {return '0 Bytes';}
-    
+    if (bytes === 0) {
+      return '0 Bytes';
+    }
+
     const k = 1024;
     const dm = decimals < 0 ? 0 : decimals;
     const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
-    
+
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    
+
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
   }
 
@@ -628,13 +606,17 @@ export class UtilityFunctions {
 
   public static hashPassword(password: string, salt?: string): string {
     const actualSalt = salt || randomBytes(16).toString('hex');
-    const hash = createHash('sha256').update(password + actualSalt).digest('hex');
+    const hash = createHash('sha256')
+      .update(password + actualSalt)
+      .digest('hex');
     return `${actualSalt}:${hash}`;
   }
 
   public static verifyPassword(password: string, hashedPassword: string): boolean {
     const [salt, hash] = hashedPassword.split(':');
-    const newHash = createHash('sha256').update(password + salt).digest('hex');
+    const newHash = createHash('sha256')
+      .update(password + salt)
+      .digest('hex');
     return hash === newHash;
   }
 }
@@ -649,19 +631,19 @@ export const DEFAULT_SECURITY_CONFIG: SecurityConfig = {
   enableHSTS: true,
   enableContentTypeNoSniff: true,
   enableFrameGuard: true,
-  trustedDomains: ['localhost:3000', 'localhost:3001']
+  trustedDomains: ['localhost:3000', 'localhost:3001'],
 };
 
 export const DEFAULT_RATE_LIMIT_CONFIG: RateLimitConfig = {
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100,
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
 };
 
 export const DEFAULT_SLOW_DOWN_CONFIG: SlowDownConfig = {
   windowMs: 15 * 60 * 1000, // 15 minutes
   delayAfter: 50,
   delayMs: 500,
-  maxDelayMs: 20000
+  maxDelayMs: 20000,
 };

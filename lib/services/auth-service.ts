@@ -8,18 +8,28 @@
 import { z } from 'zod';
 import { enhancedDb, dbTransaction } from '@/lib/database';
 import { hashPassword, verifyPassword } from '@/lib/auth/password';
-import { generateToken, verifyToken } from '@/lib/auth/jwt';
-import { ApiResponseWrapper } from '@/lib/utils/api-helper';
+import { generateTokenPair, verifyAccessToken, verifyRefreshToken } from '@/lib/auth/jwt';
 import { ErrorCode } from '@/types/core';
-import { IAuthService, loginSchema, registerSchema, changePasswordSchema } from '../interfaces/auth-manager.interface';
+import {
+  IAuthService,
+  loginSchema,
+  registerSchema,
+  changePasswordSchema,
+} from '../interfaces/auth-manager.interface';
 import { injectable } from '../di/container';
+import { HealthCheckResult } from '../interfaces/health-check.interface';
 
-@injectable()
+@injectable
 export class AuthService implements IAuthService {
   async login(data: z.infer<typeof loginSchema>) {
     const { email, password } = data;
 
-    const user = await enhancedDb.prisma.user.findUnique({
+    const prismaClient = enhancedDb.getClient();
+    if (!prismaClient) {
+      throw new Error('Database client not available');
+    }
+
+    const user = await prismaClient.user.findUnique({
       where: { email: email.toLowerCase() },
       select: {
         id: true,
@@ -46,7 +56,7 @@ export class AuthService implements IAuthService {
     }
 
     // Update login stats
-    await enhancedDb.prisma.user.update({
+    await prismaClient.user.update({
       where: { id: user.id },
       data: {
         lastLoginAt: new Date(),
@@ -54,7 +64,7 @@ export class AuthService implements IAuthService {
       },
     });
 
-    const { accessToken, refreshToken } = await generateToken(user);
+    const { accessToken, refreshToken } = await generateTokenPair(user);
 
     return {
       user: {
@@ -65,13 +75,13 @@ export class AuthService implements IAuthService {
         role: user.role,
       },
       tokens: { accessToken, refreshToken },
-    }
+    };
   }
 
   async register(data: z.infer<typeof registerSchema>) {
     const { email, password, name, avatar } = data;
 
-    return dbTransaction(async (prisma) => {
+    return dbTransaction(async prisma => {
       const existingUser = await prisma.user.findUnique({
         where: { email: email.toLowerCase() },
       });
@@ -100,7 +110,7 @@ export class AuthService implements IAuthService {
         },
       });
 
-      const { accessToken, refreshToken } = await generateToken(newUser);
+      const { accessToken, refreshToken } = await generateTokenPair(newUser);
 
       return {
         user: newUser,
@@ -110,12 +120,17 @@ export class AuthService implements IAuthService {
   }
 
   async refreshToken(token: string) {
-    const payload = await verifyToken(token, 'refresh');
+    const payload = await verifyRefreshToken(token);
     if (!payload) {
       throw new Error('Invalid refresh token.');
     }
 
-    const user = await enhancedDb.prisma.user.findUnique({
+    const prismaClient = enhancedDb.getClient();
+    if (!prismaClient) {
+      throw new Error('Database client not available');
+    }
+
+    const user = await prismaClient.user.findUnique({
       where: { id: payload.userId },
       select: {
         id: true,
@@ -131,7 +146,7 @@ export class AuthService implements IAuthService {
       throw new Error('User not found or inactive.');
     }
 
-    const { accessToken, refreshToken: newRefreshToken } = await generateToken(user);
+    const { accessToken, refreshToken: newRefreshToken } = generateTokenPair(user);
 
     return { accessToken, refreshToken: newRefreshToken };
   }
@@ -139,7 +154,7 @@ export class AuthService implements IAuthService {
   async changePassword(userId: string, data: z.infer<typeof changePasswordSchema>) {
     const { oldPassword, newPassword } = data;
 
-    return dbTransaction(async (prisma) => {
+    return dbTransaction(async prisma => {
       const user = await prisma.user.findUnique({
         where: { id: userId },
         select: {
@@ -171,7 +186,12 @@ export class AuthService implements IAuthService {
 
   async checkHealth(): Promise<HealthCheckResult> {
     try {
-      await enhancedDb.prisma.$queryRaw`SELECT 1`;
+      const prismaClient = enhancedDb.getClient();
+      if (!prismaClient) {
+        throw new Error('Database client not available');
+      }
+      
+      await prismaClient.$queryRaw`SELECT 1`;
       return {
         status: 'UP',
         timestamp: new Date(),

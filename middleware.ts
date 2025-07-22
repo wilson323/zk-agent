@@ -6,8 +6,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getService, TYPES } from '@/lib/di/container';
-import { ILogger } from '@/lib/interfaces/logger.interface';
+import { container, TYPES } from '@/lib/di/container';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
 import { isDIInitialized } from '@/lib/di/initialization';
 
 /**
@@ -24,16 +26,16 @@ export async function middleware(request: NextRequest) {
 
   try {
     // 从DI容器获取日志服务
-    const logger = getService<ILogger>(TYPES.Logger);
-    
+    const logger = container.resolve<ILogger>(TYPES.Logger);
+
     // 记录请求信息
     logger.info(`中间件处理请求: ${request.method} ${request.nextUrl.pathname}`);
-    
+
     // 添加自定义响应头
     const response = NextResponse.next();
     response.headers.set('x-middleware-cache', 'no-cache');
     response.headers.set('x-middleware-timestamp', Date.now().toString());
-    
+
     return response;
   } catch (error) {
     // 错误处理 - 在中间件中出现错误时，我们仍然允许请求继续
@@ -46,6 +48,6 @@ export async function middleware(request: NextRequest) {
  * 配置中间件匹配的路径
  */
 export const config = {
-  // 匹配所有API路由和示例页面
-  matcher: ['/api/:path*', '/example']
+  // 匹配所有API路由
+  matcher: ['/api/:path*'],
 };

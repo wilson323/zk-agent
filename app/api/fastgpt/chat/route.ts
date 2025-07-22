@@ -12,11 +12,15 @@ import { ErrorCode } from '@/types/core';
 
 export const POST = createApiRoute(
   RouteConfigs.protectedPost(),
-  async (req: NextRequest, { params, validatedBody, validatedQuery, user, requestId }): Promise<NextResponse> => {
+  async (
+    req: NextRequest,
+    { params, validatedBody, validatedQuery, user, requestId }
+  ): Promise<NextResponse> => {
     try {
       const body = await req.json();
-      const { messages, stream, detail, chatId, responseChatItemId, variables, baseUrl, useProxy } = body;
-    
+      const { messages, stream, detail, chatId, responseChatItemId, variables, baseUrl, useProxy } =
+        body;
+
       // Use server-side environment variable for API key
       const apiKey = process.env.FASTGPT_API_KEY;
       if (!apiKey) {
@@ -29,13 +33,13 @@ export const POST = createApiRoute(
       }
 
       // Use server-side or provided API URL
-      const apiUrl = process.env.FASTGPT_API_URL || baseUrl || "https://zktecoaihub.com";
-    
+      const apiUrl = process.env.FASTGPT_API_URL || baseUrl || 'https://zktecoaihub.com';
+
       // Determine the actual API endpoint
       const endpoint = useProxy
-        ? `/api/proxy?url=${encodeURIComponent(apiUrl.replace(/^https?:\/\//, ""))}/api/v1/chat/completions`
+        ? `/api/proxy?url=${encodeURIComponent(apiUrl.replace(/^https?:\/\//, ''))}/api/v1/chat/completions`
         : `${apiUrl}/api/v1/chat/completions`;
-    
+
       // Prepare the request to the FastGPT API
       const fastGPTRequest = {
         messages,
@@ -45,17 +49,17 @@ export const POST = createApiRoute(
         ...(responseChatItemId && { responseChatItemId }),
         ...(variables && { variables }),
       };
-    
+
       // Make the request to the FastGPT API
       const response = await fetch(endpoint, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
           Authorization: `Bearer ${apiKey}`,
         },
         body: JSON.stringify(fastGPTRequest),
       });
-    
+
       // Handle streaming response
       if (stream) {
         // Return the stream directly
@@ -66,7 +70,7 @@ export const POST = createApiRoute(
               controller.close();
               return;
             }
-    
+
             try {
               while (true) {
                 const { done, value } = await reader.read();
@@ -82,19 +86,21 @@ export const POST = createApiRoute(
             }
           },
         });
-    
+
         return new NextResponse(readableStream, {
           headers: {
-            "Content-Type": "text/event-stream",
-            "Cache-Control": "no-cache",
-            Connection: "keep-alive",
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            Connection: 'keep-alive',
           },
         });
       }
-    
+
       // Handle non-streaming response
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: { message: response.statusText } }));
+        const errorData = await response
+          .json()
+          .catch(() => ({ error: { message: response.statusText } }));
         return ApiResponseWrapper.error(
           ErrorCode.EXTERNAL_SERVICE_ERROR,
           errorData.error?.message || 'FastGPT API error',
@@ -102,7 +108,7 @@ export const POST = createApiRoute(
           response.status
         );
       }
-    
+
       const data = await response.json();
       return ApiResponseWrapper.success(data);
     } catch (error) {

@@ -7,7 +7,11 @@ import { ConfigProvider, AppConfig, ConfigUpdateEvent } from '../core/types';
 import { FileConfigProvider } from './file-provider';
 import { EnvironmentConfigProvider } from './env-provider';
 import { DatabaseConfigProvider } from './database-provider';
-import { logger } from '@/lib/utils/logger';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
+
+const logger = getLogger();
 
 export { FileConfigProvider } from './file-provider';
 export { EnvironmentConfigProvider } from './env-provider';
@@ -31,7 +35,7 @@ export class CompositeConfigProvider implements ConfigProvider {
    */
   addProvider(provider: ConfigProvider): void {
     this.providers.push(provider);
-    provider.watch((event) => {
+    provider.watch(event => {
       this.watchers.forEach(watcher => watcher(event));
     });
   }
@@ -68,7 +72,7 @@ export class CompositeConfigProvider implements ConfigProvider {
    * 保存配置到所有支持保存的提供者
    */
   async save(config: Partial<AppConfig>): Promise<void> {
-    const savePromises = this.providers.map(async (provider) => {
+    const savePromises = this.providers.map(async provider => {
       try {
         await provider.save(config);
       } catch (error) {
@@ -106,7 +110,7 @@ export class CompositeConfigProvider implements ConfigProvider {
    */
   private setupWatchers(): void {
     this.providers.forEach(provider => {
-      provider.watch((event) => {
+      provider.watch(event => {
         this.watchers.forEach(watcher => watcher(event));
       });
     });
@@ -134,10 +138,7 @@ export class CompositeConfigProvider implements ConfigProvider {
  * 创建默认配置提供者组合
  */
 export function createDefaultProviders(): CompositeConfigProvider {
-  const providers = [
-    new FileConfigProvider(),
-    new EnvironmentConfigProvider(),
-  ];
+  const providers = [new FileConfigProvider(), new EnvironmentConfigProvider()];
 
   // 如果在生产环境，添加数据库配置提供者
   if (process.env.NODE_ENV === 'production') {

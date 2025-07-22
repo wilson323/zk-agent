@@ -24,20 +24,24 @@ export {
 // 便利函数和工具
 import { configManager } from './core/manager';
 import { createDefaultProviders } from './providers';
-import { Logger } from '../utils/logger';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
 
 const logger = new Logger('ConfigSystem');
 
 /**
  * 初始化配置系统
  */
-export async function initializeConfigSystem(options: {
-  configFile?: string;
-  enableFileProvider?: boolean;
-  enableEnvProvider?: boolean;
-  enableDatabaseProvider?: boolean;
-  database?: any;
-} = {}): Promise<void> {
+export async function initializeConfigSystem(
+  options: {
+    configFile?: string;
+    enableFileProvider?: boolean;
+    enableEnvProvider?: boolean;
+    enableDatabaseProvider?: boolean;
+    database?: any;
+  } = {}
+): Promise<void> {
   try {
     const {
       configFile,
@@ -49,13 +53,13 @@ export async function initializeConfigSystem(options: {
 
     // 创建配置提供者
     const providers = createDefaultProviders();
-    
+
     // 如果指定了配置文件，使用自定义文件提供者
     if (configFile && enableFileProvider) {
       const { FileConfigProvider } = await import('./providers/file-provider');
       providers.addProvider(new FileConfigProvider(configFile));
     }
-    
+
     // 如果启用数据库提供者
     if (enableDatabaseProvider && database) {
       const { DatabaseConfigProvider } = await import('./providers/database-provider');
@@ -65,10 +69,10 @@ export async function initializeConfigSystem(options: {
 
     // 将提供者添加到配置管理器
     configManager.addProvider(providers);
-    
+
     // 加载初始配置
     await configManager.reload();
-    
+
     logger.info('Configuration system initialized successfully');
   } catch (error) {
     logger.error('Failed to initialize configuration system', { error });
@@ -81,7 +85,7 @@ export async function initializeConfigSystem(options: {
  */
 export function getConfig<T = any>(key: string, defaultValue?: T): T {
   const value = configManager.get<T>(key);
-  return value !== undefined ? value : defaultValue as T;
+  return value !== undefined ? value : (defaultValue as T);
 }
 
 /**
@@ -274,7 +278,7 @@ export class ConfigMigrator {
     }
 
     let migratedConfig = { ...config };
-    
+
     for (let i = startIndex + 1; i <= endIndex; i++) {
       const version = versions[i];
       const migration = this.migrations.get(version);
@@ -294,7 +298,7 @@ export class ConfigMigrator {
 export const configMigrator = new ConfigMigrator();
 
 // 注册一些示例迁移
-configMigrator.register('1.1.0', (config) => {
+configMigrator.register('1.1.0', config => {
   // 示例：重命名配置键
   if (config.oldKey) {
     config.newKey = config.oldKey;
@@ -303,7 +307,7 @@ configMigrator.register('1.1.0', (config) => {
   return config;
 });
 
-configMigrator.register('1.2.0', (config) => {
+configMigrator.register('1.2.0', config => {
   // 示例：添加新的默认值
   if (!config.features) {
     config.features = {};
@@ -335,18 +339,14 @@ export async function healthCheck(): Promise<{
     status: validation.isValid ? 'pass' : 'fail',
     message: validation.isValid ? undefined : validation.errors.join(', '),
   });
-  
+
   if (!validation.isValid) {
     overallStatus = 'error';
   }
 
   // 检查必要的配置项
-  const requiredConfigs = [
-    'environment',
-    'logging.level',
-    'database.connectionPool.max',
-  ];
-  
+  const requiredConfigs = ['environment', 'logging.level', 'database.connectionPool.max'];
+
   for (const key of requiredConfigs) {
     const hasValue = hasConfig(key);
     checks.push({
@@ -354,7 +354,7 @@ export async function healthCheck(): Promise<{
       status: hasValue ? 'pass' : 'fail',
       message: hasValue ? undefined : `Missing required configuration: ${key}`,
     });
-    
+
     if (!hasValue && overallStatus === 'healthy') {
       overallStatus = 'error';
     }
@@ -368,7 +368,7 @@ export async function healthCheck(): Promise<{
       status: 'warn',
       message: `High connection pool size: ${dbMaxConnections}`,
     });
-    
+
     if (overallStatus === 'healthy') {
       overallStatus = 'warning';
     }

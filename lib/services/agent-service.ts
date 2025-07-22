@@ -8,7 +8,7 @@
  * @updateLog
  *   - 2024-12-19 完成智能体服务基础实现
  *   - 2024-12-19 添加命名规范备注和方法说明
- * 
+ *
  * 🔤 命名规范说明：
  * - 服务类：Service后缀（如：AgentService）
  * - CRUD方法：create/get/update/delete + 实体名（如：createAgent）
@@ -19,36 +19,38 @@
  */
 
 import { enhancedDb, dbTransaction } from '@/lib/database';
-import { PrismaClient, Prisma } from '@prisma/client'
-import type { Agent } from '@prisma/client'
-import { 
-  Agent, 
-  AgentQueryParams, 
-  CreateAgentRequest, 
+import { PrismaClient, Prisma } from '@prisma/client';
+import type { Agent } from '@prisma/client';
+import {
+  Agent,
+  AgentQueryParams,
+  CreateAgentRequest,
   UpdateAgentRequest,
   AgentType,
-  AgentStatus 
+  AgentStatus,
 } from '@/types/agents';
 import { PaginationParams } from '@/types/core';
-import { 
-  IAgentService, 
-  CreateAgentData, 
-  UpdateAgentData, 
+import {
+  IAgentService,
+  CreateAgentData,
+  UpdateAgentData,
   ListAgentsParams,
   AgentError,
   AgentValidationError,
-  AgentNotFoundError
-} from '../interfaces/agent-manager.interface'
-import { injectable } from '../di/container'
-import { logger } from '@/lib/utils/logger';
+  AgentNotFoundError,
+} from '../interfaces/agent-manager.interface';
+import { injectable } from '../di/container';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
+
+const logger = getLogger();
 
 // 📝 命名规范：服务类使用PascalCase，Service后缀明确表示业务逻辑层
 @injectable
 export class AgentService implements IAgentService {
   // 获取智能体列表（支持分页、搜索、筛选）
-  static async getAgents(
-    queryParams: ListAgentsParams = {}
-  ) {
+  static async getAgents(queryParams: ListAgentsParams = {}) {
     const {
       page = 1,
       limit = 10,
@@ -59,44 +61,45 @@ export class AgentService implements IAgentService {
       tags,
       search,
       isPublic,
-      ownerId
+      ownerId,
     } = queryParams;
 
     // 输入验证
     if (page < 1) {
-      throw new AgentValidationError('页码必须大于0', ['invalid page number'])
+      throw new AgentValidationError('页码必须大于0', ['invalid page number']);
     }
     if (limit < 1 || limit > 100) {
-      throw new AgentValidationError('每页数量必须在1-100之间', ['invalid page size'])
+      throw new AgentValidationError('每页数量必须在1-100之间', ['invalid page size']);
     }
 
     const skip: any = (page - 1) * limit;
-    
+
     // 构建查询条件
     const where: any = {};
-    
+
     if (type) where.type = type;
     if (status) where.status = status;
     if (isPublic !== undefined) where.isPublic = isPublic;
     if (ownerId) where.ownerId = ownerId;
-    
+
     // 标签筛选
     if (tags && tags.length > 0) {
       where.tags = {
-        hasSome: tags
+        hasSome: tags,
       };
     }
-    
+
     // 搜索功能
     if (search) {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
         { description: { contains: search, mode: 'insensitive' } },
-        { capabilities: { hasSome: [search] } }
+        { capabilities: { hasSome: [search] } },
       ];
     }
 
     // 执行查询
+    const prisma = enhancedDb.getClient();
     const [agents, total] = await Promise.all([
       prisma.agentConfig.findMany({
         where,
@@ -107,12 +110,12 @@ export class AgentService implements IAgentService {
           _count: {
             select: {
               sessions: true,
-              messages: true
-            }
-          }
-        }
+              messages: true,
+            },
+          },
+        },
       }),
-      prisma.agentConfig.count({ where })
+      prisma.agentConfig.count({ where }),
     ]);
 
     return {
@@ -121,28 +124,29 @@ export class AgentService implements IAgentService {
         page,
         limit,
         total,
-        totalPages: Math.ceil(total / limit)
-      }
+        totalPages: Math.ceil(total / limit),
+      },
     };
   }
 
   // 根据ID获取单个智能体
   async getAgentById(id: string): Promise<Agent | null> {
     if (!id?.trim()) {
-      throw new AgentValidationError('智能体ID不能为空', ['id is required'])
+      throw new AgentValidationError('智能体ID不能为空', ['id is required']);
     }
 
     try {
+      const prisma = enhancedDb.getClient();
       const agent: any = await prisma.agentConfig.findUnique({
         where: { id },
         include: {
           _count: {
             select: {
               sessions: true,
-              messages: true
-            }
-          }
-        }
+              messages: true,
+            },
+          },
+        },
       });
 
       if (!agent) return null;
@@ -150,35 +154,33 @@ export class AgentService implements IAgentService {
       // 转换为前端类型格式
       return this.transformPrismaToAgent(agent);
     } catch (error) {
-      logger.error('获取智能体详情失败:', error)
-      throw new AgentError('获取智能体详情失败', 'GET_FAILED', { originalError: error })
+      logger.error('获取智能体详情失败:', error);
+      throw new AgentError('获取智能体详情失败', 'GET_FAILED', { originalError: error });
     }
   }
 
   // 创建新智能体
-  static async createAgent(
-    data: CreateAgentData,
-    ownerId?: string
-  ): Promise<Agent> {
-    return dbTransaction(async (prisma) => {
+  static async createAgent(data: CreateAgentData, ownerId?: string): Promise<Agent> {
+    return dbTransaction(async prisma => {
       // 输入验证
       if (!data.name?.trim()) {
-        throw new AgentValidationError('智能体名称不能为空', ['name is required'])
+        throw new AgentValidationError('智能体名称不能为空', ['name is required']);
       }
       if (!data.description?.trim()) {
-        throw new AgentValidationError('智能体描述不能为空', ['description is required'])
+        throw new AgentValidationError('智能体描述不能为空', ['description is required']);
       }
       if (ownerId && !ownerId.trim()) {
-        throw new AgentValidationError('所有者ID不能为空', ['ownerId is required'])
+        throw new AgentValidationError('所有者ID不能为空', ['ownerId is required']);
       }
 
       // 验证类型枚举
-      const validTypes = ['CONVERSATION', 'CAD_ANALYZER', 'POSTER_GENERATOR'] as const
+      const validTypes = ['CONVERSATION', 'CAD_ANALYZER', 'POSTER_GENERATOR'] as const;
       if (data.type && !validTypes.includes(data.type)) {
-        throw new AgentValidationError(`无效的智能体类型: ${data.type}`, ['invalid agent type'])
+        throw new AgentValidationError(`无效的智能体类型: ${data.type}`, ['invalid agent type']);
       }
 
       try {
+        const prisma = enhancedDb.getClient();
         const agent: any = await prisma.agentConfig.create({
           data: {
             name: data.name.trim(),
@@ -188,8 +190,13 @@ export class AgentService implements IAgentService {
             avatar: data.avatar?.trim() || null,
             tags: Array.isArray(data.tags) ? data.tags.filter(tag => tag?.trim()) : [],
             apiEndpoint: data.apiEndpoint?.trim() || null,
-            capabilities: Array.isArray(data.capabilities) ? data.capabilities.filter(cap => cap?.trim()) : [],
-            configuration: typeof data.configuration === 'object' && data.configuration !== null ? data.configuration : {},
+            capabilities: Array.isArray(data.capabilities)
+              ? data.capabilities.filter(cap => cap?.trim())
+              : [],
+            configuration:
+              typeof data.configuration === 'object' && data.configuration !== null
+                ? data.configuration
+                : {},
             version: '1.0.0',
             isPublic: data.isPublic ?? true,
             ownerId,
@@ -203,146 +210,155 @@ export class AgentService implements IAgentService {
               monthlyActiveUsers: 0,
               rating: 0,
               reviewCount: 0,
-              uptime: 0
-            }
+              uptime: 0,
+            },
           },
           include: {
             _count: {
               select: {
                 sessions: true,
-                messages: true
-              }
-            }
-          }
+                messages: true,
+              },
+            },
+          },
         });
 
         return this.transformPrismaToAgent(agent);
       } catch (error) {
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
           if (error.code === 'P2002') {
-            throw new AgentError('智能体名称已存在', 'DUPLICATE_NAME')
+            throw new AgentError('智能体名称已存在', 'DUPLICATE_NAME');
           }
           if (error.code === 'P2003') {
-            throw new AgentError('所有者不存在', 'OWNER_NOT_FOUND')
+            throw new AgentError('所有者不存在', 'OWNER_NOT_FOUND');
           }
         }
-        logger.error('创建智能体失败:', error)
-        throw new AgentError('创建智能体失败', 'CREATE_FAILED', { originalError: error })
+        logger.error('创建智能体失败:', error);
+        throw new AgentError('创建智能体失败', 'CREATE_FAILED', { originalError: error });
       }
     });
   }
 
   // 更新智能体
-  async updateAgent(
-    id: string,
-    data: UpdateAgentData,
-    ownerId?: string
-  ): Promise<Agent | null> {
-    return dbTransaction(async (prisma) => {
+  async updateAgent(id: string, data: UpdateAgentData, ownerId?: string): Promise<Agent | null> {
+    return dbTransaction(async prisma => {
       if (!id?.trim()) {
-        throw new AgentValidationError('智能体ID不能为空', ['id is required'])
+        throw new AgentValidationError('智能体ID不能为空', ['id is required']);
       }
 
       // 验证更新数据
       if (data.name !== undefined && !data.name.trim()) {
-        throw new AgentValidationError('智能体名称不能为空', ['name cannot be empty'])
+        throw new AgentValidationError('智能体名称不能为空', ['name cannot be empty']);
       }
       if (data.description !== undefined && !data.description.trim()) {
-        throw new AgentValidationError('智能体描述不能为空', ['description cannot be empty'])
+        throw new AgentValidationError('智能体描述不能为空', ['description cannot be empty']);
       }
 
       // 验证权限（如果有ownerId，确保只能更新自己的agent）
       if (ownerId) {
         const existingAgent: any = await prisma.agentConfig.findUnique({
           where: { id },
-          select: { ownerId: true }
+          select: { ownerId: true },
         });
 
         if (!existingAgent) {
-          throw new AgentNotFoundError(id)
+          throw new AgentNotFoundError(id);
         }
         if (existingAgent.ownerId !== ownerId) {
-          throw new AgentError('无权限更新此智能体', 'UNAUTHORIZED')
+          throw new AgentError('无权限更新此智能体', 'UNAUTHORIZED');
         }
       }
 
       try {
         const updateData: any = {};
-        
+
         if (data.name) updateData.name = data.name.trim();
         if (data.description) updateData.description = data.description.trim();
         if (data.type) updateData.type = data.type;
         if (data.status) updateData.status = data.status;
         if (data.tags) updateData.tags = data.tags.filter(tag => tag?.trim());
-        if (data.capabilities) updateData.capabilities = data.capabilities.filter(cap => cap?.trim());
+        if (data.capabilities)
+          updateData.capabilities = data.capabilities.filter(cap => cap?.trim());
         if (data.configuration) updateData.configuration = data.configuration;
         if (data.visibility) updateData.isPublic = data.visibility === 'public';
         if (data.isActive !== undefined) updateData.isActive = data.isActive;
 
-        const agent: any = await prisma.agentConfig.update({
-          where: { id },
-          data: updateData,
-          include: {
-            _count: {
-              select: {
-                sessions: true,
-                messages: true
-              }
+        // 验证权限（如果有ownerId，确保只能更新自己的agent）
+        if (ownerId) {
+            const existingAgent = await prisma.agentConfig.findUnique({
+                where: { id },
+                select: { ownerId: true }
+            });
+            if (!existingAgent) {
+                throw new Error('Agent not found');
             }
-          }
+            if (existingAgent.ownerId !== ownerId) {
+                throw new Error('You can only update your own agents');
+            }
+        }
+        const agent = await prisma1.agentConfig.update({
+            where: { id },
+            data: updateData,
+            include: {
+                _count: {
+                    select: {
+                        sessions: true,
+                        messages: true,
+                    },
+                },
+            },
         });
-
-        return this.transformPrismaToAgent(agent);
+        return agent;
       } catch (error) {
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
           if (error.code === 'P2002') {
-            throw new AgentError('智能体名称已存在', 'DUPLICATE_NAME')
+            throw new AgentError('智能体名称已存在', 'DUPLICATE_NAME');
           }
           if (error.code === 'P2025') {
-            throw new AgentNotFoundError(id)
+            throw new AgentNotFoundError(id);
           }
         }
-        logger.error('更新智能体失败:', error)
-        throw new AgentError('更新智能体失败', 'UPDATE_FAILED', { originalError: error })
+        logger.error('更新智能体失败:', error);
+        throw new AgentError('更新智能体失败', 'UPDATE_FAILED', { originalError: error });
       }
     });
   }
 
   // 删除智能体
   async deleteAgent(id: string, ownerId?: string): Promise<boolean> {
-    return dbTransaction(async (prisma) => {
+    return dbTransaction(async prisma => {
       if (!id?.trim()) {
-        throw new AgentValidationError('智能体ID不能为空', ['id is required'])
+        throw new AgentValidationError('智能体ID不能为空', ['id is required']);
       }
 
       // 验证权限
       if (ownerId) {
         const existingAgent: any = await prisma.agentConfig.findUnique({
           where: { id },
-          select: { ownerId: true }
+          select: { ownerId: true },
         });
 
         if (!existingAgent) {
-          throw new AgentNotFoundError(id)
+          throw new AgentNotFoundError(id);
         }
         if (existingAgent.ownerId !== ownerId) {
-          throw new AgentError('无权限删除此智能体', 'UNAUTHORIZED')
+          throw new AgentError('无权限删除此智能体', 'UNAUTHORIZED');
         }
       }
 
       try {
         await prisma.agentConfig.delete({
-          where: { id }
+          where: { id },
         });
         return true;
       } catch (error) {
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
           if (error.code === 'P2025') {
-            throw new AgentNotFoundError(id)
+            throw new AgentNotFoundError(id);
           }
         }
-        logger.error('删除智能体失败:', error)
-        throw new AgentError('删除智能体失败', 'DELETE_FAILED', { originalError: error })
+        logger.error('删除智能体失败:', error);
+        throw new AgentError('删除智能体失败', 'DELETE_FAILED', { originalError: error });
       }
     });
   }
@@ -352,21 +368,21 @@ export class AgentService implements IAgentService {
     const agents: any = await prisma.agentConfig.findMany({
       where: {
         isPublic: true,
-        status: AgentStatus.ACTIVE
+        status: AgentStatus.ACTIVE,
       },
       orderBy: [
         { metrics: { path: ['rating'], order: 'desc' } },
-        { metrics: { path: ['totalRequests'], order: 'desc' } }
+        { metrics: { path: ['totalRequests'], order: 'desc' } },
       ],
       take: limit,
       include: {
         _count: {
           select: {
             sessions: true,
-            messages: true
-          }
-        }
-      }
+            messages: true,
+          },
+        },
+      },
     });
 
     return agents.map(this.transformPrismaToAgent);
@@ -377,11 +393,11 @@ export class AgentService implements IAgentService {
     const agents: any = await prisma.agentConfig.findMany({
       where: {
         isPublic: true,
-        status: AgentStatus.ACTIVE
+        status: AgentStatus.ACTIVE,
       },
       select: {
-        tags: true
-      }
+        tags: true,
+      },
     });
 
     // 统计标签频次
@@ -400,19 +416,16 @@ export class AgentService implements IAgentService {
   }
 
   // 更新智能体指标
-  static async updateAgentMetrics(
-    agentId: string,
-    metrics: Partial<any>
-  ): Promise<void> {
-    return dbTransaction(async (prisma) => {
+  static async updateAgentMetrics(agentId: string, metrics: Partial<any>): Promise<void> {
+    return dbTransaction(async prisma => {
       await prisma.agentConfig.update({
         where: { id: agentId },
         data: {
           metrics: {
             ...(await this.getAgentMetrics(agentId)),
-            ...metrics
-          }
-        }
+            ...metrics,
+          },
+        },
       });
     });
   }
@@ -421,7 +434,7 @@ export class AgentService implements IAgentService {
   static async getAgentMetrics(agentId: string): Promise<any> {
     const agent: any = await prisma.agentConfig.findUnique({
       where: { id: agentId },
-      select: { metrics: true }
+      select: { metrics: true },
     });
 
     return agent?.metrics || {};
@@ -445,13 +458,19 @@ export class AgentService implements IAgentService {
       isPublic: prismaAgent.isPublic,
       ownerId: prismaAgent.ownerId,
       createdAt: prismaAgent.createdAt.toISOString(),
-      updatedAt: prismaAgent.updatedAt.toISOString()
+      updatedAt: prismaAgent.updatedAt.toISOString(),
     };
   }
 
   async checkHealth(): Promise<HealthCheckResult> {
     try {
-      await enhancedDb.prisma.$queryRaw`SELECT 1`;
+      const prismaClient = enhancedDb.getClient();
+      
+      if (!prismaClient) {
+        throw new Error('Database client not available');
+      }
+      
+      await prismaClient.$queryRaw`SELECT 1`;
       return {
         status: 'UP',
         timestamp: new Date(),

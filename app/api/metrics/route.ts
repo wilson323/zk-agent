@@ -10,8 +10,8 @@ export async function GET(req: NextRequest) {
     // to update their internal metrics that are then exposed by prom-client
 
     // Example: Manually trigger metric collection if not already automated
-    // databaseMonitor.collectMetrics(); 
-    // aiModelManager.collectMetrics(); 
+    // databaseMonitor.collectMetrics();
+    // aiModelManager.collectMetrics();
 
     const metrics = await register.metrics();
     return new NextResponse(metrics, {

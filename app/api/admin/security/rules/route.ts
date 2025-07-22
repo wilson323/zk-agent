@@ -7,9 +7,17 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { codeReviewSystem } from '@/lib/security/code-review-system';
-import { securityAuditSystem, SecurityEventType, SecuritySeverity } from '@/lib/security/security-audit-system';
+import {
+  securityAuditSystem,
+  SecurityEventType,
+  SecuritySeverity,
+} from '@/lib/security/security-audit-system';
 import { getErrorMessage } from '@/lib/utils/error-handler';
-import { Logger } from '@/lib/utils/logger';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
+
+const logger = getLogger();
 
 const logger = new Logger('SecurityRulesAPI');
 
@@ -22,9 +30,15 @@ export async function GET(request: NextRequest) {
     const enabled = searchParams.get('enabled');
 
     const options: any = {};
-    if (category) {options.category = category;}
-    if (severity) {options.severity = severity;}
-    if (enabled !== null) {options.enabled = enabled === 'true';}
+    if (category) {
+      options.category = category;
+    }
+    if (severity) {
+      options.severity = severity;
+    }
+    if (enabled !== null) {
+      options.enabled = enabled === 'true';
+    }
 
     const rules = codeReviewSystem.getSecurityRules(options);
 
@@ -37,17 +51,19 @@ export async function GET(request: NextRequest) {
         disabled: rules.filter(r => !r.enabled).length,
       },
     });
-
   } catch (error) {
     logger.error('Failed to get security rules', {
       error: getErrorMessage(error),
     });
 
-    return NextResponse.json({
-      success: false,
-      error: 'Failed to get security rules',
-      details: getErrorMessage(error),
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Failed to get security rules',
+        details: getErrorMessage(error),
+      },
+      { status: 500 }
+    );
   }
 }
 
@@ -55,20 +71,31 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, category, severity, description, pattern, fileExtensions, remediation, references } = body;
+    const {
+      name,
+      category,
+      severity,
+      description,
+      pattern,
+      fileExtensions,
+      remediation,
+      references,
+    } = body;
 
     // Validate required fields
     if (!name || !category || !severity || !description || !pattern) {
-      return NextResponse.json({
-        success: false,
-        error: 'Missing required fields',
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Missing required fields',
+        },
+        { status: 400 }
+      );
     }
 
     // Get client IP for audit logging
-    const clientIP = request.headers.get('x-forwarded-for') || 
-                     request.headers.get('x-real-ip') || 
-                     '127.0.0.1';
+    const clientIP =
+      request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '127.0.0.1';
 
     // Generate rule ID
     const ruleId = `custom_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -115,16 +142,18 @@ export async function POST(request: NextRequest) {
       data: { ruleId },
       message: 'Security rule created successfully',
     });
-
   } catch (error) {
     logger.error('Failed to create security rule', {
       error: getErrorMessage(error),
     });
 
-    return NextResponse.json({
-      success: false,
-      error: 'Failed to create security rule',
-      details: getErrorMessage(error),
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Failed to create security rule',
+        details: getErrorMessage(error),
+      },
+      { status: 500 }
+    );
   }
 }

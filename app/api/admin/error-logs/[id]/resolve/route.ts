@@ -9,7 +9,7 @@ import { NextRequest } from 'next/server';
 import { createApiRoute, RouteConfigs } from '@/lib/middleware/api-route-wrapper';
 import { ApiResponseWrapper } from '@/lib/utils/api-helper';
 import { ErrorCode } from '@/types/core';
-import { verifyAdminAuth } from "@/lib/auth/middleware";
+import { verifyAdminAuth } from '@/lib/auth/middleware';
 import { ERROR_CODES } from '@/config/constants';
 
 export const PATCH = createApiRoute(
@@ -29,8 +29,7 @@ export const PATCH = createApiRoute(
 
     return ApiResponseWrapper.success({
       success: true,
-      message: "错误日志已标记为已解决",
+      message: '错误日志已标记为已解决',
     });
   }
 );
-

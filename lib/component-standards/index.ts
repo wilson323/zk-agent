@@ -1,7 +1,7 @@
 /**
  * 组件标准库入口文件
  * 统一导出所有组件标准化工具和模式
- * 
+ *
  * 基于以下标准和最佳实践:
  * - React 18+ 最佳实践
  * - WAI-ARIA 可访问性标准
@@ -57,21 +57,21 @@ import { performanceOptimizers } from './performance-optimizers';
 export const componentStandards = {
   // 工厂模式
   factory: componentFactory,
-  
+
   // 设计系统
   tokens: designTokens,
-  
+
   // 组件模式
   patterns: componentPatterns,
-  
+
   // 验证工具
   validation: validationSchemas,
-  
+
   // 可访问性
   accessibility: accessibilityHelpers,
-  
+
   // 性能优化
-  performance: performanceOptimizers
+  performance: performanceOptimizers,
 } as const;
 
 // =============================================================================
@@ -85,7 +85,7 @@ export type {
   ResponsiveVariantConfig,
   ThemeAwareConfig,
   PerformanceConfig,
-  AccessibilityConfig
+  AccessibilityConfig,
 } from './component-factory';
 
 export type {
@@ -98,7 +98,7 @@ export type {
   AnimationTokens,
   BreakpointTokens,
   ZIndexTokens,
-  ComponentSizeTokens
+  ComponentSizeTokens,
 } from './design-tokens';
 
 export type {
@@ -110,7 +110,7 @@ export type {
   InputPropsSchema,
   CardPropsSchema,
   DialogPropsSchema,
-  TablePropsSchema
+  TablePropsSchema,
 } from './validation-schemas';
 
 export type {
@@ -119,7 +119,7 @@ export type {
   KeyboardNavigationConfig,
   AnnouncementOptions,
   ContrastResult,
-  AccessibilityHelpers
+  AccessibilityHelpers,
 } from './accessibility-helpers';
 
 export type {
@@ -130,7 +130,7 @@ export type {
   ThrottleOptions,
   MemoryMonitorConfig,
   PerformanceMetrics,
-  PerformanceOptimizers
+  PerformanceOptimizers,
 } from './performance-optimizers.tsx';
 
 // =============================================================================
@@ -166,45 +166,44 @@ export function initializeComponentStandards(config?: {
     theme: 'auto' as const,
     accessibility: {
       enableValidation: process.env.NODE_ENV === 'development',
-      enableAnnouncements: true
+      enableAnnouncements: true,
     },
     performance: {
       enableMonitoring: process.env.NODE_ENV === 'development',
-      enableOptimizations: true
+      enableOptimizations: true,
     },
     development: {
       enableWarnings: process.env.NODE_ENV === 'development',
-      enableMetrics: process.env.NODE_ENV === 'development'
-    }
+      enableMetrics: process.env.NODE_ENV === 'development',
+    },
   };
-  
+
   const finalConfig = {
     ...defaultConfig,
     ...config,
     accessibility: {
       ...defaultConfig.accessibility,
-      ...config?.accessibility
+      ...config?.accessibility,
     },
     performance: {
       ...defaultConfig.performance,
-      ...config?.performance
+      ...config?.performance,
     },
     development: {
       ...defaultConfig.development,
-      ...config?.development
-    }
+      ...config?.development,
+    },
   };
-  
+
   // 设置全局配置
   if (typeof window !== 'undefined') {
     (window as any).__COMPONENT_STANDARDS_CONFIG__ = finalConfig;
   }
-  
+
   // 开发环境提示
   if (finalConfig.development.enableWarnings) {
-
   }
-  
+
   return finalConfig;
 }
 

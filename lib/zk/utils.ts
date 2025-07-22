@@ -26,11 +26,7 @@ export class ZKUtils {
       const hash = poseidon(inputs.map(x => BigInt(x)));
       return hash.toString();
     } catch (error) {
-      throw new ZKError(
-        ZKErrorType.SYSTEM_ERROR,
-        'Poseidon哈希计算失败',
-        error
-      );
+      throw new ZKError(ZKErrorType.SYSTEM_ERROR, 'Poseidon哈希计算失败', error);
     }
   }
 
@@ -81,11 +77,11 @@ export class ZKUtils {
         pi_b: proof.pi_b,
         pi_c: proof.pi_c,
         protocol: proof.protocol || 'groth16',
-        curve: proof.curve || 'bn128'
+        curve: proof.curve || 'bn128',
       },
       publicSignals: proof.publicSignals || [],
       circuitId: proof.circuitId || '',
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
   }
 
@@ -103,9 +99,11 @@ export class ZKUtils {
 
     // 验证文件路径格式
     const pathRegex = /^[\w\-\/\.]+$/;
-    if (!pathRegex.test(config.wasmPath) ||
+    if (
+      !pathRegex.test(config.wasmPath) ||
       !pathRegex.test(config.zkeyPath) ||
-      !pathRegex.test(config.vkeyPath)) {
+      !pathRegex.test(config.vkeyPath)
+    ) {
       return false;
     }
 
@@ -119,7 +117,7 @@ export class ZKUtils {
     const proofString = JSON.stringify({
       proof: proof.proof,
       publicSignals: proof.publicSignals,
-      circuitId: proof.circuitId
+      circuitId: proof.circuitId,
     });
     return createHash('sha256').update(proofString).digest('hex');
   }
@@ -169,24 +167,26 @@ export class ZKUtils {
       case 'identity':
         return {
           secret: this.generateSecureRandom(16),
-          nullifier: this.generateSecureRandom(16)
+          nullifier: this.generateSecureRandom(16),
         };
       case 'membership':
         return {
           secret: this.generateSecureRandom(16),
           merkleRoot: this.generateSecureRandom(32),
-          merkleProof: Array(8).fill(0).map(() => this.generateSecureRandom(32))
+          merkleProof: Array(8)
+            .fill(0)
+            .map(() => this.generateSecureRandom(32)),
         };
       case 'range':
         return {
           value: Math.floor(Math.random() * 1000),
           min: 0,
           max: 1000,
-          salt: this.generateSecureRandom(16)
+          salt: this.generateSecureRandom(16),
         };
       default:
         return {
-          input: this.generateSecureRandom(16)
+          input: this.generateSecureRandom(16),
         };
     }
   }
@@ -216,7 +216,7 @@ export class ZKUtils {
       avgVerificationTime: Math.round(metrics.avgVerificationTime || 0),
       successRate: Math.round((metrics.successRate || 0) * 100) / 100,
       errorRate: Math.round((metrics.errorRate || 0) * 100) / 100,
-      cacheHitRate: metrics.cacheHitRate ? Math.round(metrics.cacheHitRate * 100) / 100 : undefined
+      cacheHitRate: metrics.cacheHitRate ? Math.round(metrics.cacheHitRate * 100) / 100 : undefined,
     };
   }
 
@@ -230,8 +230,8 @@ export class ZKUtils {
         error: {
           type: error.type,
           message: error.message,
-          details: error.details
-        }
+          details: error.details,
+        },
       };
     }
 
@@ -239,8 +239,8 @@ export class ZKUtils {
       success: false,
       error: {
         type: ZKErrorType.SYSTEM_ERROR,
-        message: error.message
-      }
+        message: error.message,
+      },
     };
   }
 
@@ -251,7 +251,7 @@ export class ZKUtils {
     return {
       success: true,
       data,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
   }
 }

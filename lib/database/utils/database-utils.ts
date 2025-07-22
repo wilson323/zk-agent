@@ -8,8 +8,6 @@
 import { DatabaseConnectionManager } from '../core/connection-manager';
 import { QueryBuilder } from '../core/query-builder';
 import { schemaBuilder } from '../schema/schema-builder';
-import { MigrationManager } from '../migrations/migration-manager';
-import { SeedManager } from '../seeds/seed-manager';
 
 /**
  * 数据库备份配置
@@ -100,7 +98,7 @@ export class DatabaseUtils {
    */
   async getDatabaseStats(): Promise<DatabaseStats> {
     const queryBuilder = await this.getQueryBuilder();
-    
+
     // 获取表统计信息
     const tableStatsQuery = `
       SELECT 
@@ -112,17 +110,17 @@ export class DatabaseUtils {
       WHERE table_schema = DATABASE()
       ORDER BY (data_length + index_length) DESC
     `;
-    
+
     const tableStats = await queryBuilder.raw(tableStatsQuery);
-    
+
     // 计算总计
     const totalTables = tableStats.length;
     const totalRows = tableStats.reduce((sum, table) => sum + (table.rows || 0), 0);
     const totalSizeMB = tableStats.reduce((sum, table) => sum + (table.size_mb || 0), 0);
-    
+
     // 找出最大的表
     const largestTable = tableStats[0] || { name: '', rows: 0, size_mb: 0 };
-    
+
     return {
       totalTables,
       totalRows,
@@ -130,14 +128,14 @@ export class DatabaseUtils {
       largestTable: {
         name: largestTable.name,
         rows: largestTable.rows || 0,
-        size: `${(largestTable.size_mb || 0).toFixed(2)} MB`
+        size: `${(largestTable.size_mb || 0).toFixed(2)} MB`,
       },
       tableStats: tableStats.map(table => ({
         name: table.name,
         rows: table.rows || 0,
         size: `${(table.size_mb || 0).toFixed(2)} MB`,
-        engine: table.engine || 'Unknown'
-      }))
+        engine: table.engine || 'Unknown',
+      })),
     };
   }
 
@@ -146,7 +144,7 @@ export class DatabaseUtils {
    */
   async analyzeTable(tableName: string): Promise<TableAnalysis> {
     const queryBuilder = await this.getQueryBuilder();
-    
+
     // 获取表基本信息
     const tableInfoQuery = `
       SELECT 
@@ -164,10 +162,10 @@ export class DatabaseUtils {
       FROM information_schema.tables 
       WHERE table_schema = DATABASE() AND table_name = ?
     `;
-    
+
     const tableInfo = await queryBuilder.raw(tableInfoQuery, [tableName]);
     const info = tableInfo[0];
-    
+
     // 获取索引信息
     const indexQuery = `
       SELECT 
@@ -179,9 +177,9 @@ export class DatabaseUtils {
       WHERE table_schema = DATABASE() AND table_name = ?
       ORDER BY index_name, seq_in_index
     `;
-    
+
     const indexData = await queryBuilder.raw(indexQuery, [tableName]);
-    
+
     // 组织索引信息
     const indexMap = new Map<string, any>();
     indexData.forEach(row => {
@@ -190,12 +188,12 @@ export class DatabaseUtils {
           name: row.name,
           columns: [],
           unique: row.non_unique === 0,
-          type: row.type
+          type: row.type,
         });
       }
       indexMap.get(row.name).columns.push(row.column_name);
     });
-    
+
     // 获取外键信息
     const foreignKeyQuery = `
       SELECT 
@@ -209,9 +207,9 @@ export class DatabaseUtils {
         AND referenced_table_name IS NOT NULL
       ORDER BY constraint_name, ordinal_position
     `;
-    
+
     const foreignKeyData = await queryBuilder.raw(foreignKeyQuery, [tableName]);
-    
+
     // 组织外键信息
     const foreignKeyMap = new Map<string, any>();
     foreignKeyData.forEach(row => {
@@ -220,13 +218,13 @@ export class DatabaseUtils {
           name: row.name,
           columns: [],
           referencedTable: row.referenced_table,
-          referencedColumns: []
+          referencedColumns: [],
         });
       }
       foreignKeyMap.get(row.name).columns.push(row.column_name);
       foreignKeyMap.get(row.name).referencedColumns.push(row.referenced_column);
     });
-    
+
     return {
       tableName,
       rowCount: info?.row_count || 0,
@@ -241,7 +239,7 @@ export class DatabaseUtils {
       checkTime: info?.check_time || null,
       comment: info?.comment || '',
       indexes: Array.from(indexMap.values()),
-      foreignKeys: Array.from(foreignKeyMap.values())
+      foreignKeys: Array.from(foreignKeyMap.values()),
     };
   }
 
@@ -256,7 +254,7 @@ export class DatabaseUtils {
       WHERE table_schema = DATABASE()
       ORDER BY table_name
     `;
-    
+
     const result = await queryBuilder.raw(query);
     return result.map(row => row.table_name);
   }
@@ -281,7 +279,7 @@ export class DatabaseUtils {
       WHERE table_schema = DATABASE() AND table_name = ?
       ORDER BY ordinal_position
     `;
-    
+
     return await queryBuilder.raw(query, [tableName]);
   }
 
@@ -310,9 +308,13 @@ export class DatabaseUtils {
   /**
    * 复制表结构
    */
-  async copyTableStructure(sourceTable: string, targetTable: string, includeData = false): Promise<void> {
+  async copyTableStructure(
+    sourceTable: string,
+    targetTable: string,
+    includeData = false
+  ): Promise<void> {
     const queryBuilder = await this.getQueryBuilder();
-    
+
     if (includeData) {
       await queryBuilder.raw(`CREATE TABLE \`${targetTable}\` AS SELECT * FROM \`${sourceTable}\``);
     } else {
@@ -363,16 +365,14 @@ export class DatabaseUtils {
       FROM information_schema.tables 
       WHERE table_schema = DATABASE()
     `;
-    
+
     const result = await queryBuilder.raw(query);
     const sizeBytes = result[0]?.size_bytes || 0;
     const sizeMB = sizeBytes / (1024 * 1024);
-    
+
     return {
       size: sizeBytes,
-      sizeFormatted: sizeMB > 1024 
-        ? `${(sizeMB / 1024).toFixed(2)} GB`
-        : `${sizeMB.toFixed(2)} MB`
+      sizeFormatted: sizeMB > 1024 ? `${(sizeMB / 1024).toFixed(2)} GB` : `${sizeMB.toFixed(2)} MB`,
     };
   }
 
@@ -398,13 +398,13 @@ export class DatabaseUtils {
    */
   async getSlowQueries(limit = 100): Promise<any[]> {
     const queryBuilder = await this.getQueryBuilder();
-    
+
     // 检查慢查询日志是否启用
     const logStatus = await queryBuilder.raw("SHOW VARIABLES LIKE 'slow_query_log'");
     if (logStatus[0]?.Value !== 'ON') {
       throw new Error('Slow query log is not enabled');
     }
-    
+
     // 这里需要根据实际的慢查询日志表结构来查询
     // 通常需要解析慢查询日志文件或使用性能模式表
     const query = `
@@ -418,7 +418,7 @@ export class DatabaseUtils {
       ORDER BY total_latency DESC 
       LIMIT ?
     `;
-    
+
     return await queryBuilder.raw(query, [limit]);
   }
 
@@ -437,7 +437,7 @@ export class DatabaseUtils {
       FROM performance_schema.metadata_locks 
       WHERE object_type = 'TABLE'
     `;
-    
+
     return await queryBuilder.raw(query);
   }
 
@@ -459,7 +459,7 @@ export class DatabaseUtils {
       FROM information_schema.processlist 
       ORDER BY time DESC
     `;
-    
+
     return await queryBuilder.raw(query);
   }
 
@@ -476,10 +476,8 @@ export class DatabaseUtils {
    */
   async getVariables(pattern?: string): Promise<any[]> {
     const queryBuilder = await this.getQueryBuilder();
-    const query = pattern 
-      ? `SHOW VARIABLES LIKE '${pattern}'`
-      : 'SHOW VARIABLES';
-    
+    const query = pattern ? `SHOW VARIABLES LIKE '${pattern}'` : 'SHOW VARIABLES';
+
     return await queryBuilder.raw(query);
   }
 
@@ -488,10 +486,8 @@ export class DatabaseUtils {
    */
   async getStatus(pattern?: string): Promise<any[]> {
     const queryBuilder = await this.getQueryBuilder();
-    const query = pattern 
-      ? `SHOW STATUS LIKE '${pattern}'`
-      : 'SHOW STATUS';
-    
+    const query = pattern ? `SHOW STATUS LIKE '${pattern}'` : 'SHOW STATUS';
+
     return await queryBuilder.raw(query);
   }
 
@@ -514,7 +510,7 @@ export class DatabaseUtils {
       FROM information_schema.tables 
       WHERE table_schema = DATABASE() AND table_name = ?
     `;
-    
+
     const result = await queryBuilder.raw(query, [tableName]);
     return result[0]?.engine || 'Unknown';
   }
@@ -541,16 +537,16 @@ export class DatabaseUtils {
   }> {
     const checks = [];
     let overallStatus: 'healthy' | 'warning' | 'critical' = 'healthy';
-    
+
     try {
       // 检查连接
       const connections = await this.getConnections();
       checks.push({
         name: 'Database Connection',
         status: 'pass',
-        message: `${connections.length} active connections`
+        message: `${connections.length} active connections`,
       });
-      
+
       // 检查数据库大小
       const dbSize = await this.getDatabaseSize();
       const sizeGB = dbSize.size / (1024 * 1024 * 1024);
@@ -558,35 +554,34 @@ export class DatabaseUtils {
         name: 'Database Size',
         status: sizeGB > 10 ? 'warning' : 'pass',
         message: `Database size: ${dbSize.sizeFormatted}`,
-        value: dbSize.size
+        value: dbSize.size,
       });
-      
+
       if (sizeGB > 10) overallStatus = 'warning';
-      
+
       // 检查表数量
       const tables = await this.getAllTables();
       checks.push({
         name: 'Table Count',
         status: tables.length > 100 ? 'warning' : 'pass',
-        message: `${tables.length} tables in database`
+        message: `${tables.length} tables in database`,
       });
-      
+
       if (tables.length > 100 && overallStatus === 'healthy') {
         overallStatus = 'warning';
       }
-      
     } catch (error) {
       checks.push({
         name: 'Database Health Check',
         status: 'fail',
-        message: `Health check failed: ${error.message}`
+        message: `Health check failed: ${error.message}`,
       });
       overallStatus = 'critical';
     }
-    
+
     return {
       status: overallStatus,
-      checks
+      checks,
     };
   }
 }
@@ -603,14 +598,14 @@ export const DatabaseUtilityFunctions = {
    */
   formatBytes(bytes: number): string {
     if (bytes === 0) return '0 Bytes';
-    
+
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    
+
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   },
-  
+
   /**
    * 生成随机表名
    */
@@ -619,7 +614,7 @@ export const DatabaseUtilityFunctions = {
     const random = Math.random().toString(36).substring(2, 8);
     return `${prefix}_${timestamp}_${random}`;
   },
-  
+
   /**
    * 验证表名
    */
@@ -628,7 +623,7 @@ export const DatabaseUtilityFunctions = {
     const regex = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
     return regex.test(tableName) && tableName.length <= 64;
   },
-  
+
   /**
    * 验证列名
    */
@@ -636,29 +631,29 @@ export const DatabaseUtilityFunctions = {
     // 列名规则与表名相同
     return this.validateTableName(columnName);
   },
-  
+
   /**
    * 转义SQL标识符
    */
   escapeIdentifier(identifier: string): string {
     return `\`${identifier.replace(/`/g, '``')}\``;
   },
-  
+
   /**
    * 转义SQL字符串值
    */
   escapeString(value: string): string {
     return value.replace(/'/g, "''");
   },
-  
+
   /**
    * 生成UUID
    */
   generateUUID(): string {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-      const r = Math.random() * 16 | 0;
-      const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+      const r = (Math.random() * 16) | 0;
+      const v = c === 'x' ? r : (r & 0x3) | 0x8;
       return v.toString(16);
     });
-  }
+  },
 };

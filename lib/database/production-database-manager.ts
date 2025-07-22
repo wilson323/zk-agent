@@ -7,13 +7,19 @@
  */
 
 import { PrismaClient, Prisma } from '@prisma/client';
-import { Logger } from '../utils/logger';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
 import { enhancedCacheManager } from '../cache/enhanced-cache-manager';
 import { EventEmitter } from 'events';
 
 // 自定义错误类
 export class DatabaseError extends Error {
-  constructor(message: string, public code: string, public originalError?: Error) {
+  constructor(
+    message: string,
+    public code: string,
+    public originalError?: Error
+  ) {
     super(message);
     this.name = 'DatabaseError';
   }
@@ -149,10 +155,10 @@ export class ProductionDatabaseManager extends EventEmitter {
       this.setupEventListeners();
       this.startHealthChecks();
       this.startMetricsCleanup();
-      
+
       this.isConnected = true;
       this.emit('connected');
-      
+
       this.logger.info('Database initialized successfully', {
         maxConnections: this.config.maxConnections,
         queryTimeout: this.config.queryTimeout,
@@ -162,7 +168,7 @@ export class ProductionDatabaseManager extends EventEmitter {
         error: error instanceof Error ? error.message : 'Unknown error',
         attempt: this.connectionAttempts,
       });
-      
+
       this.emit('error', error);
       await this.retryConnection();
     }
@@ -185,7 +191,6 @@ export class ProductionDatabaseManager extends EventEmitter {
         },
       },
       // 连接池配置
-      
     });
   }
 
@@ -212,7 +217,9 @@ export class ProductionDatabaseManager extends EventEmitter {
    * 设置事件监听器
    */
   private setupEventListeners(): void {
-    if (!this.prisma) {return;}
+    if (!this.prisma) {
+      return;
+    }
 
     // 查询日志
     this.prisma.$on('query', (event: Prisma.QueryEvent) => {
@@ -304,7 +311,7 @@ export class ProductionDatabaseManager extends EventEmitter {
   private cleanupMetrics(): void {
     const maxAge = 3600000; // 1小时
     const now = Date.now();
-    
+
     for (const [queryId, metrics] of Array.from(this.queryMetrics.entries())) {
       if (now - metrics.timestamp > maxAge) {
         this.queryMetrics.delete(queryId);
@@ -316,7 +323,7 @@ export class ProductionDatabaseManager extends EventEmitter {
       const entries = Array.from(this.queryMetrics.entries())
         .sort((a, b) => b[1].timestamp - a[1].timestamp)
         .slice(0, 1000);
-      
+
       this.queryMetrics.clear();
       for (const [queryId, metrics] of entries) {
         this.queryMetrics.set(queryId, metrics);
@@ -335,14 +342,14 @@ export class ProductionDatabaseManager extends EventEmitter {
     }
 
     this.connectionAttempts++;
-    
+
     this.logger.info('Retrying database connection', {
       attempt: this.connectionAttempts,
       maxAttempts: this.config.retryAttempts,
     });
 
     await new Promise(resolve => setTimeout(resolve, this.config.retryDelay));
-    
+
     try {
       await this.initializeDatabase();
       this.connectionAttempts = 0; // 重置计数器
@@ -397,7 +404,7 @@ export class ProductionDatabaseManager extends EventEmitter {
 
     // 生成缓存键（简化版本）
     const cacheKey = cache ? `query:${Date.now()}:${Math.random()}` : null;
-    
+
     // 尝试从缓存获取
     if (cache && cacheKey) {
       try {
@@ -417,7 +424,7 @@ export class ProductionDatabaseManager extends EventEmitter {
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
         const startTime = Date.now();
-        
+
         // 设置查询超时
         const result = await Promise.race([
           queryFn(this.prisma),
@@ -425,9 +432,9 @@ export class ProductionDatabaseManager extends EventEmitter {
             setTimeout(() => reject(new Error('Query timeout')), timeout);
           }),
         ]);
-        
+
         const duration = Date.now() - startTime;
-        
+
         // 缓存结果
         if (cache && cacheKey && result !== null) {
           try {
@@ -438,23 +445,23 @@ export class ProductionDatabaseManager extends EventEmitter {
             });
           }
         }
-        
+
         return result;
       } catch (error) {
         lastError = error instanceof Error ? error : new Error('Unknown error');
-        
+
         this.logger.warn('Query attempt failed', {
           attempt,
           maxAttempts: retries,
           error: lastError.message,
         });
-        
+
         if (attempt < retries) {
           await new Promise(resolve => setTimeout(resolve, this.config.retryDelay * attempt));
         }
       }
     }
-    
+
     throw new QueryError('Query failed after all retries', lastError!);
   }
 
@@ -469,11 +476,7 @@ export class ProductionDatabaseManager extends EventEmitter {
       throw new ConnectionError('Database not initialized');
     }
 
-    const {
-      timeout = this.config.queryTimeout,
-      isolationLevel,
-      maxWait = 5000,
-    } = options;
+    const { timeout = this.config.queryTimeout, isolationLevel, maxWait = 5000 } = options;
 
     try {
       return await this.prisma.$transaction(transactionFn, {
@@ -514,12 +517,15 @@ export class ProductionDatabaseManager extends EventEmitter {
       // 计算指标
       const metrics = Array.from(this.queryMetrics.values());
       const recentMetrics = metrics.filter(m => Date.now() - m.timestamp < 300000); // 最近5分钟
-      
-      const averageQueryTime = recentMetrics.length > 0 
-        ? recentMetrics.reduce((sum, m) => sum + m.duration, 0) / recentMetrics.length
-        : 0;
-      
-      const slowQueries = recentMetrics.filter(m => m.duration > this.config.slowQueryThreshold).length;
+
+      const averageQueryTime =
+        recentMetrics.length > 0
+          ? recentMetrics.reduce((sum, m) => sum + m.duration, 0) / recentMetrics.length
+          : 0;
+
+      const slowQueries = recentMetrics.filter(
+        m => m.duration > this.config.slowQueryThreshold
+      ).length;
       const errorQueries = recentMetrics.filter(m => m.error).length;
       const errorRate = recentMetrics.length > 0 ? errorQueries / recentMetrics.length : 0;
 
@@ -580,12 +586,12 @@ export class ProductionDatabaseManager extends EventEmitter {
 
       this.queryMetrics.clear();
       this.isConnected = false;
-      
+
       this.emit('disconnected');
       this.removeAllListeners();
-      
+
       ProductionDatabaseManager.instance = null;
-      
+
       this.logger.info('Database manager cleaned up successfully');
     } catch (error) {
       this.logger.error('Error during cleanup', {
@@ -606,15 +612,15 @@ export class ProductionDatabaseManager extends EventEmitter {
    */
   public async reconnect(): Promise<void> {
     this.logger.info('Forcing database reconnection');
-    
+
     if (this.prisma) {
       await this.prisma.$disconnect();
       this.prisma = null;
     }
-    
+
     this.isConnected = false;
     this.connectionAttempts = 0;
-    
+
     await this.initializeDatabase();
   }
 }

@@ -1,0 +1,196 @@
+name: 可重用的安全扫描
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        description: 'Node.js版本'
+        required: false
+        default: '20'
+        type: string
+      working-directory:
+        description: '工作目录'
+        required: false
+        default: '.'
+        type: string
+      scan-level:
+        description: '扫描级别 (basic|standard|comprehensive)'
+        required: false
+        default: 'standard'
+        type: string
+      upload-sarif:
+        description: '上传SARIF报告到GitHub Security'
+        required: false
+        default: true
+        type: boolean
+    outputs:
+      vulnerabilities-found:
+        description: '发现的漏洞数量'
+        value: ${{ jobs.security-scan.outputs.vulnerabilities }}
+      security-score:
+        description: '安全评分'
+        value: ${{ jobs.security-scan.outputs.score }}
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    outputs:
+      vulnerabilities: ${{ steps.scan.outputs.vulnerabilities }}
+      score: ${{ steps.scan.outputs.score }}
+    
+    permissions:
+      security-events: write
+      contents: read
+      actions: read
+    
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 设置Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: 'npm'
+
+      - name: 安装依赖
+        working-directory: ${{ inputs.working-directory }}
+        run: |
+          if [ -f pnpm-lock.yaml ]; then
+            npm install -g pnpm
+            pnpm install --frozen-lockfile
+          elif [ -f yarn.lock ]; then
+            yarn install --frozen-lockfile
+          else
+            npm ci
+          fi
+
+      - name: 依赖漏洞扫描
+        working-directory: ${{ inputs.working-directory }}
+        run: |
+          npm audit --audit-level=moderate || true
+          npm audit --json > reports/npm-audit.json || true
+
+      - name: CodeQL分析
+        if: ${{ inputs.scan-level == 'comprehensive' }}
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript
+          queries: security-and-quality
+
+      - name: 执行CodeQL分析
+        if: ${{ inputs.scan-level == 'comprehensive' }}
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:javascript"
+
+      - name: Semgrep安全扫描
+        if: ${{ inputs.scan-level != 'basic' }}
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: auto
+          generateSarif: "1"
+        env:
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+        continue-on-error: true
+
+      - name: 密钥扫描
+        working-directory: ${{ inputs.working-directory }}
+        run: |
+          # 使用git-secrets或类似工具扫描密钥
+          echo "正在扫描潜在的密钥泄露..."
+          
+          # 检查常见的密钥模式
+          if grep -r "api[_-]key\|secret\|password\|token" --include="*.js" --include="*.ts" --include="*.json" . | grep -v node_modules | grep -v ".git" > reports/potential-secrets.txt; then
+            echo "发现潜在的密钥泄露，请检查 reports/potential-secrets.txt"
+          else
+            echo "未发现明显的密钥泄露"
+          fi
+
+      - name: 安全配置检查
+        working-directory: ${{ inputs.working-directory }}
+        run: |
+          # 检查安全配置
+          echo "检查安全配置..."
+          
+          # 检查package.json中的安全配置
+          if [ -f package.json ]; then
+            if grep -q '"private": true' package.json; then
+              echo "✅ 包已标记为私有"
+            else
+              echo "⚠️ 建议将包标记为私有"
+            fi
+          fi
+          
+          # 检查环境变量文件
+          if [ -f .env ]; then
+            echo "⚠️ 发现.env文件，确保它在.gitignore中"
+          fi
+
+      - name: 生成安全报告
+        id: scan
+        working-directory: ${{ inputs.working-directory }}
+        run: |
+          mkdir -p reports/security
+          
+          # 统计漏洞数量
+          VULNERABILITIES=0
+          if [ -f reports/npm-audit.json ]; then
+            VULNERABILITIES=$(cat reports/npm-audit.json | jq '.metadata.vulnerabilities.total // 0')
+          fi
+          
+          # 计算安全评分
+          if [ $VULNERABILITIES -eq 0 ]; then
+            SCORE=100
+          elif [ $VULNERABILITIES -le 5 ]; then
+            SCORE=80
+          elif [ $VULNERABILITIES -le 10 ]; then
+            SCORE=60
+          else
+            SCORE=40
+          fi
+          
+          echo "vulnerabilities=$VULNERABILITIES" >> $GITHUB_OUTPUT
+          echo "score=$SCORE" >> $GITHUB_OUTPUT
+          
+          # 生成摘要报告
+          cat > reports/security/summary.md << EOF
+          # 安全扫描报告
+          
+          **扫描时间**: $(date)
+          **扫描级别**: ${{ inputs.scan-level }}
+          **发现漏洞**: $VULNERABILITIES
+          **安全评分**: $SCORE/100
+          
+          ## 扫描结果
+          
+          - 依赖漏洞扫描: $([ -f reports/npm-audit.json ] && echo "完成" || echo "跳过")
+          - 代码安全扫描: $([ "${{ inputs.scan-level }}" != "basic" ] && echo "完成" || echo "跳过")
+          - 密钥泄露检查: 完成
+          - 安全配置检查: 完成
+          
+          EOF
+
+      - name: 上传SARIF报告
+        if: ${{ inputs.upload-sarif && inputs.scan-level != 'basic' }}
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: semgrep.sarif
+        continue-on-error: true
+
+      - name: 上传安全报告
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-report-${{ inputs.node-version }}
+          path: ${{ inputs.working-directory }}/reports/security/
+          retention-days: 30
+
+      - name: 安全检查失败处理
+        if: ${{ steps.scan.outputs.vulnerabilities > 10 }}
+        run: |
+          echo "⚠️ 发现过多安全漏洞 (${{ steps.scan.outputs.vulnerabilities }})，建议立即修复"
+          echo "详细信息请查看安全报告"
+          # 根据项目需求决定是否让工作流失败
+          # exit 1

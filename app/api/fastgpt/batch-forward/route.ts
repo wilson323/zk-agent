@@ -28,7 +28,7 @@ export const POST = createApiRoute(
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.FASTGPT_API_KEY}`,
+          Authorization: `Bearer ${process.env.FASTGPT_API_KEY}`,
         },
         body: JSON.stringify(validatedBody),
       });
@@ -54,4 +54,3 @@ export const POST = createApiRoute(
     }
   }
 );
-

@@ -16,7 +16,7 @@ jest.mock('../../../lib/services/metrics-collector', () => ({
   collectErrorMetrics: jest.fn(),
   aggregateMetrics: jest.fn(),
   validateMetricData: jest.fn(),
-  calculateMetricTrends: jest.fn()
+  calculateMetricTrends: jest.fn(),
 }));
 
 jest.mock('../../../lib/storage/metrics-store', () => ({
@@ -25,7 +25,7 @@ jest.mock('../../../lib/storage/metrics-store', () => ({
   deleteMetrics: jest.fn(),
   queryMetrics: jest.fn(),
   getMetricHistory: jest.fn(),
-  checkStorageCapacity: jest.fn()
+  checkStorageCapacity: jest.fn(),
 }));
 
 jest.mock('../../../lib/services/alert-manager', () => ({
@@ -33,12 +33,12 @@ jest.mock('../../../lib/services/alert-manager', () => ({
   triggerAlert: jest.fn(),
   resolveAlert: jest.fn(),
   getActiveAlerts: jest.fn(),
-  validateAlertRules: jest.fn()
+  validateAlertRules: jest.fn(),
 }));
 
 jest.mock('../../../lib/auth/session', () => ({
   validateSession: jest.fn(),
-  checkMetricsPermissions: jest.fn()
+  checkMetricsPermissions: jest.fn(),
 }));
 
 describe('Metrics API Error Handling', () => {
@@ -112,7 +112,7 @@ describe('Metrics API Error Handling', () => {
       checkMetricsPermissions.mockRejectedValue(new Error('Metrics access permissions required'));
 
       const request = new NextRequest('http://localhost:3000/api/metrics', {
-        headers: { 'Authorization': 'Bearer user-token' }
+        headers: { Authorization: 'Bearer user-token' },
       });
 
       const response = await GET(request);
@@ -124,10 +124,11 @@ describe('Metrics API Error Handling', () => {
 
     it('should handle metrics aggregation timeout', async () => {
       const { aggregateMetrics } = require('../../../lib/services/metrics-collector');
-      aggregateMetrics.mockImplementation(() => 
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Metrics aggregation timeout')), 100)
-        )
+      aggregateMetrics.mockImplementation(
+        () =>
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Metrics aggregation timeout')), 100)
+          )
       );
 
       const request = new NextRequest('http://localhost:3000/api/metrics?aggregate=true');
@@ -142,7 +143,9 @@ describe('Metrics API Error Handling', () => {
       const { queryMetrics } = require('../../../lib/storage/metrics-store');
       queryMetrics.mockResolvedValue([]);
 
-      const request = new NextRequest('http://localhost:3000/api/metrics?from=2023-01-01&to=2023-01-02');
+      const request = new NextRequest(
+        'http://localhost:3000/api/metrics?from=2023-01-01&to=2023-01-02'
+      );
       const response = await GET(request);
       const data = await response.json();
 
@@ -164,12 +167,12 @@ describe('Metrics API Error Handling', () => {
         tags: {
           endpoint: '/api/test',
           method: 'GET',
-          status: '200'
+          status: '200',
         },
         metadata: {
           source: 'application',
-          environment: 'production'
-        }
+          environment: 'production',
+        },
       };
     });
 
@@ -181,7 +184,7 @@ describe('Metrics API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/metrics', {
         method: 'POST',
         body: JSON.stringify(invalidData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -197,7 +200,7 @@ describe('Metrics API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/metrics', {
         method: 'POST',
         body: JSON.stringify(incompleteData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -210,13 +213,15 @@ describe('Metrics API Error Handling', () => {
 
     it('should handle metric name validation failure', async () => {
       const { validateMetricData } = require('../../../lib/services/metrics-collector');
-      validateMetricData.mockRejectedValue(new Error('Invalid metric name: must follow naming convention'));
+      validateMetricData.mockRejectedValue(
+        new Error('Invalid metric name: must follow naming convention')
+      );
 
       const invalidNameData = { ...validMetricData, name: 'invalid-metric-name!' };
       const request = new NextRequest('http://localhost:3000/api/metrics', {
         method: 'POST',
         body: JSON.stringify(invalidNameData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -233,7 +238,7 @@ describe('Metrics API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/metrics', {
         method: 'POST',
         body: JSON.stringify(validMetricData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -250,7 +255,7 @@ describe('Metrics API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/metrics', {
         method: 'POST',
         body: JSON.stringify(validMetricData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -262,12 +267,14 @@ describe('Metrics API Error Handling', () => {
 
     it('should handle duplicate metric timestamp conflict', async () => {
       const { storeMetrics } = require('../../../lib/storage/metrics-store');
-      storeMetrics.mockRejectedValue(new Error('Metric with same name and timestamp already exists'));
+      storeMetrics.mockRejectedValue(
+        new Error('Metric with same name and timestamp already exists')
+      );
 
       const request = new NextRequest('http://localhost:3000/api/metrics', {
         method: 'POST',
         body: JSON.stringify(validMetricData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -285,7 +292,7 @@ describe('Metrics API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/metrics', {
         method: 'POST',
         body: JSON.stringify(outOfRangeData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -303,7 +310,7 @@ describe('Metrics API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/metrics', {
         method: 'POST',
         body: JSON.stringify(invalidTimestampData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -328,8 +335,8 @@ describe('Metrics API Error Handling', () => {
         enabled: true,
         notifications: {
           email: ['admin@example.com'],
-          webhook: 'https://hooks.example.com/alert'
-        }
+          webhook: 'https://hooks.example.com/alert',
+        },
       };
     });
 
@@ -341,7 +348,7 @@ describe('Metrics API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/metrics/alerts', {
         method: 'PUT',
         body: JSON.stringify(invalidRule),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await PUT(request);
@@ -354,13 +361,15 @@ describe('Metrics API Error Handling', () => {
 
     it('should handle unsupported alert condition', async () => {
       const { validateAlertRules } = require('../../../lib/services/alert-manager');
-      validateAlertRules.mockRejectedValue(new Error('Unsupported alert condition: invalid_condition'));
+      validateAlertRules.mockRejectedValue(
+        new Error('Unsupported alert condition: invalid_condition')
+      );
 
       const invalidConditionRule = { ...validAlertRule, condition: 'invalid_condition' };
       const request = new NextRequest('http://localhost:3000/api/metrics/alerts', {
         method: 'PUT',
         body: JSON.stringify(invalidConditionRule),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await PUT(request);
@@ -377,7 +386,7 @@ describe('Metrics API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/metrics/alerts', {
         method: 'PUT',
         body: JSON.stringify(validAlertRule),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await PUT(request);
@@ -393,12 +402,12 @@ describe('Metrics API Error Handling', () => {
 
       const invalidNotificationRule = {
         ...validAlertRule,
-        notifications: { webhook: 'invalid-url' }
+        notifications: { webhook: 'invalid-url' },
       };
       const request = new NextRequest('http://localhost:3000/api/metrics/alerts', {
         method: 'PUT',
         body: JSON.stringify(invalidNotificationRule),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await PUT(request);
@@ -415,7 +424,7 @@ describe('Metrics API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/metrics/alerts', {
         method: 'PUT',
         body: JSON.stringify(validAlertRule),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await PUT(request);
@@ -432,7 +441,7 @@ describe('Metrics API Error Handling', () => {
       queryMetrics.mockResolvedValue([]);
 
       const request = new NextRequest('http://localhost:3000/api/metrics?name=nonexistent.metric', {
-        method: 'DELETE'
+        method: 'DELETE',
       });
 
       const response = await DELETE(request);
@@ -448,7 +457,7 @@ describe('Metrics API Error Handling', () => {
       deleteMetrics.mockRejectedValue(new Error('Failed to delete metrics from storage'));
 
       const request = new NextRequest('http://localhost:3000/api/metrics?name=test.metric', {
-        method: 'DELETE'
+        method: 'DELETE',
       });
 
       const response = await DELETE(request);
@@ -463,7 +472,7 @@ describe('Metrics API Error Handling', () => {
       deleteMetrics.mockRejectedValue(new Error('Cannot delete system metrics'));
 
       const request = new NextRequest('http://localhost:3000/api/metrics?name=system.cpu.usage', {
-        method: 'DELETE'
+        method: 'DELETE',
       });
 
       const response = await DELETE(request);
@@ -478,7 +487,7 @@ describe('Metrics API Error Handling', () => {
       deleteMetrics.mockRejectedValue(new Error('Metrics are referenced by active alert rules'));
 
       const request = new NextRequest('http://localhost:3000/api/metrics?name=api.response_time', {
-        method: 'DELETE'
+        method: 'DELETE',
       });
 
       const response = await DELETE(request);
@@ -509,7 +518,7 @@ describe('Metrics API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/metrics/alerts/trigger', {
         method: 'POST',
         body: JSON.stringify({ alertName: 'high_cpu_usage' }),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -526,7 +535,7 @@ describe('Metrics API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/metrics/alerts/resolve', {
         method: 'POST',
         body: JSON.stringify({ alertId: 'alert-123' }),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -552,9 +561,13 @@ describe('Metrics API Error Handling', () => {
   describe('Metrics Trend Analysis Errors', () => {
     it('should handle trend calculation failure', async () => {
       const { calculateMetricTrends } = require('../../../lib/services/metrics-collector');
-      calculateMetricTrends.mockRejectedValue(new Error('Trend calculation failed: insufficient data'));
+      calculateMetricTrends.mockRejectedValue(
+        new Error('Trend calculation failed: insufficient data')
+      );
 
-      const request = new NextRequest('http://localhost:3000/api/metrics/trends?metric=api.response_time');
+      const request = new NextRequest(
+        'http://localhost:3000/api/metrics/trends?metric=api.response_time'
+      );
       const response = await GET(request);
       const data = await response.json();
 
@@ -574,13 +587,16 @@ describe('Metrics API Error Handling', () => {
 
     it('should handle trend analysis timeout', async () => {
       const { calculateMetricTrends } = require('../../../lib/services/metrics-collector');
-      calculateMetricTrends.mockImplementation(() => 
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Trend analysis timeout')), 100)
-        )
+      calculateMetricTrends.mockImplementation(
+        () =>
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Trend analysis timeout')), 100)
+          )
       );
 
-      const request = new NextRequest('http://localhost:3000/api/metrics/trends?metric=system.cpu.usage');
+      const request = new NextRequest(
+        'http://localhost:3000/api/metrics/trends?metric=system.cpu.usage'
+      );
       const response = await GET(request);
       const data = await response.json();
 
@@ -601,13 +617,13 @@ describe('Metrics API Error Handling', () => {
 
       const batchMetrics = [
         { name: 'valid.metric', value: 100, timestamp: new Date().toISOString() },
-        { name: 'invalid.metric', value: 'invalid', timestamp: new Date().toISOString() }
+        { name: 'invalid.metric', value: 'invalid', timestamp: new Date().toISOString() },
       ];
 
       const request = new NextRequest('http://localhost:3000/api/metrics/batch', {
         method: 'POST',
         body: JSON.stringify({ metrics: batchMetrics }),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -622,7 +638,9 @@ describe('Metrics API Error Handling', () => {
       const { queryMetrics } = require('../../../lib/storage/metrics-store');
       queryMetrics.mockRejectedValue(new Error('Query result set too large'));
 
-      const request = new NextRequest('http://localhost:3000/api/metrics/batch?names=metric1,metric2,metric3');
+      const request = new NextRequest(
+        'http://localhost:3000/api/metrics/batch?names=metric1,metric2,metric3'
+      );
       const response = await GET(request);
       const data = await response.json();
 
@@ -639,13 +657,13 @@ describe('Metrics API Error Handling', () => {
       const validMetricData = {
         name: 'test.metric',
         value: 100,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
 
       const request = new NextRequest('http://localhost:3000/api/metrics', {
         method: 'POST',
         body: JSON.stringify(validMetricData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -662,13 +680,13 @@ describe('Metrics API Error Handling', () => {
       const validMetricData = {
         name: 'test.metric',
         value: 100,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
 
       const request = new NextRequest('http://localhost:3000/api/metrics', {
         method: 'POST',
         body: JSON.stringify(validMetricData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       await POST(request);
@@ -684,13 +702,13 @@ describe('Metrics API Error Handling', () => {
       const validMetricData = {
         name: 'test.metric',
         value: 100,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
 
       const request = new NextRequest('http://localhost:3000/api/metrics', {
         method: 'POST',
         body: JSON.stringify(validMetricData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);

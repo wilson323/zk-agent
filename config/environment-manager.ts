@@ -7,7 +7,9 @@
 
 import { z } from 'zod';
 
-import { Logger } from '../lib/utils/logger';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
 
 const logger = new Logger('EnvironmentManager');
 
@@ -16,7 +18,7 @@ export enum Environment {
   DEVELOPMENT = 'development',
   TESTING = 'testing',
   STAGING = 'staging',
-  PRODUCTION = 'production'
+  PRODUCTION = 'production',
 }
 
 // 数据库配置模式
@@ -42,26 +44,34 @@ const RedisConfigSchema = z.object({
 
 // AI服务配置模式
 const AIServiceConfigSchema = z.object({
-  fastgpt: z.object({
-    baseUrl: z.string().url().optional(),
-    apiKey: z.string().optional(),
-    appId: z.string().optional(),
-    timeout: z.number().default(30000),
-  }).optional(),
-  qwen: z.object({
-    baseUrl: z.string().url().optional(),
-    apiKey: z.string().optional(),
-    model: z.string().default('qwen-turbo'),
-  }).optional(),
-  siliconflow: z.object({
-    baseUrl: z.string().url().optional(),
-    apiKey: z.string().optional(),
-  }).optional(),
-  openai: z.object({
-    apiKey: z.string().optional(),
-    baseUrl: z.string().url().optional(),
-    model: z.string().default('gpt-3.5-turbo'),
-  }).optional(),
+  fastgpt: z
+    .object({
+      baseUrl: z.string().url().optional(),
+      apiKey: z.string().optional(),
+      appId: z.string().optional(),
+      timeout: z.number().default(30000),
+    })
+    .optional(),
+  qwen: z
+    .object({
+      baseUrl: z.string().url().optional(),
+      apiKey: z.string().optional(),
+      model: z.string().default('qwen-turbo'),
+    })
+    .optional(),
+  siliconflow: z
+    .object({
+      baseUrl: z.string().url().optional(),
+      apiKey: z.string().optional(),
+    })
+    .optional(),
+  openai: z
+    .object({
+      apiKey: z.string().optional(),
+      baseUrl: z.string().url().optional(),
+      model: z.string().default('gpt-3.5-turbo'),
+    })
+    .optional(),
 });
 
 // 安全配置模式
@@ -96,18 +106,22 @@ const StorageConfigSchema = z.object({
   uploadDir: z.string().default('./uploads'),
   tempDir: z.string().default('./temp'),
   maxFileSize: z.number().default(100 * 1024 * 1024), // 100MB
-  aws: z.object({
-    accessKeyId: z.string().optional(),
-    secretAccessKey: z.string().optional(),
-    region: z.string().optional(),
-    s3Bucket: z.string().optional(),
-  }).optional(),
-  aliyun: z.object({
-    accessKeyId: z.string().optional(),
-    accessKeySecret: z.string().optional(),
-    ossRegion: z.string().optional(),
-    ossBucket: z.string().optional(),
-  }).optional(),
+  aws: z
+    .object({
+      accessKeyId: z.string().optional(),
+      secretAccessKey: z.string().optional(),
+      region: z.string().optional(),
+      s3Bucket: z.string().optional(),
+    })
+    .optional(),
+  aliyun: z
+    .object({
+      accessKeyId: z.string().optional(),
+      accessKeySecret: z.string().optional(),
+      ossRegion: z.string().optional(),
+      ossBucket: z.string().optional(),
+    })
+    .optional(),
 });
 
 // 应用配置模式
@@ -272,7 +286,7 @@ export class EnvironmentManager {
    */
   private detectEnvironment(): Environment {
     const nodeEnv = process.env.NODE_ENV?.toLowerCase();
-    
+
     switch (nodeEnv) {
       case 'development':
       case 'dev':
@@ -298,7 +312,7 @@ export class EnvironmentManager {
   private loadConfiguration(): EnvironmentConfig {
     // 获取环境默认值
     const envDefaults = ENVIRONMENT_DEFAULTS[this.currentEnvironment] || {};
-    
+
     // 从环境变量构建配置
     const rawConfig = {
       app: {
@@ -423,8 +437,8 @@ export class EnvironmentManager {
           errors: error.errors.map(e => ({
             path: e.path.join('.'),
             message: e.message,
-            code: e.code
-          }))
+            code: e.code,
+          })),
         });
 
         // 在生产环境下，配置错误应该导致应用退出
@@ -465,7 +479,7 @@ export class EnvironmentManager {
         logLevel: this.config.monitoring.logLevel,
         sentryEnabled: !!this.config.monitoring.sentryDsn,
         prometheusEnabled: this.config.monitoring.prometheusEnabled,
-      }
+      },
     });
   }
 
@@ -486,14 +500,30 @@ export class EnvironmentManager {
   /**
    * 获取特定配置部分
    */
-  public getAppConfig() { return this.config.app; }
-  public getDatabaseConfig() { return this.config.database; }
-  public getRedisConfig() { return this.config.redis; }
-  public getAIServicesConfig() { return this.config.aiServices; }
-  public getSecurityConfig() { return this.config.security; }
-  public getMonitoringConfig() { return this.config.monitoring; }
-  public getStorageConfig() { return this.config.storage; }
-  public getPerformanceConfig() { return this.config.performance; }
+  public getAppConfig() {
+    return this.config.app;
+  }
+  public getDatabaseConfig() {
+    return this.config.database;
+  }
+  public getRedisConfig() {
+    return this.config.redis;
+  }
+  public getAIServicesConfig() {
+    return this.config.aiServices;
+  }
+  public getSecurityConfig() {
+    return this.config.security;
+  }
+  public getMonitoringConfig() {
+    return this.config.monitoring;
+  }
+  public getStorageConfig() {
+    return this.config.storage;
+  }
+  public getPerformanceConfig() {
+    return this.config.performance;
+  }
 
   /**
    * 检查是否为开发环境
@@ -552,7 +582,7 @@ export class EnvironmentManager {
    */
   public exportConfig(includeSecrets = false): Record<string, unknown> {
     const config = { ...this.config };
-    
+
     if (!includeSecrets) {
       // 移除敏感信息
       config.security.jwtSecret = '[HIDDEN]';
@@ -568,7 +598,7 @@ export class EnvironmentManager {
         }
       });
     }
-    
+
     return {
       environment: this.currentEnvironment,
       config,

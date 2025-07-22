@@ -7,8 +7,8 @@
  * @date 2024-12-19
  */
 
-import { http, HttpResponse } from 'msw'
-import type { Agent, AgentType, AgentStatus } from '@/types/agents'
+import { http, HttpResponse } from 'msw';
+import type { Agent, AgentType, AgentStatus } from '@/types/agents';
 
 // Mock数据
 const mockAgents: Agent[] = [
@@ -24,7 +24,7 @@ const mockAgents: Agent[] = [
     configuration: {
       model: 'gpt-4',
       temperature: 0.7,
-      maxTokens: 2048
+      maxTokens: 2048,
     },
     metrics: {
       totalRequests: 1250,
@@ -36,13 +36,13 @@ const mockAgents: Agent[] = [
       monthlyActiveUsers: 650,
       rating: 4.6,
       reviewCount: 89,
-      uptime: 99.2
+      uptime: 99.2,
     },
     version: '2.1.0',
     isPublic: true,
     ownerId: null,
     createdAt: new Date('2024-01-15'),
-    updatedAt: new Date('2024-12-18')
+    updatedAt: new Date('2024-12-18'),
   },
   {
     id: 'agent-002',
@@ -56,7 +56,7 @@ const mockAgents: Agent[] = [
     configuration: {
       supportedFormats: ['dwg', 'dxf', 'step', 'iges'],
       maxFileSize: 50 * 1024 * 1024,
-      analysisDepth: 'detailed'
+      analysisDepth: 'detailed',
     },
     metrics: {
       totalRequests: 890,
@@ -68,13 +68,13 @@ const mockAgents: Agent[] = [
       monthlyActiveUsers: 320,
       rating: 4.4,
       reviewCount: 56,
-      uptime: 98.8
+      uptime: 98.8,
     },
     version: '1.8.2',
     isPublic: true,
     ownerId: null,
     createdAt: new Date('2024-02-20'),
-    updatedAt: new Date('2024-12-17')
+    updatedAt: new Date('2024-12-17'),
   },
   {
     id: 'agent-003',
@@ -88,7 +88,7 @@ const mockAgents: Agent[] = [
     configuration: {
       outputFormats: ['png', 'jpg', 'pdf'],
       maxResolution: '4096x4096',
-      templateCount: 150
+      templateCount: 150,
     },
     metrics: {
       totalRequests: 2100,
@@ -100,55 +100,54 @@ const mockAgents: Agent[] = [
       monthlyActiveUsers: 980,
       rating: 4.8,
       reviewCount: 145,
-      uptime: 99.5
+      uptime: 99.5,
     },
     version: '3.2.1',
     isPublic: true,
     ownerId: null,
     createdAt: new Date('2024-03-10'),
-    updatedAt: new Date('2024-12-19')
-  }
-]
+    updatedAt: new Date('2024-12-19'),
+  },
+];
 
 export const agentHandlers: any = [
   // 获取智能体列表
   http.get('/api/agents', ({ request }) => {
-    const url: any = new URL(request.url)
-    const page: any = parseInt(url.searchParams.get('page') || '1')
-    const limit: any = parseInt(url.searchParams.get('limit') || '20')
-    const search: any = url.searchParams.get('search') || ''
-    const type: any = url.searchParams.get('type') as AgentType
-    const status: any = url.searchParams.get('status') as AgentStatus
-    const tags: any = url.searchParams.get('tags')?.split(',') || []
+    const url: any = new URL(request.url);
+    const page: any = parseInt(url.searchParams.get('page') || '1');
+    const limit: any = parseInt(url.searchParams.get('limit') || '20');
+    const search: any = url.searchParams.get('search') || '';
+    const type: any = url.searchParams.get('type') as AgentType;
+    const status: any = url.searchParams.get('status') as AgentStatus;
+    const tags: any = url.searchParams.get('tags')?.split(',') || [];
 
     // 过滤逻辑
-    let filteredAgents: any = mockAgents
+    let filteredAgents: any = mockAgents;
 
     if (search) {
-      filteredAgents = filteredAgents.filter(agent =>
-        agent.name.toLowerCase().includes(search.toLowerCase()) ||
-        agent.description.toLowerCase().includes(search.toLowerCase())
-      )
+      filteredAgents = filteredAgents.filter(
+        agent =>
+          agent.name.toLowerCase().includes(search.toLowerCase()) ||
+          agent.description.toLowerCase().includes(search.toLowerCase())
+      );
     }
 
     if (type) {
-      filteredAgents = filteredAgents.filter(agent => agent.type === type)
+      filteredAgents = filteredAgents.filter(agent => agent.type === type);
     }
 
     if (status) {
-      filteredAgents = filteredAgents.filter(agent => agent.status === status)
+      filteredAgents = filteredAgents.filter(agent => agent.status === status);
     }
 
     if (tags.length > 0) {
-      filteredAgents = filteredAgents.filter(agent =>
-        tags.some(tag => agent.tags.includes(tag))
-      )
+      filteredAgents = filteredAgents.filter(agent => tags.some(tag => agent.tags.includes(tag)));
     }
 
     // 分页
-    const startIndex: any = (page - 1) * limit
-    const endIndex: any = startIndex + limit
-    const paginatedAgents: any = filteredAgents.slice(startIndex, endIndex)
+    const startIndex: any = (page - 1) * limit;
+    const endIndex: any = startIndex + limit;
+    const paginatedAgents: any = filteredAgents.slice(startIndex, endIndex);
 
     return HttpResponse.json({
       success: true,
@@ -157,38 +156,35 @@ export const agentHandlers: any = [
         page,
         limit,
         total: filteredAgents.length,
-        totalPages: Math.ceil(filteredAgents.length / limit)
-      }
-    })
+        totalPages: Math.ceil(filteredAgents.length / limit),
+      },
+    });
   }),
 
   // 获取单个智能体详情
   http.get('/api/agents/:id', ({ params }) => {
-    const { id } = params
-    const agent: any = mockAgents.find(a => a.id === id)
+    const { id } = params;
+    const agent: any = mockAgents.find(a => a.id === id);
 
     if (!agent) {
-      return HttpResponse.json(
-        { success: false, message: '智能体不存在' },
-        { status: 404 }
-      )
+      return HttpResponse.json({ success: false, message: '智能体不存在' }, { status: 404 });
     }
 
     return HttpResponse.json({
       success: true,
-      data: agent
-    })
+      data: agent,
+    });
   }),
 
   // 创建智能体
   http.post('/api/agents', async ({ request }) => {
-    const body: any = await request.json() as Partial<Agent>
-    
+    const body: any = (await request.json()) as Partial<Agent>;
+
     const newAgent: Agent = {
       id: `agent-${Date.now()}`,
       name: body.name || '新智能体',
       description: body.description || '',
-      type: body.type || 'fastgpt' as AgentType,
+      type: body.type || ('fastgpt' as AgentType),
       status: 'active' as AgentStatus,
       tags: body.tags || [],
       apiEndpoint: body.apiEndpoint || '',
@@ -204,65 +200,62 @@ export const agentHandlers: any = [
         monthlyActiveUsers: 0,
         rating: 0,
         reviewCount: 0,
-        uptime: 100
+        uptime: 100,
       },
       version: '1.0.0',
       isPublic: body.isPublic || false,
       ownerId: 'current-user',
       createdAt: new Date(),
-      updatedAt: new Date()
-    }
+      updatedAt: new Date(),
+    };
 
-    mockAgents.push(newAgent)
+    mockAgents.push(newAgent);
 
-    return HttpResponse.json({
-      success: true,
-      data: newAgent
-    }, { status: 201 })
+    return HttpResponse.json(
+      {
+        success: true,
+        data: newAgent,
+      },
+      { status: 201 }
+    );
   }),
 
   // 更新智能体
   http.put('/api/agents/:id', async ({ params, request }) => {
-    const { id } = params
-    const body: any = await request.json() as Partial<Agent>
-    
-    const agentIndex: any = mockAgents.findIndex(a => a.id === id)
+    const { id } = params;
+    const body: any = (await request.json()) as Partial<Agent>;
+
+    const agentIndex: any = mockAgents.findIndex(a => a.id === id);
     if (agentIndex === -1) {
-      return HttpResponse.json(
-        { success: false, message: '智能体不存在' },
-        { status: 404 }
-      )
+      return HttpResponse.json({ success: false, message: '智能体不存在' }, { status: 404 });
     }
 
     mockAgents[agentIndex] = {
       ...mockAgents[agentIndex],
       ...body,
-      updatedAt: new Date()
-    }
+      updatedAt: new Date(),
+    };
 
     return HttpResponse.json({
       success: true,
-      data: mockAgents[agentIndex]
-    })
+      data: mockAgents[agentIndex],
+    });
   }),
 
   // 删除智能体
   http.delete('/api/agents/:id', ({ params }) => {
-    const { id } = params
-    const agentIndex: any = mockAgents.findIndex(a => a.id === id)
-    
+    const { id } = params;
+    const agentIndex: any = mockAgents.findIndex(a => a.id === id);
+
     if (agentIndex === -1) {
-      return HttpResponse.json(
-        { success: false, message: '智能体不存在' },
-        { status: 404 }
-      )
+      return HttpResponse.json({ success: false, message: '智能体不存在' }, { status: 404 });
     }
 
-    mockAgents.splice(agentIndex, 1)
+    mockAgents.splice(agentIndex, 1);
 
     return HttpResponse.json({
       success: true,
-      message: '智能体已删除'
-    })
-  })
-] 
+      message: '智能体已删除',
+    });
+  }),
+];

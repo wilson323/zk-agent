@@ -7,9 +7,17 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { automatedScanner } from '@/lib/security/automated-scanner';
-import { securityAuditSystem, SecurityEventType, SecuritySeverity } from '@/lib/security/security-audit-system';
+import {
+  securityAuditSystem,
+  SecurityEventType,
+  SecuritySeverity,
+} from '@/lib/security/security-audit-system';
 import { getErrorMessage } from '@/lib/utils/error-handler';
-import { Logger } from '@/lib/utils/logger';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
+
+const logger = getLogger();
 
 const logger = new Logger('SecurityScanAPI');
 
@@ -20,9 +28,8 @@ export async function POST(request: NextRequest) {
     const { configId, includePatterns, excludePatterns, triggeredBy = 'api' } = body;
 
     // Get client IP for audit logging
-    const clientIP = request.headers.get('x-forwarded-for') || 
-                     request.headers.get('x-real-ip') || 
-                     '127.0.0.1';
+    const clientIP =
+      request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '127.0.0.1';
 
     // Start security scan
     const jobId = await automatedScanner.scanRepository({
@@ -58,17 +65,19 @@ export async function POST(request: NextRequest) {
       data: { jobId },
       message: 'Security scan started successfully',
     });
-
   } catch (error) {
     logger.error('Failed to start security scan', {
       error: getErrorMessage(error),
     });
 
-    return NextResponse.json({
-      success: false,
-      error: 'Failed to start security scan',
-      details: getErrorMessage(error),
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Failed to start security scan',
+        details: getErrorMessage(error),
+      },
+      { status: 500 }
+    );
   }
 }
 
@@ -81,12 +90,15 @@ export async function GET(request: NextRequest) {
     if (jobId) {
       // Get specific scan job
       const job = automatedScanner.getScanJob(jobId);
-      
+
       if (!job) {
-        return NextResponse.json({
-          success: false,
-          error: 'Scan job not found',
-        }, { status: 404 });
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Scan job not found',
+          },
+          { status: 404 }
+        );
       }
 
       return NextResponse.json({
@@ -96,22 +108,24 @@ export async function GET(request: NextRequest) {
     } else {
       // Get all scan configurations
       const configs = automatedScanner.getScanConfigs();
-      
+
       return NextResponse.json({
         success: true,
         data: configs,
       });
     }
-
   } catch (error) {
     logger.error('Failed to get scan information', {
       error: getErrorMessage(error),
     });
 
-    return NextResponse.json({
-      success: false,
-      error: 'Failed to get scan information',
-      details: getErrorMessage(error),
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Failed to get scan information',
+        details: getErrorMessage(error),
+      },
+      { status: 500 }
+    );
   }
 }

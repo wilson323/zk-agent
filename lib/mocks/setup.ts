@@ -6,17 +6,16 @@
  * @date 2024-12-19
  */
 
-import { setupWorker } from 'msw/browser'
-import { setupServer } from 'msw/node'
-import { handlers } from './handlers'
-import { logger } from '@/lib/utils/logger';
+import { setupWorker } from 'msw/browser';
+import { setupServer } from 'msw/node';
+import { handlers } from './handlers';
 
 // 性能监控配置
 interface MockMetrics {
-  requestCount: number
-  averageResponseTime: number
-  errorCount: number
-  lastRequestTime: Date | null
+  requestCount: number;
+  averageResponseTime: number;
+  errorCount: number;
+  lastRequestTime: Date | null;
 }
 
 class MockPerformanceMonitor {
@@ -24,25 +23,25 @@ class MockPerformanceMonitor {
     requestCount: 0,
     averageResponseTime: 0,
     errorCount: 0,
-    lastRequestTime: null
-  }
+    lastRequestTime: null,
+  };
 
   recordRequest(responseTime: number, isError: boolean = false) {
-    this.metrics.requestCount++
-    this.metrics.lastRequestTime = new Date()
-    
+    this.metrics.requestCount++;
+    this.metrics.lastRequestTime = new Date();
+
     // 计算平均响应时间
-    this.metrics.averageResponseTime = 
-      (this.metrics.averageResponseTime * (this.metrics.requestCount - 1) + responseTime) / 
-      this.metrics.requestCount
+    this.metrics.averageResponseTime =
+      (this.metrics.averageResponseTime * (this.metrics.requestCount - 1) + responseTime) /
+      this.metrics.requestCount;
 
     if (isError) {
-      this.metrics.errorCount++
+      this.metrics.errorCount++;
     }
   }
 
   getMetrics(): MockMetrics {
-    return { ...this.metrics }
+    return { ...this.metrics };
   }
 
   reset() {
@@ -50,18 +49,18 @@ class MockPerformanceMonitor {
       requestCount: 0,
       averageResponseTime: 0,
       errorCount: 0,
-      lastRequestTime: null
-    }
+      lastRequestTime: null,
+    };
   }
 }
 
-export const mockMonitor = new MockPerformanceMonitor()
+export const mockMonitor = new MockPerformanceMonitor();
 
 // 浏览器环境的Mock Worker
-export const worker = typeof window !== 'undefined' ? setupWorker(...handlers) : null
+export const worker = typeof window !== 'undefined' ? setupWorker(...handlers) : null;
 
 // Node.js环境的Mock Server (用于测试)
-export const server = setupServer(...handlers)
+export const server = setupServer(...handlers);
 
 // 启动Mock服务
 export const startMocking = async () => {
@@ -71,22 +70,26 @@ export const startMocking = async () => {
       await worker.start({
         onUnhandledRequest: 'warn',
         serviceWorker: {
-          url: '/mockServiceWorker.js'
-        }
-      })
-      
+          url: '/mockServiceWorker.js',
+        },
+      });
+
       // 添加请求监听器
       worker.events.on('request:start', ({ request }) => {
-        const startTime = Date.now()
-        request.startTime = startTime
-        
-        if (process.env.NODE_ENV === 'development') {
+        const startTime = Date.now();
+        request.startTime = startTime;
 
-}
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Development mode detected');
+        }
+      });
+    }
+  }
+};
 
 // 类型扩展
 declare global {
   interface Request {
-    startTime?: number
+    startTime?: number;
   }
-} 
+}

@@ -6,20 +6,20 @@
  * @date 2024-12-19
  */
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react';
 
 interface PerformanceMetrics {
-  renderCount: number
-  averageRenderTime: number
-  lastRenderTime: number
-  memoryUsage: number
-  isSlowComponent: boolean
+  renderCount: number;
+  averageRenderTime: number;
+  lastRenderTime: number;
+  memoryUsage: number;
+  isSlowComponent: boolean;
 }
 
 interface PerformanceMonitorOptions {
-  threshold?: number // 慢组件阈值(ms)
-  enableMemoryTracking?: boolean
-  enableConsoleWarnings?: boolean
+  threshold?: number; // 慢组件阈值(ms)
+  enableMemoryTracking?: boolean;
+  enableConsoleWarnings?: boolean;
 }
 
 export const usePerformanceMonitor = (
@@ -29,48 +29,49 @@ export const usePerformanceMonitor = (
   const {
     threshold = 16, // 60FPS = 16ms per frame
     enableMemoryTracking = true,
-    enableConsoleWarnings = process.env.NODE_ENV === 'development'
-  } = options
+    enableConsoleWarnings = process.env.NODE_ENV === 'development',
+  } = options;
 
-  const renderCountRef = useRef(0)
-  const renderTimesRef = useRef<number[]>([])
-  const lastRenderStartRef = useRef<number>(0)
+  const renderCountRef = useRef(0);
+  const renderTimesRef = useRef<number[]>([]);
+  const lastRenderStartRef = useRef<number>(0);
   const [metrics, setMetrics] = useState<PerformanceMetrics>({
     renderCount: 0,
     averageRenderTime: 0,
     lastRenderTime: 0,
     memoryUsage: 0,
-    isSlowComponent: false
-  })
+    isSlowComponent: false,
+  });
 
   useEffect(() => {
     // 记录渲染开始时间
-    lastRenderStartRef.current = performance.now()
-  })
+    lastRenderStartRef.current = performance.now();
+  });
 
   useEffect(() => {
     // 计算渲染时间
-    const renderTime = performance.now() - lastRenderStartRef.current
-    renderCountRef.current += 1
-    renderTimesRef.current.push(renderTime)
+    const renderTime = performance.now() - lastRenderStartRef.current;
+    renderCountRef.current += 1;
+    renderTimesRef.current.push(renderTime);
 
     // 保持最近50次渲染记录
     if (renderTimesRef.current.length > 50) {
-      renderTimesRef.current.shift()
+      renderTimesRef.current.shift();
     }
 
     // 计算平均渲染时间
-    const averageRenderTime = renderTimesRef.current.reduce((a, b) => a + b, 0) / renderTimesRef.current.length
+    const averageRenderTime =
+      renderTimesRef.current.reduce((a, b) => a + b, 0) / renderTimesRef.current.length;
 
     // 检测内存使用
-    let memoryUsage = 0
+    let memoryUsage = 0;
     if (enableMemoryTracking && 'memory' in performance) {
       // @ts-ignore - performance.memory是非标准API
-      memoryUsage = performance.memory.usedJSHeapSize / 1024 / 1024 // MB
+      memoryUsage = performance.memory.usedJSHeapSize / 1024 / 1024; // MB
     }
 
     // 判断是否为慢组件
-    const isSlowComponent = renderTime > threshold || averageRenderTime > threshold
+    const isSlowComponent = renderTime > threshold || averageRenderTime > threshold;
 
     // 更新指标
     setMetrics({
@@ -78,8 +79,8 @@ export const usePerformanceMonitor = (
       averageRenderTime,
       lastRenderTime: renderTime,
       memoryUsage,
-      isSlowComponent
-    })
+      isSlowComponent,
+    });
 
     // 开发环境警告 - handled by performance monitoring system
     if (enableConsoleWarnings && isSlowComponent) {
@@ -92,13 +93,13 @@ export const usePerformanceMonitor = (
       reportPerformanceData(componentName, {
         renderCount: renderCountRef.current,
         averageRenderTime,
-        memoryUsage
-      })
+        memoryUsage,
+      });
     }
-  }, [enableMemoryTracking, threshold, enableConsoleWarnings, componentName])
+  }, [enableMemoryTracking, threshold, enableConsoleWarnings, componentName]);
 
-  return metrics
-}
+  return metrics;
+};
 
 // 性能数据上报
 const reportPerformanceData = (componentName: string, data: any) => {
@@ -106,44 +107,44 @@ const reportPerformanceData = (componentName: string, data: any) => {
     window.gtag('event', 'component_performance', {
       event_category: 'Performance',
       event_label: componentName,
-      value: Math.round(data.averageRenderTime)
-    })
+      value: Math.round(data.averageRenderTime),
+    });
   }
-}
+};
 
 // 全局性能监控器
 export class GlobalPerformanceMonitor {
-  private static instance: GlobalPerformanceMonitor
-  private componentMetrics = new Map<string, PerformanceMetrics>()
+  private static instance: GlobalPerformanceMonitor;
+  private componentMetrics = new Map<string, PerformanceMetrics>();
 
   static getInstance(): GlobalPerformanceMonitor {
     if (!GlobalPerformanceMonitor.instance) {
-      GlobalPerformanceMonitor.instance = new GlobalPerformanceMonitor()
+      GlobalPerformanceMonitor.instance = new GlobalPerformanceMonitor();
     }
-    return GlobalPerformanceMonitor.instance
+    return GlobalPerformanceMonitor.instance;
   }
 
   registerComponent(name: string, metrics: PerformanceMetrics) {
-    this.componentMetrics.set(name, metrics)
+    this.componentMetrics.set(name, metrics);
   }
 
   getSlowComponents(): Array<{ name: string; metrics: PerformanceMetrics }> {
     return Array.from(this.componentMetrics.entries())
       .filter(([_, metrics]) => metrics.isSlowComponent)
-      .map(([name, metrics]) => ({ name, metrics }))
+      .map(([name, metrics]) => ({ name, metrics }));
   }
 
   generateReport(): string {
-    const slowComponents = this.getSlowComponents()
-    const totalComponents = this.componentMetrics.size
+    const slowComponents = this.getSlowComponents();
+    const totalComponents = this.componentMetrics.size;
 
     return `
 Performance Report:
 - Total Components: ${totalComponents}
 - Slow Components: ${slowComponents.length}
 - Performance Issues: ${slowComponents.map(c => `${c.name} (${c.metrics.averageRenderTime.toFixed(2)}ms)`).join(', ')}
-    `.trim()
+    `.trim();
   }
 }
 
-export default usePerformanceMonitor
+export default usePerformanceMonitor;

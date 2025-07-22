@@ -51,21 +51,21 @@ export interface CacheOptions {
 
 /**
  * 创建防抖函数
- * 
+ *
  * 防抖函数会延迟执行，如果在延迟期间再次调用，则重新计时。
  * 适用于搜索输入、窗口大小调整等场景。
- * 
+ *
  * @param func 要防抖的函数
  * @param wait 延迟时间(毫秒)
  * @param options 防抖配置选项
  * @returns 防抖后的函数
- * 
+ *
  * @example
  * ```typescript
  * const debouncedSearch = debounce((query: string) => {
  *   console.log('搜索:', query);
  * }, 300);
- * 
+ *
  * // 立即执行版本
  * const immediateDebounce = debounce(handleClick, 1000, { immediate: true });
  * ```
@@ -76,43 +76,43 @@ export function debounce<T extends (...args: any[]) => any>(
   options: Omit<DebounceOptions, 'delay'> = {}
 ): (...args: Parameters<T>) => void {
   const { immediate = false, maxWait } = options;
-  
+
   let timeout: NodeJS.Timeout | null = null;
   let maxTimeout: NodeJS.Timeout | null = null;
   let lastCallTime = 0;
-  
+
   return (...args: Parameters<T>) => {
     const now = Date.now();
-    
+
     // 立即执行逻辑
     if (immediate && now - lastCallTime > wait) {
       lastCallTime = now;
       func(...args);
       return;
     }
-    
+
     // 清除之前的定时器
     if (timeout) {
       clearTimeout(timeout);
     }
-    
+
     // 设置新的定时器
     timeout = setTimeout(() => {
       lastCallTime = Date.now();
       func(...args);
-      
+
       if (maxTimeout) {
         clearTimeout(maxTimeout);
         maxTimeout = null;
       }
     }, wait);
-    
+
     // 最大等待时间逻辑
     if (maxWait && !maxTimeout) {
       maxTimeout = setTimeout(() => {
         lastCallTime = Date.now();
         func(...args);
-        
+
         if (timeout) {
           clearTimeout(timeout);
           timeout = null;
@@ -128,25 +128,25 @@ export function debounce<T extends (...args: any[]) => any>(
 
 /**
  * 创建节流函数
- * 
+ *
  * 节流函数会限制函数的执行频率，在指定时间间隔内最多执行一次。
  * 适用于滚动事件、鼠标移动等高频事件。
- * 
+ *
  * @param func 要节流的函数
  * @param wait 时间间隔(毫秒)
  * @param options 节流配置选项
  * @returns 节流后的函数
- * 
+ *
  * @example
  * ```typescript
  * const throttledScroll = throttle((event: Event) => {
  *   console.log('滚动事件:', event);
  * }, 100);
- * 
+ *
  * // 只在结束时执行
- * const trailingThrottle = throttle(handleResize, 200, { 
- *   leading: false, 
- *   trailing: true 
+ * const trailingThrottle = throttle(handleResize, 200, {
+ *   leading: false,
+ *   trailing: true
  * });
  * ```
  */
@@ -156,17 +156,17 @@ export function throttle<T extends (...args: any[]) => any>(
   options: Omit<ThrottleOptions, 'delay'> = {}
 ): (...args: Parameters<T>) => void {
   const { leading = true, trailing = true } = options;
-  
+
   let lastCallTime = 0;
   let timeout: NodeJS.Timeout | null = null;
   let lastArgs: Parameters<T> | null = null;
-  
+
   return (...args: Parameters<T>) => {
     const now = Date.now();
     const timeSinceLastCall = now - lastCallTime;
-    
+
     lastArgs = args;
-    
+
     // 首次调用或超过等待时间
     if (timeSinceLastCall >= wait) {
       if (leading) {
@@ -178,7 +178,7 @@ export function throttle<T extends (...args: any[]) => any>(
         if (timeout) {
           clearTimeout(timeout);
         }
-        
+
         timeout = setTimeout(() => {
           lastCallTime = Date.now();
           if (lastArgs) {
@@ -192,7 +192,7 @@ export function throttle<T extends (...args: any[]) => any>(
         if (timeout) {
           clearTimeout(timeout);
         }
-        
+
         timeout = setTimeout(() => {
           lastCallTime = Date.now();
           if (lastArgs) {
@@ -243,7 +243,7 @@ export class PerformanceUtils {
     const startUsage = process.cpuUsage();
     await new Promise(resolve => setTimeout(resolve, duration));
     const endUsage = process.cpuUsage(startUsage);
-    
+
     const totalUsage = endUsage.user + endUsage.system;
     return (totalUsage / (duration * 1000)) * 100; // 转换为百分比
   }

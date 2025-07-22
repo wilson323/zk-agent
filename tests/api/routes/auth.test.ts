@@ -33,7 +33,7 @@ describe('Auth API Routes Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({})
+        body: JSON.stringify({}),
       });
 
       const response = await loginHandler(request);
@@ -50,8 +50,8 @@ describe('Auth API Routes Error Handling', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: 'invalid@example.com',
-          password: 'wrongpassword'
-        })
+          password: 'wrongpassword',
+        }),
       });
 
       const response = await loginHandler(request);
@@ -66,7 +66,7 @@ describe('Auth API Routes Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: 'invalid json'
+        body: 'invalid json',
       });
 
       const response = await loginHandler(request);
@@ -87,8 +87,8 @@ describe('Auth API Routes Error Handling', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: 'test@example.com',
-          password: 'password123'
-        })
+          password: 'password123',
+        }),
       });
 
       const response = await loginHandler(request);
@@ -108,8 +108,8 @@ describe('Auth API Routes Error Handling', () => {
         body: JSON.stringify({
           email: 'existing@example.com',
           password: 'password123',
-          name: 'Test User'
-        })
+          name: 'Test User',
+        }),
       });
 
       const response = await registerHandler(request);
@@ -126,8 +126,8 @@ describe('Auth API Routes Error Handling', () => {
         body: JSON.stringify({
           email: 'test@example.com',
           password: '123',
-          name: 'Test User'
-        })
+          name: 'Test User',
+        }),
       });
 
       const response = await registerHandler(request);
@@ -142,7 +142,7 @@ describe('Auth API Routes Error Handling', () => {
   describe('Profile Route (/api/auth/profile)', () => {
     it('should handle unauthorized access error', async () => {
       const request = new NextRequest('http://localhost:3000/api/auth/profile', {
-        method: 'GET'
+        method: 'GET',
       });
 
       const response = await profileHandler(request);
@@ -157,8 +157,8 @@ describe('Auth API Routes Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/auth/profile', {
         method: 'GET',
         headers: {
-          'Authorization': 'Bearer invalid_token'
-        }
+          Authorization: 'Bearer invalid_token',
+        },
       });
 
       const response = await profileHandler(request);
@@ -176,8 +176,8 @@ describe('Auth API Routes Error Handling', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          newPassword: 'newpassword123'
-        })
+          newPassword: 'newpassword123',
+        }),
       });
 
       const response = await changePasswordHandler(request);
@@ -193,12 +193,12 @@ describe('Auth API Routes Error Handling', () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer valid_token'
+          Authorization: 'Bearer valid_token',
         },
         body: JSON.stringify({
           currentPassword: 'wrongpassword',
-          newPassword: 'newpassword123'
-        })
+          newPassword: 'newpassword123',
+        }),
       });
 
       const response = await changePasswordHandler(request);
@@ -215,15 +215,15 @@ describe('Auth API Routes Error Handling', () => {
       const requests = [
         new NextRequest('http://localhost:3000/api/auth/login', {
           method: 'POST',
-          body: 'invalid json'
+          body: 'invalid json',
         }),
         new NextRequest('http://localhost:3000/api/auth/profile', {
-          method: 'GET'
+          method: 'GET',
         }),
         new NextRequest('http://localhost:3000/api/auth/register', {
           method: 'POST',
-          body: JSON.stringify({})
-        })
+          body: JSON.stringify({}),
+        }),
       ];
 
       for (const request of requests) {
@@ -237,21 +237,29 @@ describe('Auth API Routes Error Handling', () => {
     it('should trigger circuit breaker on repeated failures', async () => {
       // Configure low threshold for testing
       const originalThreshold = (errorHandler as any).errorThreshold;
-      Object.defineProperty(errorHandler, 'errorThreshold', { value: 2, writable: true, configurable: true });
+      Object.defineProperty(errorHandler, 'errorThreshold', {
+        value: 2,
+        writable: true,
+        configurable: true,
+      });
 
       try {
         // Trigger multiple errors to exceed threshold
         for (let i = 0; i < 3; i++) {
           const request = new NextRequest('http://localhost:3000/api/auth/login', {
             method: 'POST',
-            body: 'invalid json'
+            body: 'invalid json',
           });
           await loginHandler(request).catch(() => {});
         }
 
         expect(errorHandler.isCircuitBreakerOpen()).toBe(true);
       } finally {
-        Object.defineProperty(errorHandler, 'errorThreshold', { value: originalThreshold, writable: true, configurable: true });
+        Object.defineProperty(errorHandler, 'errorThreshold', {
+          value: originalThreshold,
+          writable: true,
+          configurable: true,
+        });
       }
     });
   });

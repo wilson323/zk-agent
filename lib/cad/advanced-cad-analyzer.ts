@@ -1,38 +1,42 @@
 // @ts-nocheck
-import { EventEmitter } from "events"
-import { logger } from '@/lib/utils/logger';
+import { EventEmitter } from 'events';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
+
+const logger = getLogger();
 
 // 添加实时分析进度接口
 export interface RealTimeProgress {
-  stage: string
-  progress: number
-  details: string
-  timestamp: Date
-  estimatedTimeRemaining?: number
+  stage: string;
+  progress: number;
+  details: string;
+  timestamp: Date;
+  estimatedTimeRemaining?: number;
 }
 
 // 添加批量分析配置
 export interface BatchAnalysisConfig {
-  maxConcurrent: number
-  priorityQueue: boolean
-  progressCallback?: (fileId: string, progress: RealTimeProgress) => void
+  maxConcurrent: number;
+  priorityQueue: boolean;
+  progressCallback?: (fileId: string, progress: RealTimeProgress) => void;
 }
 
 export interface CADFileInfo {
-  id: string
-  path: string
-  priority?: number
+  id: string;
+  path: string;
+  priority?: number;
 }
 
 export interface CADAnalysisResult {
-  [key: string]: any // Define the structure as needed
+  [key: string]: any; // Define the structure as needed
 }
 
 export class AdvancedCADAnalyzer {
-  private eventEmitter = new EventEmitter()
-  private analysisQueue: Map<string, any> = new Map()
-  private activeAnalyses: Set<string> = new Set()
-  private performanceMetrics: Map<string, any> = new Map()
+  private eventEmitter = new EventEmitter();
+  private analysisQueue: Map<string, any> = new Map();
+  private activeAnalyses: Set<string> = new Set();
+  private performanceMetrics: Map<string, any> = new Map();
 
   /**
    * 分析单个CAD文件
@@ -45,16 +49,16 @@ export class AdvancedCADAnalyzer {
       setTimeout(() => {
         const result: CADAnalysisResult = {
           fileId: file.id,
-          status: "success",
+          status: 'success',
           data: {
             vertices: 1000,
             edges: 2000,
             faces: 3000,
           },
-        }
-        resolve(result)
-      }, 1000)
-    })
+        };
+        resolve(result);
+      }, 1000);
+    });
   }
 
   /**
@@ -62,47 +66,47 @@ export class AdvancedCADAnalyzer {
    */
   async analyzeBatch(
     files: CADFileInfo[],
-    config: BatchAnalysisConfig = { maxConcurrent: 3, priorityQueue: false },
+    config: BatchAnalysisConfig = { maxConcurrent: 3, priorityQueue: false }
   ): Promise<Map<string, CADAnalysisResult>> {
-    const results = new Map<string, CADAnalysisResult>()
-    const queue = [...files]
+    const results = new Map<string, CADAnalysisResult>();
+    const queue = [...files];
 
     // 按优先级排序
     if (config.priorityQueue) {
-      queue.sort((a, b) => (b.priority || 0) - (a.priority || 0))
+      queue.sort((a, b) => (b.priority || 0) - (a.priority || 0));
     }
 
     const processFile = async (file: CADFileInfo) => {
       try {
-        this.activeAnalyses.add(file.id)
-        const result = await this.analyzeFile(file)
-        results.set(file.id, result)
+        this.activeAnalyses.add(file.id);
+        const result = await this.analyzeFile(file);
+        results.set(file.id, result);
 
         // 触发进度回调
         config.progressCallback?.(file.id, {
-          stage: "completed",
+          stage: 'completed',
           progress: 100,
-          details: "分析完成",
+          details: '分析完成',
           timestamp: new Date(),
-        })
+        });
       } catch (error) {
-        logger.error(`文件 ${file.id} 分析失败:`, error)
+        logger.error(`文件 ${file.id} 分析失败:`, error);
       } finally {
-        this.activeAnalyses.delete(file.id)
+        this.activeAnalyses.delete(file.id);
       }
-    }
+    };
 
     // 并发处理
-    const chunks = []
+    const chunks = [];
     for (let i = 0; i < queue.length; i += config.maxConcurrent) {
-      chunks.push(queue.slice(i, i + config.maxConcurrent))
+      chunks.push(queue.slice(i, i + config.maxConcurrent));
     }
 
     for (const chunk of chunks) {
-      await Promise.all(chunk.map(processFile))
+      await Promise.all(chunk.map(processFile));
     }
 
-    return results
+    return results;
   }
 
   /**
@@ -115,7 +119,7 @@ export class AdvancedCADAnalyzer {
       averageProcessingTime: this.calculateAverageProcessingTime(),
       memoryUsage: process.memoryUsage(),
       cpuUsage: process.cpuUsage(),
-    }
+    };
   }
 
   /**
@@ -123,12 +127,12 @@ export class AdvancedCADAnalyzer {
    */
   private cacheResults(fileId: string, result: CADAnalysisResult): void {
     // 实现智能缓存逻辑
-    const cacheKey = this.generateCacheKey(fileId)
+    const cacheKey = this.generateCacheKey(fileId);
     // 缓存到内存或持久化存储
   }
 
   private generateCacheKey(fileId: string): string {
-    return `cache_key_for_${fileId}`
+    return `cache_key_for_${fileId}`;
   }
 
   private calculateAverageProcessingTime(): number {
@@ -136,11 +140,11 @@ export class AdvancedCADAnalyzer {
     if (this.processingTimes.length === 0) {
       return 0;
     }
-    
+
     // 计算所有处理时间的平均值
     const totalTime = this.processingTimes.reduce((sum, time) => sum + time, 0);
     const averageTime = totalTime / this.processingTimes.length;
-    
+
     // 保留两位小数
     return Math.round(averageTime * 100) / 100;
   }

@@ -16,10 +16,15 @@ export const POST = createApiRoute(
     try {
       const body = await req.json();
       const { threadId, runId, appId, apiKey, messages, tools, state, config } = body;
-    
+
       // 验证必需参数
       if (!threadId || !runId || !appId || !messages) {
-        return ApiResponseWrapper.error(ErrorCode.VALIDATION_ERROR, 'Missing required parameters: threadId, runId, appId, messages', null, 400);
+        return ApiResponseWrapper.error(
+          ErrorCode.VALIDATION_ERROR,
+          'Missing required parameters: threadId, runId, appId, messages',
+          null,
+          400
+        );
       }
 
       // 模拟AG-UI智能体管理器
@@ -28,14 +33,14 @@ export const POST = createApiRoute(
           return {
             id: appId,
             tools: tools || [],
-            config: config || {}
+            config: config || {},
           };
-        }
+        },
       };
-    
+
       // 从FastGPT创建智能体定义
       const agent = await agentManager.createAgentFromFastGPT(appId, apiKey);
-    
+
       // 模拟运行时
       const runtime = {
         setAgent: (agent: any) => {},
@@ -44,37 +49,37 @@ export const POST = createApiRoute(
             // 模拟事件流
             setTimeout(() => {
               callbacks.next({
-                type: "run-start",
+                type: 'run-start',
                 threadId,
                 runId,
-                timestamp: Date.now()
+                timestamp: Date.now(),
               });
-              
+
               callbacks.next({
-                type: "message",
+                type: 'message',
                 threadId,
                 runId,
-                content: "Hello from AG-UI agent!",
-                timestamp: Date.now()
+                content: 'Hello from AG-UI agent!',
+                timestamp: Date.now(),
               });
-              
+
               callbacks.complete();
             }, 100);
-            
+
             return {
-              unsubscribe: () => {}
+              unsubscribe: () => {},
             };
-          }
+          },
         }),
         run: async (params: any, config: any) => {
           return Promise.resolve();
         },
-        dispose: () => {}
+        dispose: () => {},
       };
-    
+
       // 设置智能体
       runtime.setAgent(agent);
-    
+
       // 创建可读流用于SSE
       const stream = new ReadableStream({
         start(controller) {
@@ -88,7 +93,7 @@ export const POST = createApiRoute(
             error: (error: any) => {
               console.error('Runtime error:', error);
               const errorEvent = {
-                type: "run-error",
+                type: 'run-error',
                 threadId,
                 runId,
                 error: {
@@ -105,7 +110,7 @@ export const POST = createApiRoute(
               controller.close();
             },
           });
-    
+
           // 执行运行
           runtime
             .run(
@@ -116,12 +121,12 @@ export const POST = createApiRoute(
                 tools: tools || agent.tools,
                 state: state || {},
               },
-              config,
+              config
             )
-            .catch((error) => {
+            .catch(error => {
               console.error('Runtime execution error:', error);
               const errorEvent = {
-                type: "run-error",
+                type: 'run-error',
                 threadId,
                 runId,
                 error: {
@@ -134,7 +139,7 @@ export const POST = createApiRoute(
               controller.enqueue(new TextEncoder().encode(data));
               controller.close();
             });
-    
+
           // 清理函数
           return () => {
             subscription.unsubscribe();
@@ -142,22 +147,26 @@ export const POST = createApiRoute(
           };
         },
       });
-    
+
       // 返回SSE响应
       return new NextResponse(stream, {
         headers: {
-          "Content-Type": "text/event-stream",
-          "Cache-Control": "no-cache",
-          Connection: "keep-alive",
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-          "Access-Control-Allow-Headers": "Content-Type, Authorization",
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          Connection: 'keep-alive',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         },
       });
     } catch (error) {
       console.error('AG-UI chat error:', error);
-      return ApiResponseWrapper.error(ErrorCode.INTERNAL_SERVER_ERROR, 'Internal server error', null, 500);
+      return ApiResponseWrapper.error(
+        ErrorCode.INTERNAL_SERVER_ERROR,
+        'Internal server error',
+        null,
+        500
+      );
     }
   }
 );
-

@@ -20,7 +20,7 @@ jest.mock('../../../lib/services/likes-manager', () => ({
   getUserLikes: jest.fn(),
   getPopularContent: jest.fn(),
   validateLikePermissions: jest.fn(),
-  checkLikeLimit: jest.fn()
+  checkLikeLimit: jest.fn(),
 }));
 
 jest.mock('../../../lib/storage/likes-store', () => ({
@@ -30,25 +30,25 @@ jest.mock('../../../lib/storage/likes-store', () => ({
   getLikesByUser: jest.fn(),
   getLikesByContent: jest.fn(),
   updateLikeMetadata: jest.fn(),
-  checkLikeExists: jest.fn()
+  checkLikeExists: jest.fn(),
 }));
 
 jest.mock('../../../lib/services/content-validator', () => ({
   validateContentExists: jest.fn(),
   validateContentType: jest.fn(),
   checkContentAccess: jest.fn(),
-  validateContentStatus: jest.fn()
+  validateContentStatus: jest.fn(),
 }));
 
 jest.mock('../../../lib/auth/session', () => ({
   validateSession: jest.fn(),
   getUserId: jest.fn(),
-  checkUserPermissions: jest.fn()
+  checkUserPermissions: jest.fn(),
 }));
 
 jest.mock('../../../lib/services/notification-manager', () => ({
   sendLikeNotification: jest.fn(),
-  sendUnlikeNotification: jest.fn()
+  sendUnlikeNotification: jest.fn(),
 }));
 
 describe('Likes API Error Handling', () => {
@@ -85,7 +85,9 @@ describe('Likes API Error Handling', () => {
       const { validateContentExists } = require('../../../lib/services/content-validator');
       validateContentExists.mockRejectedValue(new Error('Content not found'));
 
-      const request = new NextRequest('http://localhost:3000/api/likes?contentId=nonexistent-content');
+      const request = new NextRequest(
+        'http://localhost:3000/api/likes?contentId=nonexistent-content'
+      );
       const response = await GET(request);
       const data = await response.json();
 
@@ -99,7 +101,7 @@ describe('Likes API Error Handling', () => {
       checkContentAccess.mockRejectedValue(new Error('Access denied to content'));
 
       const request = new NextRequest('http://localhost:3000/api/likes?contentId=private-content', {
-        headers: { 'Authorization': 'Bearer user-token' }
+        headers: { Authorization: 'Bearer user-token' },
       });
 
       const response = await GET(request);
@@ -138,7 +140,9 @@ describe('Likes API Error Handling', () => {
       const { getLikeCount } = require('../../../lib/services/likes-manager');
       getLikeCount.mockRejectedValue(new Error('Failed to calculate like count'));
 
-      const request = new NextRequest('http://localhost:3000/api/likes?contentId=content-123&action=count');
+      const request = new NextRequest(
+        'http://localhost:3000/api/likes?contentId=content-123&action=count'
+      );
       const response = await GET(request);
       const data = await response.json();
 
@@ -150,9 +154,12 @@ describe('Likes API Error Handling', () => {
       const { getUserLikes } = require('../../../lib/services/likes-manager');
       getUserLikes.mockRejectedValue(new Error('User likes retrieval timeout'));
 
-      const request = new NextRequest('http://localhost:3000/api/likes?userId=user-123&action=user_likes', {
-        headers: { 'Authorization': 'Bearer user-token' }
-      });
+      const request = new NextRequest(
+        'http://localhost:3000/api/likes?userId=user-123&action=user_likes',
+        {
+          headers: { Authorization: 'Bearer user-token' },
+        }
+      );
 
       const response = await GET(request);
       const data = await response.json();
@@ -174,7 +181,9 @@ describe('Likes API Error Handling', () => {
     });
 
     it('should handle invalid pagination parameters', async () => {
-      const request = new NextRequest('http://localhost:3000/api/likes?action=user_likes&page=-1&limit=0');
+      const request = new NextRequest(
+        'http://localhost:3000/api/likes?action=user_likes&page=-1&limit=0'
+      );
       const response = await GET(request);
       const data = await response.json();
 
@@ -184,7 +193,9 @@ describe('Likes API Error Handling', () => {
     });
 
     it('should handle excessive pagination limit', async () => {
-      const request = new NextRequest('http://localhost:3000/api/likes?action=user_likes&limit=10000');
+      const request = new NextRequest(
+        'http://localhost:3000/api/likes?action=user_likes&limit=10000'
+      );
       const response = await GET(request);
       const data = await response.json();
 
@@ -202,8 +213,8 @@ describe('Likes API Error Handling', () => {
         contentType: 'post',
         metadata: {
           source: 'web',
-          timestamp: new Date().toISOString()
-        }
+          timestamp: new Date().toISOString(),
+        },
       };
     });
 
@@ -214,7 +225,7 @@ describe('Likes API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/likes', {
         method: 'POST',
         body: JSON.stringify(invalidData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -232,7 +243,7 @@ describe('Likes API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/likes', {
         method: 'POST',
         body: JSON.stringify(validLikeData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -250,10 +261,10 @@ describe('Likes API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/likes', {
         method: 'POST',
         body: JSON.stringify({ ...validLikeData, contentId: 'nonexistent-content' }),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer user-token'
-        }
+          Authorization: 'Bearer user-token',
+        },
       });
 
       const response = await POST(request);
@@ -271,10 +282,10 @@ describe('Likes API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/likes', {
         method: 'POST',
         body: JSON.stringify({ ...validLikeData, contentType: 'restricted-type' }),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer user-token'
-        }
+          Authorization: 'Bearer user-token',
+        },
       });
 
       const response = await POST(request);
@@ -291,10 +302,10 @@ describe('Likes API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/likes', {
         method: 'POST',
         body: JSON.stringify(validLikeData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer user-token'
-        }
+          Authorization: 'Bearer user-token',
+        },
       });
 
       const response = await POST(request);
@@ -312,10 +323,10 @@ describe('Likes API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/likes', {
         method: 'POST',
         body: JSON.stringify(validLikeData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer user-token'
-        }
+          Authorization: 'Bearer user-token',
+        },
       });
 
       const response = await POST(request);
@@ -328,15 +339,17 @@ describe('Likes API Error Handling', () => {
 
     it('should handle insufficient permissions to like content', async () => {
       const { validateLikePermissions } = require('../../../lib/services/likes-manager');
-      validateLikePermissions.mockRejectedValue(new Error('Insufficient permissions to like this content'));
+      validateLikePermissions.mockRejectedValue(
+        new Error('Insufficient permissions to like this content')
+      );
 
       const request = new NextRequest('http://localhost:3000/api/likes', {
         method: 'POST',
         body: JSON.stringify(validLikeData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer limited-user-token'
-        }
+          Authorization: 'Bearer limited-user-token',
+        },
       });
 
       const response = await POST(request);
@@ -354,10 +367,10 @@ describe('Likes API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/likes', {
         method: 'POST',
         body: JSON.stringify(validLikeData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer user-token'
-        }
+          Authorization: 'Bearer user-token',
+        },
       });
 
       const response = await POST(request);
@@ -374,10 +387,10 @@ describe('Likes API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/likes', {
         method: 'POST',
         body: JSON.stringify(validLikeData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer user-token'
-        }
+          Authorization: 'Bearer user-token',
+        },
       });
 
       const response = await POST(request);
@@ -393,10 +406,10 @@ describe('Likes API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/likes', {
         method: 'POST',
         body: JSON.stringify(validLikeData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer user-token'
-        }
+          Authorization: 'Bearer user-token',
+        },
       });
 
       const response = await POST(request);
@@ -413,10 +426,10 @@ describe('Likes API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/likes', {
         method: 'POST',
         body: JSON.stringify(validLikeData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer content-owner-token'
-        }
+          Authorization: 'Bearer content-owner-token',
+        },
       });
 
       const response = await POST(request);
@@ -433,10 +446,10 @@ describe('Likes API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/likes', {
         method: 'POST',
         body: JSON.stringify(validLikeData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer user-token'
-        }
+          Authorization: 'Bearer user-token',
+        },
       });
 
       const response = await POST(request);
@@ -452,17 +465,17 @@ describe('Likes API Error Handling', () => {
         metadata: {
           source: 'invalid-source',
           timestamp: 'invalid-timestamp',
-          maliciousScript: '<script>alert("xss")</script>'
-        }
+          maliciousScript: '<script>alert("xss")</script>',
+        },
       };
 
       const request = new NextRequest('http://localhost:3000/api/likes', {
         method: 'POST',
         body: JSON.stringify(invalidMetadataData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer user-token'
-        }
+          Authorization: 'Bearer user-token',
+        },
       });
 
       const response = await POST(request);
@@ -479,13 +492,11 @@ describe('Likes API Error Handling', () => {
       // const request = new NextRequest('http://localhost:3000/api/likes', {
       //   method: 'DELETE'
       // });
-
       // // const response = await DELETE(request); // DELETE method not available
-       // const data = await response.json();
-
+      // const data = await response.json();
       // expect(response.status).toBe(400);
-       // expect(data.error.code).toBe('VALIDATION_ERROR');
-       // expect(data.error.message).toContain('Content ID is required');
+      // expect(data.error.code).toBe('VALIDATION_ERROR');
+      // expect(data.error.message).toContain('Content ID is required');
     });
 
     it('should handle unauthenticated unlike request', async () => {
@@ -500,8 +511,8 @@ describe('Likes API Error Handling', () => {
       // const data = await response.json();
 
       // expect(response.status).toBe(401);
-       // expect(data.error.code).toBe('AUTHENTICATION_ERROR');
-       // expect(data.error.message).toContain('Authentication required');
+      // expect(data.error.code).toBe('AUTHENTICATION_ERROR');
+      // expect(data.error.message).toContain('Authentication required');
     });
 
     it('should handle like not found for removal', async () => {
@@ -517,13 +528,15 @@ describe('Likes API Error Handling', () => {
       // const data = await response.json();
 
       // expect(response.status).toBe(404);
-       // expect(data.error.code).toBe('NOT_FOUND');
-       // expect(data.error.message).toContain('Like not found');
+      // expect(data.error.code).toBe('NOT_FOUND');
+      // expect(data.error.message).toContain('Like not found');
     });
 
     it('should handle unauthorized like removal', async () => {
       const { validateLikePermissions } = require('../../../lib/services/likes-manager');
-      validateLikePermissions.mockRejectedValue(new Error('Cannot remove like: not the original liker'));
+      validateLikePermissions.mockRejectedValue(
+        new Error('Cannot remove like: not the original liker')
+      );
 
       // const request = new NextRequest('http://localhost:3000/api/likes?contentId=content-123', {
       //   method: 'DELETE',
@@ -534,8 +547,8 @@ describe('Likes API Error Handling', () => {
       // const data = await response.json();
 
       // expect(response.status).toBe(403);
-       // expect(data.error.code).toBe('AUTHORIZATION_ERROR');
-       // expect(data.error.message).toContain('Cannot remove like');
+      // expect(data.error.code).toBe('AUTHORIZATION_ERROR');
+      // expect(data.error.message).toContain('Cannot remove like');
     });
 
     it('should handle like removal storage failure', async () => {
@@ -551,7 +564,7 @@ describe('Likes API Error Handling', () => {
       // const data = await response.json();
 
       // expect(response.status).toBe(500);
-       // expect(data.error.message).toContain('Failed to delete like');
+      // expect(data.error.message).toContain('Failed to delete like');
     });
 
     it('should handle unlike notification failure', async () => {
@@ -560,7 +573,7 @@ describe('Likes API Error Handling', () => {
 
       const request = new NextRequest('http://localhost:3000/api/likes?contentId=content-123', {
         method: 'DELETE',
-        headers: { 'Authorization': 'Bearer user-token' }
+        headers: { Authorization: 'Bearer user-token' },
       });
 
       const response = await DELETE(request);
@@ -575,7 +588,7 @@ describe('Likes API Error Handling', () => {
 
       const request = new NextRequest('http://localhost:3000/api/likes?contentId=content-123', {
         method: 'DELETE',
-        headers: { 'Authorization': 'Bearer user-token' }
+        headers: { Authorization: 'Bearer user-token' },
       });
 
       const response = await DELETE(request);
@@ -587,12 +600,17 @@ describe('Likes API Error Handling', () => {
 
     it('should handle like removal from archived content', async () => {
       const { validateContentStatus } = require('../../../lib/services/content-validator');
-      validateContentStatus.mockRejectedValue(new Error('Cannot remove like from archived content'));
+      validateContentStatus.mockRejectedValue(
+        new Error('Cannot remove like from archived content')
+      );
 
-      const request = new NextRequest('http://localhost:3000/api/likes?contentId=archived-content', {
-        method: 'DELETE',
-        headers: { 'Authorization': 'Bearer user-token' }
-      });
+      const request = new NextRequest(
+        'http://localhost:3000/api/likes?contentId=archived-content',
+        {
+          method: 'DELETE',
+          headers: { Authorization: 'Bearer user-token' },
+        }
+      );
 
       const response = await DELETE(request);
       const data = await response.json();
@@ -616,17 +634,17 @@ describe('Likes API Error Handling', () => {
         likes: [
           { contentId: 'content-1', contentType: 'post' },
           { contentId: 'invalid-content', contentType: 'post' },
-          { contentId: 'content-3', contentType: 'comment' }
-        ]
+          { contentId: 'content-3', contentType: 'comment' },
+        ],
       };
 
       const request = new NextRequest('http://localhost:3000/api/likes/batch', {
         method: 'POST',
         body: JSON.stringify(batchData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer user-token'
-        }
+          Authorization: 'Bearer user-token',
+        },
       });
 
       const response = await POST(request);
@@ -647,16 +665,16 @@ describe('Likes API Error Handling', () => {
       });
 
       const batchData = {
-        contentIds: ['content-1', 'not-liked-content', 'content-3']
+        contentIds: ['content-1', 'not-liked-content', 'content-3'],
       };
 
       const request = new NextRequest('http://localhost:3000/api/likes/batch', {
         method: 'DELETE',
         body: JSON.stringify(batchData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer user-token'
-        }
+          Authorization: 'Bearer user-token',
+        },
       });
 
       const response = await DELETE(request);
@@ -671,17 +689,17 @@ describe('Likes API Error Handling', () => {
       const largeBatchData = {
         likes: Array.from({ length: 1001 }, (_, i) => ({
           contentId: `content-${i}`,
-          contentType: 'post'
-        }))
+          contentType: 'post',
+        })),
       };
 
       const request = new NextRequest('http://localhost:3000/api/likes/batch', {
         method: 'POST',
         body: JSON.stringify(largeBatchData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer user-token'
-        }
+          Authorization: 'Bearer user-token',
+        },
       });
 
       const response = await POST(request);
@@ -697,7 +715,9 @@ describe('Likes API Error Handling', () => {
       const { getLikeCount } = require('../../../lib/services/likes-manager');
       getLikeCount.mockRejectedValue(new Error('Analytics calculation failed'));
 
-      const request = new NextRequest('http://localhost:3000/api/likes/analytics?contentId=content-123');
+      const request = new NextRequest(
+        'http://localhost:3000/api/likes/analytics?contentId=content-123'
+      );
       const response = await GET(request);
       const data = await response.json();
 
@@ -718,7 +738,9 @@ describe('Likes API Error Handling', () => {
     });
 
     it('should handle invalid analytics parameters', async () => {
-      const request = new NextRequest('http://localhost:3000/api/likes/analytics?period=invalid&groupBy=unknown');
+      const request = new NextRequest(
+        'http://localhost:3000/api/likes/analytics?period=invalid&groupBy=unknown'
+      );
       const response = await GET(request);
       const data = await response.json();
 
@@ -735,16 +757,16 @@ describe('Likes API Error Handling', () => {
 
       const validLikeData = {
         contentId: 'content-123',
-        contentType: 'post'
+        contentType: 'post',
       };
 
       const request = new NextRequest('http://localhost:3000/api/likes', {
         method: 'POST',
         body: JSON.stringify(validLikeData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer user-token'
-        }
+          Authorization: 'Bearer user-token',
+        },
       });
 
       const response = await POST(request);
@@ -760,16 +782,16 @@ describe('Likes API Error Handling', () => {
 
       const validLikeData = {
         contentId: 'content-123',
-        contentType: 'post'
+        contentType: 'post',
       };
 
       const request = new NextRequest('http://localhost:3000/api/likes', {
         method: 'POST',
         body: JSON.stringify(validLikeData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer user-token'
-        }
+          Authorization: 'Bearer user-token',
+        },
       });
 
       await POST(request);
@@ -784,16 +806,16 @@ describe('Likes API Error Handling', () => {
 
       const validLikeData = {
         contentId: 'content-123',
-        contentType: 'post'
+        contentType: 'post',
       };
 
       const request = new NextRequest('http://localhost:3000/api/likes', {
         method: 'POST',
         body: JSON.stringify(validLikeData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer user-token'
-        }
+          Authorization: 'Bearer user-token',
+        },
       });
 
       const response = await POST(request);

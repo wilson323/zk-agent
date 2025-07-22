@@ -15,14 +15,14 @@ export enum AgentType {
   CHAT = 'CHAT',
   CAD_ANALYZER = 'CAD_ANALYZER',
   POSTER_GENERATOR = 'POSTER_GENERATOR',
-  CUSTOM = 'CUSTOM'
+  CUSTOM = 'CUSTOM',
 }
 
 // 智能体状态枚举
 export enum AgentStatus {
   ACTIVE = 'ACTIVE',
   INACTIVE = 'INACTIVE',
-  MAINTENANCE = 'MAINTENANCE'
+  MAINTENANCE = 'MAINTENANCE',
 }
 
 // 智能体基本信息
@@ -187,4 +187,4 @@ export interface AgentAction {
   parameters: Record<string, any>;
   isExecuted: boolean;
   result?: any;
-} 
+}

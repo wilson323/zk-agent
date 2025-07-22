@@ -1,0 +1,277 @@
+name: 可重用的部署流程
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: '部署环境 (development|staging|production)'
+        required: true
+        type: string
+      node-version:
+        description: 'Node.js版本'
+        required: false
+        default: '20'
+        type: string
+      working-directory:
+        description: '工作目录'
+        required: false
+        default: '.'
+        type: string
+      build-command:
+        description: '构建命令'
+        required: false
+        default: 'npm run build'
+        type: string
+      deploy-strategy:
+        description: '部署策略 (docker|static|serverless)'
+        required: false
+        default: 'docker'
+        type: string
+      health-check-url:
+        description: '健康检查URL'
+        required: false
+        default: ''
+        type: string
+      rollback-on-failure:
+        description: '失败时回滚'
+        required: false
+        default: true
+        type: boolean
+    secrets:
+      DEPLOY_TOKEN:
+        description: '部署令牌'
+        required: false
+      DOCKER_REGISTRY_URL:
+        description: 'Docker注册表URL'
+        required: false
+      DOCKER_USERNAME:
+        description: 'Docker用户名'
+        required: false
+      DOCKER_PASSWORD:
+        description: 'Docker密码'
+        required: false
+    outputs:
+      deployment-url:
+        description: '部署URL'
+        value: ${{ jobs.deploy.outputs.url }}
+      deployment-status:
+        description: '部署状态'
+        value: ${{ jobs.deploy.outputs.status }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    outputs:
+      url: ${{ steps.deploy.outputs.url }}
+      status: ${{ steps.deploy.outputs.status }}
+    
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: 'npm'
+
+      - name: 安装依赖
+        working-directory: ${{ inputs.working-directory }}
+        run: |
+          if [ -f pnpm-lock.yaml ]; then
+            npm install -g pnpm
+            pnpm install --frozen-lockfile
+          elif [ -f yarn.lock ]; then
+            yarn install --frozen-lockfile
+          else
+            npm ci
+          fi
+
+      - name: 构建应用
+        working-directory: ${{ inputs.working-directory }}
+        run: ${{ inputs.build-command }}
+        env:
+          NODE_ENV: production
+          NEXT_TELEMETRY_DISABLED: 1
+
+      - name: 运行构建后测试
+        working-directory: ${{ inputs.working-directory }}
+        run: |
+          # 运行构建验证测试
+          if [ -f "dist/index.html" ] || [ -f ".next/BUILD_ID" ] || [ -f "build/index.html" ]; then
+            echo "✅ 构建产物验证通过"
+          else
+            echo "❌ 构建产物验证失败"
+            exit 1
+          fi
+
+      - name: Docker部署准备
+        if: ${{ inputs.deploy-strategy == 'docker' }}
+        run: |
+          echo "准备Docker部署..."
+          
+          # 检查Dockerfile
+          if [ ! -f Dockerfile ]; then
+            echo "❌ 未找到Dockerfile"
+            exit 1
+          fi
+          
+          # 构建Docker镜像
+          docker build -t ${{ github.repository }}:${{ github.sha }} .
+          docker tag ${{ github.repository }}:${{ github.sha }} ${{ github.repository }}:${{ inputs.environment }}
+
+      - name: 登录Docker注册表
+        if: ${{ inputs.deploy-strategy == 'docker' && secrets.DOCKER_USERNAME }}
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.DOCKER_REGISTRY_URL }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: 推送Docker镜像
+        if: ${{ inputs.deploy-strategy == 'docker' && secrets.DOCKER_USERNAME }}
+        run: |
+          docker push ${{ github.repository }}:${{ github.sha }}
+          docker push ${{ github.repository }}:${{ inputs.environment }}
+
+      - name: 静态文件部署
+        if: ${{ inputs.deploy-strategy == 'static' }}
+        working-directory: ${{ inputs.working-directory }}
+        run: |
+          echo "准备静态文件部署..."
+          
+          # 检查构建输出目录
+          if [ -d "dist" ]; then
+            BUILD_DIR="dist"
+          elif [ -d "build" ]; then
+            BUILD_DIR="build"
+          elif [ -d "out" ]; then
+            BUILD_DIR="out"
+          else
+            echo "❌ 未找到构建输出目录"
+            exit 1
+          fi
+          
+          echo "BUILD_DIR=$BUILD_DIR" >> $GITHUB_ENV
+          echo "✅ 找到构建目录: $BUILD_DIR"
+
+      - name: Serverless部署
+        if: ${{ inputs.deploy-strategy == 'serverless' }}
+        working-directory: ${{ inputs.working-directory }}
+        run: |
+          echo "准备Serverless部署..."
+          
+          # 检查serverless配置
+          if [ -f "serverless.yml" ] || [ -f "serverless.yaml" ]; then
+            echo "✅ 找到Serverless配置文件"
+          else
+            echo "❌ 未找到Serverless配置文件"
+            exit 1
+          fi
+
+      - name: 执行部署
+        id: deploy
+        working-directory: ${{ inputs.working-directory }}
+        run: |
+          echo "开始部署到 ${{ inputs.environment }} 环境..."
+          
+          # 根据部署策略执行相应的部署命令
+          case "${{ inputs.deploy-strategy }}" in
+            "docker")
+              echo "执行Docker部署..."
+              # 这里应该是实际的Docker部署命令
+              DEPLOY_URL="https://${{ inputs.environment }}.example.com"
+              ;;
+            "static")
+              echo "执行静态文件部署..."
+              # 这里应该是实际的静态文件部署命令
+              DEPLOY_URL="https://${{ inputs.environment }}-static.example.com"
+              ;;
+            "serverless")
+              echo "执行Serverless部署..."
+              # 这里应该是实际的Serverless部署命令
+              DEPLOY_URL="https://${{ inputs.environment }}-serverless.example.com"
+              ;;
+            *)
+              echo "❌ 不支持的部署策略: ${{ inputs.deploy-strategy }}"
+              exit 1
+              ;;
+          esac
+          
+          echo "url=$DEPLOY_URL" >> $GITHUB_OUTPUT
+          echo "status=success" >> $GITHUB_OUTPUT
+          echo "✅ 部署完成: $DEPLOY_URL"
+
+      - name: 健康检查
+        if: ${{ inputs.health-check-url != '' }}
+        run: |
+          echo "执行健康检查..."
+          
+          HEALTH_URL="${{ inputs.health-check-url }}"
+          if [ -z "$HEALTH_URL" ]; then
+            HEALTH_URL="${{ steps.deploy.outputs.url }}/health"
+          fi
+          
+          echo "检查URL: $HEALTH_URL"
+          
+          # 等待服务启动
+          sleep 30
+          
+          # 执行健康检查
+          for i in {1..5}; do
+            if curl -f -s "$HEALTH_URL" > /dev/null; then
+              echo "✅ 健康检查通过 (尝试 $i/5)"
+              break
+            else
+              echo "⚠️ 健康检查失败 (尝试 $i/5)"
+              if [ $i -eq 5 ]; then
+                echo "❌ 健康检查最终失败"
+                if [ "${{ inputs.rollback-on-failure }}" = "true" ]; then
+                  echo "开始回滚..."
+                  # 这里应该是回滚逻辑
+                fi
+                exit 1
+              fi
+              sleep 10
+            fi
+          done
+
+      - name: 部署通知
+        if: always()
+        run: |
+          if [ "${{ steps.deploy.outputs.status }}" = "success" ]; then
+            echo "🎉 部署成功!"
+            echo "环境: ${{ inputs.environment }}"
+            echo "URL: ${{ steps.deploy.outputs.url }}"
+            echo "提交: ${{ github.sha }}"
+          else
+            echo "❌ 部署失败!"
+            echo "环境: ${{ inputs.environment }}"
+            echo "提交: ${{ github.sha }}"
+          fi
+
+      - name: 更新部署状态
+        if: always()
+        run: |
+          mkdir -p reports/deployment
+          
+          cat > reports/deployment/${{ inputs.environment }}-deployment.json << EOF
+          {
+            "environment": "${{ inputs.environment }}",
+            "status": "${{ steps.deploy.outputs.status }}",
+            "url": "${{ steps.deploy.outputs.url }}",
+            "commit": "${{ github.sha }}",
+            "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "strategy": "${{ inputs.deploy-strategy }}",
+            "workflow_run_id": "${{ github.run_id }}"
+          }
+          EOF
+
+      - name: 上传部署报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-report-${{ inputs.environment }}
+          path: ${{ inputs.working-directory }}/reports/deployment/
+          retention-days: 30

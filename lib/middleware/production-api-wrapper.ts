@@ -8,12 +8,31 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { Logger } from '@/lib/utils/logger';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
+
+const logger = getLogger();
 import { enhancedCacheManager } from '@/lib/cache/enhanced-cache-manager';
-import { productionDatabaseManager } from '@/lib/database/production-database-manager';
-import { rateLimit } from '@/lib/utils/rate-limiter';
-import { validateApiKey } from '@/lib/auth/api-key-validator';
-import { AppError, ValidationError, AuthenticationError, AuthorizationError, NotFoundError, RateLimitError, ExternalServiceError, DatabaseError, BusinessLogicError } from '@/lib/errors/app-error';
+import { RateLimiter } from '@/lib/utils/rate-limiter';
+// 创建RateLimiter实例
+const rateLimit = new RateLimiter(null as any); // 实际使用时需要传入Redis实例
+import { ApiKeyValidator } from '@/lib/auth/api-key-validator';
+// 创建ApiKeyValidator实例
+const apiKeyValidator = new ApiKeyValidator();
+const validateApiKey = (apiKey: string) => apiKeyValidator.validate(apiKey);
+import {
+  AppError,
+  ValidationError,
+  AuthenticationError,
+  AuthorizationError,
+  NotFoundError,
+  RateLimitError,
+  ExternalServiceError,
+  DatabaseError,
+  BusinessLogicError,
+} from '@/lib/errors/app-error';
+import { ErrorType, ErrorSeverity, ErrorCode } from '@/lib/types/enums';
 
 import { EventEmitter } from 'events';
 
@@ -40,7 +59,7 @@ interface RequestContext {
   readonly apiKey?: string;
   readonly headers: Record<string, string>;
   readonly query: Record<string, string | string[]>;
-  readonly body?: any;
+  body?: any;
 }
 
 // API配置接口
@@ -60,10 +79,7 @@ interface ApiConfig {
 }
 
 // 路由处理器类型
-type RouteHandler<T = any> = (
-  request: NextRequest,
-  context: RequestContext
-) => Promise<T> | T;
+type RouteHandler<T = any> = (request: NextRequest, context: RequestContext) => Promise<T> | T;
 
 // 验证模式接口
 interface ValidationSchemas {
@@ -115,7 +131,7 @@ interface RequestMetrics {
  */
 export class ProductionApiWrapper extends EventEmitter {
   private static instance: ProductionApiWrapper | null = null;
-  private readonly logger = new Logger('ProductionApiWrapper');
+  private readonly apiLogger = logger.child({ component: 'ProductionApiWrapper' });
   private readonly requestMetrics = new Map<string, RequestMetrics>();
   private metricsCleanupInterval: NodeJS.Timeout | null = null;
 
@@ -131,7 +147,13 @@ export class ProductionApiWrapper extends EventEmitter {
     corsOrigins: (process.env.API_CORS_ORIGINS || '*').split(','),
     rateLimitWindow: parseInt(process.env.API_RATE_LIMIT_WINDOW || '900000'), // 15分钟
     rateLimitMax: parseInt(process.env.API_RATE_LIMIT_MAX || '100'),
-    allowedMethods: [HttpMethod.GET, HttpMethod.POST, HttpMethod.PUT, HttpMethod.PATCH, HttpMethod.DELETE],
+    allowedMethods: [
+      HttpMethod.GET,
+      HttpMethod.POST,
+      HttpMethod.PUT,
+      HttpMethod.PATCH,
+      HttpMethod.DELETE,
+    ],
   };
 
   private constructor() {
@@ -164,7 +186,7 @@ export class ProductionApiWrapper extends EventEmitter {
   private cleanupMetrics(): void {
     const maxAge = 3600000; // 1小时
     const now = Date.now();
-    
+
     for (const [requestId, metrics] of this.requestMetrics.entries()) {
       if (now - metrics.timestamp > maxAge) {
         this.requestMetrics.delete(requestId);
@@ -176,7 +198,7 @@ export class ProductionApiWrapper extends EventEmitter {
       const entries = Array.from(this.requestMetrics.entries())
         .sort((a, b) => b[1].timestamp - a[1].timestamp)
         .slice(0, 1000);
-      
+
       this.requestMetrics.clear();
       for (const [requestId, metrics] of entries) {
         this.requestMetrics.set(requestId, metrics);
@@ -198,7 +220,7 @@ export class ProductionApiWrapper extends EventEmitter {
     const forwarded = request.headers.get('x-forwarded-for');
     const realIp = request.headers.get('x-real-ip');
     const cfConnectingIp = request.headers.get('cf-connecting-ip');
-    
+
     return cfConnectingIp || realIp || forwarded?.split(',')[0] || 'unknown';
   }
 
@@ -208,7 +230,7 @@ export class ProductionApiWrapper extends EventEmitter {
   private async createRequestContext(request: NextRequest): Promise<RequestContext> {
     const url = new URL(request.url);
     const query: Record<string, string | string[]> = {};
-    
+
     // 解析查询参数
     for (const [key, value] of url.searchParams.entries()) {
       if (query[key]) {
@@ -269,11 +291,11 @@ export class ProductionApiWrapper extends EventEmitter {
     if (!allowedMethods.includes(method as HttpMethod)) {
       throw new AppError(
         `Method ${method} not allowed`,
-        'METHOD_NOT_ALLOWED',
-        'Method Not Allowed',
-        405,
+        ErrorCode.VALIDATION_ERROR,
         ErrorType.VALIDATION,
-        ErrorSeverity.MEDIUM
+        ErrorSeverity.MEDIUM,
+        { method, allowedMethods },
+        405
       );
     }
   }
@@ -292,21 +314,22 @@ export class ProductionApiWrapper extends EventEmitter {
 
     const origin = request.headers.get('origin');
     const allowedOrigins = corsConfig?.origins || defaultConfig.corsOrigins;
-    const allowedMethods = corsConfig?.methods || defaultConfig.allowedMethods.map(m => m.toString());
+    const allowedMethods =
+      corsConfig?.methods || defaultConfig.allowedMethods.map(m => m.toString());
     const allowedHeaders = corsConfig?.headers || ['Content-Type', 'Authorization', 'X-API-Key'];
 
     // 预检请求
     if (request.method === 'OPTIONS') {
       const response = new NextResponse(null, { status: 200 });
-      
+
       if (allowedOrigins.includes('*') || (origin && allowedOrigins.includes(origin))) {
         response.headers.set('Access-Control-Allow-Origin', origin || '*');
       }
-      
+
       response.headers.set('Access-Control-Allow-Methods', allowedMethods.join(', '));
       response.headers.set('Access-Control-Allow-Headers', allowedHeaders.join(', '));
       response.headers.set('Access-Control-Max-Age', '86400');
-      
+
       return response;
     }
 
@@ -320,7 +343,9 @@ export class ProductionApiWrapper extends EventEmitter {
     context: RequestContext,
     validation?: ValidationSchemas
   ): Promise<void> {
-    if (!validation) {return;}
+    if (!validation) {
+      return;
+    }
 
     try {
       // 验证查询参数
@@ -341,10 +366,7 @@ export class ProductionApiWrapper extends EventEmitter {
       if (error instanceof z.ZodError) {
         throw new ValidationError(
           'Validation failed',
-          { issues: error.issues },
-          400,
-          ErrorType.VALIDATION,
-          ErrorSeverity.MEDIUM
+          { issues: error.issues }
         );
       }
       throw error;
@@ -354,25 +376,36 @@ export class ProductionApiWrapper extends EventEmitter {
   /**
    * 检查认证
    */
-  private async checkAuthentication(
-    context: RequestContext,
-    requireAuth: boolean
-  ): Promise<void> {
-    if (!requireAuth) {return;}
+  private async checkAuthentication(context: RequestContext, requireAuth: boolean): Promise<void> {
+    if (!requireAuth) {
+      return;
+    }
 
     const apiKey = context.apiKey || context.headers['authorization']?.replace('Bearer ', '');
-    
+
     if (!apiKey) {
-      throw new AuthenticationError('API key required', null, 401, ErrorType.AUTHENTICATION, ErrorSeverity.HIGH);
+      throw new AuthenticationError(
+        'API key required',
+        null,
+        401
+      );
     }
 
     try {
       const isValid = await validateApiKey(apiKey);
       if (!isValid) {
-        throw new AuthenticationError('Invalid API key', null, 401, ErrorType.AUTHENTICATION, ErrorSeverity.HIGH);
+        throw new AuthenticationError(
+          'Invalid API key',
+          null,
+          401
+        );
       }
     } catch (error) {
-      throw new AuthenticationError('Authentication failed', null, 401, ErrorType.AUTHENTICATION, ErrorSeverity.HIGH);
+      throw new AuthenticationError(
+        'Authentication failed',
+        null,
+        401
+      );
     }
   }
 
@@ -383,22 +416,28 @@ export class ProductionApiWrapper extends EventEmitter {
     context: RequestContext,
     rateLimitConfig?: RouteOptions['rateLimit']
   ): Promise<void> {
-    if (!this.defaultConfig.enableRateLimit && !rateLimitConfig) {return;}
+    if (!this.defaultConfig.enableRateLimit && !rateLimitConfig) {
+      return;
+    }
 
     const window = rateLimitConfig?.window || this.defaultConfig.rateLimitWindow;
     const max = rateLimitConfig?.max || this.defaultConfig.rateLimitMax;
     const key = `rate_limit:${context.ip}:${context.url}`;
 
     try {
-      const allowed = await rateLimit(key, max, window);
+      const allowed = await rateLimit.checkLimit(key, max, window);
       if (!allowed) {
-        throw new RateLimitError('Too many requests', null, 429, ErrorType.RATE_LIMIT, ErrorSeverity.LOW);
+        throw new RateLimitError(
+          'Too many requests',
+          null,
+          429
+        );
       }
     } catch (error) {
       if (error instanceof RateLimitError) {
         throw error;
       }
-      this.logger.warn('Rate limit check failed', {
+      this.apiLogger.warn('Rate limit check failed', {
         error: error instanceof Error ? error.message : 'Unknown error',
         key,
       });
@@ -416,14 +455,14 @@ export class ProductionApiWrapper extends EventEmitter {
       return null;
     }
 
-    const cacheKey = cacheConfig.key 
+    const cacheKey = cacheConfig.key
       ? cacheConfig.key(context)
       : `api:${context.url}:${JSON.stringify(context.query)}`;
 
     try {
       return await enhancedCacheManager.get(cacheKey);
     } catch (error) {
-      this.logger.warn('Cache read failed', {
+      this.apiLogger.warn('Cache read failed', {
         error: error instanceof Error ? error.message : 'Unknown error',
         cacheKey,
       });
@@ -443,14 +482,14 @@ export class ProductionApiWrapper extends EventEmitter {
       return;
     }
 
-    const cacheKey = cacheConfig.key 
+    const cacheKey = cacheConfig.key
       ? cacheConfig.key(context)
       : `api:${context.url}:${JSON.stringify(context.query)}`;
 
     try {
       await enhancedCacheManager.set(cacheKey, result, { ttl: cacheConfig.ttl });
     } catch (error) {
-      this.logger.warn('Cache write failed', {
+      this.apiLogger.warn('Cache write failed', {
         error: error instanceof Error ? error.message : 'Unknown error',
         cacheKey,
       });
@@ -467,7 +506,9 @@ export class ProductionApiWrapper extends EventEmitter {
     error?: string,
     cached: boolean = false
   ): void {
-    if (!this.defaultConfig.enableMetrics) {return;}
+    if (!this.defaultConfig.enableMetrics) {
+      return;
+    }
 
     const metrics: RequestMetrics = {
       requestId: context.requestId,
@@ -487,7 +528,7 @@ export class ProductionApiWrapper extends EventEmitter {
 
     // 记录慢请求
     if (duration > 5000) {
-      this.logger.warn('Slow API request', {
+      this.apiLogger.warn('Slow API request', {
         requestId: context.requestId,
         method: context.method,
         url: context.url,
@@ -516,7 +557,7 @@ export class ProductionApiWrapper extends EventEmitter {
     }
 
     // 记录错误
-    this.logger.error('API request failed', {
+    this.apiLogger.error('API request failed', {
       requestId: context.requestId,
       method: context.method,
       url: context.url,
@@ -556,7 +597,9 @@ export class ProductionApiWrapper extends EventEmitter {
 
   private sanitizeInput(input: any): any {
     if (typeof input === 'string') {
-      return input.replace(/<script.*?>.*?<\/script>/gis, '').replace(/<.*?on[a-z]+=".*?".*?>/gis, '');
+      return input
+        .replace(/<script.*?>.*?<\/script>/gis, '')
+        .replace(/<.*?on[a-z]+=".*?".*?>/gis, '');
     } else if (Array.isArray(input)) {
       return input.map(item => this.sanitizeInput(item));
     } else if (typeof input === 'object' && input !== null) {
@@ -574,10 +617,7 @@ export class ProductionApiWrapper extends EventEmitter {
   /**
    * 创建API路由
    */
-  public createRoute(
-    handler: RouteHandler,
-    options: RouteOptions = {}
-  ) {
+  public createRoute(handler: RouteHandler, options: RouteOptions = {}) {
     return async (request: NextRequest): Promise<NextResponse> => {
       const startTime = Date.now();
       let context: RequestContext | null = null;
@@ -626,14 +666,24 @@ export class ProductionApiWrapper extends EventEmitter {
         // 设置超时
         const timeout = options.timeout || this.defaultConfig.timeout;
         const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new AppError('Request timeout', 'REQUEST_TIMEOUT', 'Request timeout', 408, ErrorType.NETWORK, ErrorSeverity.MEDIUM)), timeout);
+          setTimeout(
+            () =>
+              reject(
+                new AppError(
+                  'Request timeout',
+                  'REQUEST_TIMEOUT',
+                  'Request timeout',
+                  408,
+                  ErrorType.NETWORK,
+                  ErrorSeverity.MEDIUM
+                )
+              ),
+            timeout
+          );
         });
 
         // 执行处理器
-        const result = await Promise.race([
-          handler(request, context),
-          timeoutPromise,
-        ]);
+        const result = await Promise.race([handler(request, context), timeoutPromise]);
 
         // 设置缓存
         await this.setCache(context, result, options.cache);
@@ -646,7 +696,7 @@ export class ProductionApiWrapper extends EventEmitter {
       } catch (error) {
         const duration = Date.now() - startTime;
         const statusCode = error instanceof ApiError ? error.statusCode : 500;
-        
+
         if (context) {
           this.recordMetrics(
             context,
@@ -697,13 +747,12 @@ export class ProductionApiWrapper extends EventEmitter {
     const recentMetrics = metrics.filter(m => Date.now() - m.timestamp < 3600000); // 最近1小时
 
     const totalRequests = recentMetrics.length;
-    const averageResponseTime = totalRequests > 0 
-      ? recentMetrics.reduce((sum, m) => sum + m.duration, 0) / totalRequests
-      : 0;
-    
+    const averageResponseTime =
+      totalRequests > 0 ? recentMetrics.reduce((sum, m) => sum + m.duration, 0) / totalRequests : 0;
+
     const errorRequests = recentMetrics.filter(m => m.statusCode >= 400).length;
     const errorRate = totalRequests > 0 ? errorRequests / totalRequests : 0;
-    
+
     const slowRequests = recentMetrics.filter(m => m.duration > 5000).length;
     const cachedRequests = recentMetrics.filter(m => m.cached).length;
 
@@ -743,11 +792,11 @@ export const commonSchemas = {
     page: z.string().transform(Number).pipe(z.number().min(1)).optional(),
     limit: z.string().transform(Number).pipe(z.number().min(1).max(100)).optional(),
   }),
-  
+
   id: z.object({
     id: z.string().uuid(),
   }),
-  
+
   apiKey: z.object({
     'x-api-key': z.string().min(32),
   }),

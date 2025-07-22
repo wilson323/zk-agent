@@ -15,30 +15,30 @@ export const GET = createApiRoute(
     try {
       // Get the URL from the query parameter
       const url = _validatedQuery?.url as string;
-      
+
       if (!url) {
         return ApiResponseWrapper.error('URL parameter is required', 400);
       }
-      
+
       // Construct the full URL
-      const fullUrl = url.startsWith("http") ? url : `https://${url}`;
-      
+      const fullUrl = url.startsWith('http') ? url : `https://${url}`;
+
       // Forward the request to the target URL
       const response = await fetch(fullUrl, {
-        method: "GET",
+        method: 'GET',
         headers: {
-          "Content-Type": "application/json",
-          Authorization: req.headers.get("Authorization") || "",
+          'Content-Type': 'application/json',
+          Authorization: req.headers.get('Authorization') || '',
         },
       });
-      
+
       // Return the response from the target URL
       return new Response(response.body, {
         status: response.status,
         statusText: response.statusText,
         headers: {
-          "Content-Type": response.headers.get("Content-Type") || "application/json",
-          "Access-Control-Allow-Origin": "*",
+          'Content-Type': response.headers.get('Content-Type') || 'application/json',
+          'Access-Control-Allow-Origin': '*',
         },
       });
     } catch (error) {
@@ -54,39 +54,39 @@ export const POST = createApiRoute(
     try {
       // 获取请求路径
       const url = new URL(req.url);
-      const path = url.pathname.replace("/api/proxy", "");
-      
+      const path = url.pathname.replace('/api/proxy', '');
+
       // 获取环境变量
       const apiUrl = process.env.FASTGPT_API_URL;
       const apiKey = process.env.FASTGPT_API_KEY;
-      
+
       if (!apiUrl || !apiKey) {
         return ApiResponseWrapper.error('FastGPT API configuration is missing', 500);
       }
-      
+
       // Get the request body
       const body = _validatedBody || {};
-      
+
       // Construct the full URL
       const fullUrl = `${apiUrl}${path}`;
-      
+
       // Forward the request to the target URL
       const response = await fetch(fullUrl, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
           Authorization: `Bearer ${apiKey}`,
         },
         body: JSON.stringify(body),
       });
-      
+
       // Return the response from the target URL
       return new Response(response.body, {
         status: response.status,
         statusText: response.statusText,
         headers: {
-          "Content-Type": response.headers.get("Content-Type") || "application/json",
-          "Access-Control-Allow-Origin": "*",
+          'Content-Type': response.headers.get('Content-Type') || 'application/json',
+          'Access-Control-Allow-Origin': '*',
         },
       });
     } catch (error) {
@@ -102,39 +102,39 @@ export const PUT = createApiRoute(
     try {
       // 获取请求路径
       const url = new URL(req.url);
-      const path = url.pathname.replace("/api/proxy", "");
-      
+      const path = url.pathname.replace('/api/proxy', '');
+
       // 获取环境变量
       const apiUrl = process.env.FASTGPT_API_URL;
       const apiKey = process.env.FASTGPT_API_KEY;
-      
+
       if (!apiUrl || !apiKey) {
         return ApiResponseWrapper.error('FastGPT API configuration is missing', 500);
       }
-      
+
       // Get the request body
       const body = _validatedBody || {};
-      
+
       // Construct the full URL
       const fullUrl = `${apiUrl}${path}`;
-      
+
       // Forward the request to the target URL
       const response = await fetch(fullUrl, {
-        method: "PUT",
+        method: 'PUT',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
           Authorization: `Bearer ${apiKey}`,
         },
         body: JSON.stringify(body),
       });
-      
+
       // Return the response from the target URL
       return new Response(response.body, {
         status: response.status,
         statusText: response.statusText,
         headers: {
-          "Content-Type": response.headers.get("Content-Type") || "application/json",
-          "Access-Control-Allow-Origin": "*",
+          'Content-Type': response.headers.get('Content-Type') || 'application/json',
+          'Access-Control-Allow-Origin': '*',
         },
       });
     } catch (error) {
@@ -150,35 +150,35 @@ export const DELETE = createApiRoute(
     try {
       // 获取请求路径
       const url = new URL(req.url);
-      const path = url.pathname.replace("/api/proxy", "");
-      
+      const path = url.pathname.replace('/api/proxy', '');
+
       // 获取环境变量
       const apiUrl = process.env.FASTGPT_API_URL;
       const apiKey = process.env.FASTGPT_API_KEY;
-      
+
       if (!apiUrl || !apiKey) {
         return ApiResponseWrapper.error('FastGPT API configuration is missing', 500);
       }
-      
+
       // Construct the full URL
       const fullUrl = `${apiUrl}${path}`;
-      
+
       // Forward the request to the target URL
       const response = await fetch(fullUrl, {
-        method: "DELETE",
+        method: 'DELETE',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
           Authorization: `Bearer ${apiKey}`,
         },
       });
-      
+
       // Return the response from the target URL
       return new Response(response.body, {
         status: response.status,
         statusText: response.statusText,
         headers: {
-          "Content-Type": response.headers.get("Content-Type") || "application/json",
-          "Access-Control-Allow-Origin": "*",
+          'Content-Type': response.headers.get('Content-Type') || 'application/json',
+          'Access-Control-Allow-Origin': '*',
         },
       });
     } catch (error) {
@@ -187,4 +187,3 @@ export const DELETE = createApiRoute(
     }
   }
 );
-

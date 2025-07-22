@@ -25,16 +25,16 @@ export const POST = createApiRoute(
   async (req: NextRequest, { params, validatedBody, validatedQuery, user, requestId }) => {
     try {
       const metrics = _validatedBody;
-      
+
       // Record metrics to database
       await recordMetrics(metrics);
-      
+
       // Record metrics to Redis for real-time analytics
       await recordToRedis(metrics);
-      
+
       return ApiResponseWrapper.success({
         message: 'Metrics recorded successfully',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     } catch (error) {
       console.error('Error recording metrics:', error);
@@ -42,4 +42,3 @@ export const POST = createApiRoute(
     }
   }
 );
-

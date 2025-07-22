@@ -15,7 +15,9 @@ import {
 } from './types';
 import { defaultConfig } from './defaults';
 import { configSchema } from './validation';
-import { Logger } from '../../utils/logger';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
 
 export class UnifiedConfigManager extends EventEmitter implements ConfigManager {
   private config: AppConfig;
@@ -35,7 +37,7 @@ export class UnifiedConfigManager extends EventEmitter implements ConfigManager 
    */
   addProvider(provider: ConfigProvider): void {
     this.providers.push(provider);
-    provider.watch((event) => this.handleConfigUpdate(event));
+    provider.watch(event => this.handleConfigUpdate(event));
   }
 
   /**
@@ -44,7 +46,7 @@ export class UnifiedConfigManager extends EventEmitter implements ConfigManager 
   get<T = any>(key: string): T {
     const keys = key.split('.');
     let value: any = this.config;
-    
+
     for (const k of keys) {
       if (value && typeof value === 'object' && k in value) {
         value = value[k];
@@ -52,7 +54,7 @@ export class UnifiedConfigManager extends EventEmitter implements ConfigManager 
         return undefined as T;
       }
     }
-    
+
     return value as T;
   }
 
@@ -62,7 +64,7 @@ export class UnifiedConfigManager extends EventEmitter implements ConfigManager 
   set<T = any>(key: string, value: T): void {
     const keys = key.split('.');
     let target: any = this.config;
-    
+
     for (let i = 0; i < keys.length - 1; i++) {
       const k = keys[i];
       if (!(k in target) || typeof target[k] !== 'object') {
@@ -70,11 +72,11 @@ export class UnifiedConfigManager extends EventEmitter implements ConfigManager 
       }
       target = target[k];
     }
-    
+
     const lastKey = keys[keys.length - 1];
     const oldValue = target[lastKey];
     target[lastKey] = value;
-    
+
     const event: ConfigUpdateEvent = {
       key,
       oldValue,
@@ -82,7 +84,7 @@ export class UnifiedConfigManager extends EventEmitter implements ConfigManager 
       timestamp: new Date(),
       source: 'runtime',
     };
-    
+
     this.handleConfigUpdate(event);
   }
 
@@ -99,7 +101,7 @@ export class UnifiedConfigManager extends EventEmitter implements ConfigManager 
   delete(key: string): void {
     const keys = key.split('.');
     let target: any = this.config;
-    
+
     for (let i = 0; i < keys.length - 1; i++) {
       const k = keys[i];
       if (!(k in target) || typeof target[k] !== 'object') {
@@ -107,12 +109,12 @@ export class UnifiedConfigManager extends EventEmitter implements ConfigManager 
       }
       target = target[k];
     }
-    
+
     const lastKey = keys[keys.length - 1];
     if (lastKey in target) {
       const oldValue = target[lastKey];
       delete target[lastKey];
-      
+
       const event: ConfigUpdateEvent = {
         key,
         oldValue,
@@ -120,7 +122,7 @@ export class UnifiedConfigManager extends EventEmitter implements ConfigManager 
         timestamp: new Date(),
         source: 'runtime',
       };
-      
+
       this.handleConfigUpdate(event);
     }
   }
@@ -138,7 +140,7 @@ export class UnifiedConfigManager extends EventEmitter implements ConfigManager 
   merge(config: Partial<AppConfig>): void {
     const oldConfig = this.getAll();
     this.config = this.mergeConfigs(this.config, config);
-    
+
     const event: ConfigUpdateEvent = {
       key: 'root',
       oldValue: oldConfig,
@@ -146,7 +148,7 @@ export class UnifiedConfigManager extends EventEmitter implements ConfigManager 
       timestamp: new Date(),
       source: 'runtime',
     };
-    
+
     this.handleConfigUpdate(event);
   }
 
@@ -183,20 +185,20 @@ export class UnifiedConfigManager extends EventEmitter implements ConfigManager 
   async reload(): Promise<void> {
     try {
       let mergedConfig = { ...defaultConfig };
-      
+
       // 从所有提供者加载配置
       for (const provider of this.providers) {
         const providerConfig = await provider.load();
         mergedConfig = this.mergeConfigs(mergedConfig, providerConfig);
       }
-      
+
       // 应用环境特定配置
       const envConfig = this.getEnvironmentConfig(mergedConfig);
       mergedConfig = this.mergeConfigs(mergedConfig, envConfig);
-      
+
       const oldConfig = this.config;
       this.config = mergedConfig;
-      
+
       const validationResult = this.validate();
       if (!validationResult.isValid) {
         this.logger.error('Configuration validation failed after reload', {
@@ -206,7 +208,7 @@ export class UnifiedConfigManager extends EventEmitter implements ConfigManager 
         this.config = oldConfig;
         throw new Error('Configuration validation failed');
       }
-      
+
       const event: ConfigUpdateEvent = {
         key: 'root',
         oldValue: oldConfig,
@@ -214,7 +216,7 @@ export class UnifiedConfigManager extends EventEmitter implements ConfigManager 
         timestamp: new Date(),
         source: 'file',
       };
-      
+
       this.handleConfigUpdate(event);
       this.logger.info('Configuration reloaded successfully');
     } catch (error) {
@@ -230,7 +232,7 @@ export class UnifiedConfigManager extends EventEmitter implements ConfigManager 
     const id = Math.random().toString(36).substr(2, 9);
     this.watchers.set(id, () => callback);
     this.on('configUpdate', callback);
-    
+
     return () => {
       this.watchers.delete(id);
       this.off('configUpdate', callback);
@@ -268,7 +270,7 @@ export class UnifiedConfigManager extends EventEmitter implements ConfigManager 
    */
   private mergeConfigs(target: any, source: any): any {
     const result = { ...target };
-    
+
     for (const key in source) {
       if (source[key] !== null && typeof source[key] === 'object' && !Array.isArray(source[key])) {
         result[key] = this.mergeConfigs(target[key] || {}, source[key]);
@@ -276,7 +278,7 @@ export class UnifiedConfigManager extends EventEmitter implements ConfigManager 
         result[key] = source[key];
       }
     }
-    
+
     return result;
   }
 
@@ -304,7 +306,7 @@ export class UnifiedConfigManager extends EventEmitter implements ConfigManager 
         database: { connectionPool: { max: 5 } },
       },
     };
-    
+
     return envConfigs[env] || {};
   }
 }

@@ -16,7 +16,7 @@ jest.mock('../../../lib/database/connection-manager', () => ({
   testConnection: jest.fn(),
   getConnectionStatus: jest.fn(),
   resetConnectionPool: jest.fn(),
-  validateConnectionConfig: jest.fn()
+  validateConnectionConfig: jest.fn(),
 }));
 
 jest.mock('../../../lib/database/query-executor', () => ({
@@ -26,7 +26,7 @@ jest.mock('../../../lib/database/query-executor', () => ({
   validateQuery: jest.fn(),
   optimizeQuery: jest.fn(),
   getQueryPlan: jest.fn(),
-  cancelQuery: jest.fn()
+  cancelQuery: jest.fn(),
 }));
 
 jest.mock('../../../lib/database/schema-manager', () => ({
@@ -37,7 +37,7 @@ jest.mock('../../../lib/database/schema-manager', () => ({
   createIndex: jest.fn(),
   dropIndex: jest.fn(),
   getTableInfo: jest.fn(),
-  validateTableStructure: jest.fn()
+  validateTableStructure: jest.fn(),
 }));
 
 jest.mock('../../../lib/database/backup-manager', () => ({
@@ -47,13 +47,13 @@ jest.mock('../../../lib/database/backup-manager', () => ({
   deleteBackup: jest.fn(),
   validateBackup: jest.fn(),
   scheduleBackup: jest.fn(),
-  getBackupStatus: jest.fn()
+  getBackupStatus: jest.fn(),
 }));
 
 jest.mock('../../../lib/auth/session', () => ({
   validateSession: jest.fn(),
   checkAdminPermissions: jest.fn(),
-  checkDatabasePermissions: jest.fn()
+  checkDatabasePermissions: jest.fn(),
 }));
 
 describe('Database API Error Handling', () => {
@@ -108,7 +108,9 @@ describe('Database API Error Handling', () => {
       const { getConnection } = require('../../../lib/database/connection-manager');
       getConnection.mockRejectedValue(new Error('Database "nonexistent_db" does not exist'));
 
-      const request = new NextRequest('http://localhost:3000/api/db?action=status&database=nonexistent_db');
+      const request = new NextRequest(
+        'http://localhost:3000/api/db?action=status&database=nonexistent_db'
+      );
       const response = await GET(request);
       const data = await response.json();
 
@@ -119,7 +121,9 @@ describe('Database API Error Handling', () => {
 
     it('should handle connection pool exhaustion', async () => {
       const { getConnection } = require('../../../lib/database/connection-manager');
-      getConnection.mockRejectedValue(new Error('Connection pool exhausted: maximum 100 connections reached'));
+      getConnection.mockRejectedValue(
+        new Error('Connection pool exhausted: maximum 100 connections reached')
+      );
 
       const request = new NextRequest('http://localhost:3000/api/db?action=status');
       const response = await GET(request);
@@ -146,7 +150,9 @@ describe('Database API Error Handling', () => {
       const { executeQuery } = require('../../../lib/database/query-executor');
       executeQuery.mockRejectedValue(new Error('Query execution timeout after 60 seconds'));
 
-      const request = new NextRequest('http://localhost:3000/api/db?action=query&sql=SELECT * FROM large_table');
+      const request = new NextRequest(
+        'http://localhost:3000/api/db?action=query&sql=SELECT * FROM large_table'
+      );
       const response = await GET(request);
       const data = await response.json();
 
@@ -158,9 +164,12 @@ describe('Database API Error Handling', () => {
       const { executeQuery } = require('../../../lib/database/query-executor');
       executeQuery.mockRejectedValue(new Error('Permission denied for table "restricted_table"'));
 
-      const request = new NextRequest('http://localhost:3000/api/db?action=query&sql=SELECT * FROM restricted_table', {
-        headers: { 'Authorization': 'Bearer limited-user-token' }
-      });
+      const request = new NextRequest(
+        'http://localhost:3000/api/db?action=query&sql=SELECT * FROM restricted_table',
+        {
+          headers: { Authorization: 'Bearer limited-user-token' },
+        }
+      );
 
       const response = await GET(request);
       const data = await response.json();
@@ -174,7 +183,9 @@ describe('Database API Error Handling', () => {
       const { executeQuery } = require('../../../lib/database/query-executor');
       executeQuery.mockRejectedValue(new Error('Table "nonexistent_table" doesn\'t exist'));
 
-      const request = new NextRequest('http://localhost:3000/api/db?action=query&sql=SELECT * FROM nonexistent_table');
+      const request = new NextRequest(
+        'http://localhost:3000/api/db?action=query&sql=SELECT * FROM nonexistent_table'
+      );
       const response = await GET(request);
       const data = await response.json();
 
@@ -186,7 +197,9 @@ describe('Database API Error Handling', () => {
       const { executeQuery } = require('../../../lib/database/query-executor');
       executeQuery.mockRejectedValue(new Error('Disk full: cannot write to database'));
 
-      const request = new NextRequest('http://localhost:3000/api/db?action=query&sql=INSERT INTO logs VALUES (1, \'test\')');
+      const request = new NextRequest(
+        "http://localhost:3000/api/db?action=query&sql=INSERT INTO logs VALUES (1, 'test')"
+      );
       const response = await GET(request);
       const data = await response.json();
 
@@ -198,7 +211,9 @@ describe('Database API Error Handling', () => {
       const { executeQuery } = require('../../../lib/database/query-executor');
       executeQuery.mockRejectedValue(new Error('Database corruption detected in table "users"'));
 
-      const request = new NextRequest('http://localhost:3000/api/db?action=query&sql=SELECT * FROM users');
+      const request = new NextRequest(
+        'http://localhost:3000/api/db?action=query&sql=SELECT * FROM users'
+      );
       const response = await GET(request);
       const data = await response.json();
 
@@ -218,9 +233,9 @@ describe('Database API Error Handling', () => {
           columns: [
             { name: 'id', type: 'INTEGER', primaryKey: true },
             { name: 'name', type: 'VARCHAR(255)', nullable: false },
-            { name: 'created_at', type: 'TIMESTAMP', default: 'CURRENT_TIMESTAMP' }
-          ]
-        }
+            { name: 'created_at', type: 'TIMESTAMP', default: 'CURRENT_TIMESTAMP' },
+          ],
+        },
       };
     });
 
@@ -231,7 +246,7 @@ describe('Database API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/db', {
         method: 'POST',
         body: JSON.stringify(invalidData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -249,16 +264,14 @@ describe('Database API Error Handling', () => {
       const invalidSchemaData = {
         ...validOperationData,
         schema: {
-          columns: [
-            { name: 'id', type: 'INVALID_TYPE' }
-          ]
-        }
+          columns: [{ name: 'id', type: 'INVALID_TYPE' }],
+        },
       };
 
       const request = new NextRequest('http://localhost:3000/api/db', {
         method: 'POST',
         body: JSON.stringify(invalidSchemaData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -275,7 +288,7 @@ describe('Database API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/db', {
         method: 'POST',
         body: JSON.stringify(validOperationData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -288,21 +301,23 @@ describe('Database API Error Handling', () => {
 
     it('should handle transaction rollback', async () => {
       const { executeTransaction } = require('../../../lib/database/query-executor');
-      executeTransaction.mockRejectedValue(new Error('Transaction rolled back due to constraint violation'));
+      executeTransaction.mockRejectedValue(
+        new Error('Transaction rolled back due to constraint violation')
+      );
 
       const transactionData = {
         operation: 'transaction',
         queries: [
-          'INSERT INTO users (name) VALUES (\'John\')',
-          'INSERT INTO users (name) VALUES (\'Jane\')',
-          'INSERT INTO users (name) VALUES (NULL)' // This should fail
-        ]
+          "INSERT INTO users (name) VALUES ('John')",
+          "INSERT INTO users (name) VALUES ('Jane')",
+          'INSERT INTO users (name) VALUES (NULL)', // This should fail
+        ],
       };
 
       const request = new NextRequest('http://localhost:3000/api/db', {
         method: 'POST',
         body: JSON.stringify(transactionData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -314,7 +329,9 @@ describe('Database API Error Handling', () => {
 
     it('should handle foreign key constraint violation', async () => {
       const { executeQuery } = require('../../../lib/database/query-executor');
-      executeQuery.mockRejectedValue(new Error('Foreign key constraint violation: referenced record does not exist'));
+      executeQuery.mockRejectedValue(
+        new Error('Foreign key constraint violation: referenced record does not exist')
+      );
 
       const insertData = {
         operation: 'insert',
@@ -322,14 +339,14 @@ describe('Database API Error Handling', () => {
         data: {
           user_id: 999, // Non-existent user
           product_id: 1,
-          quantity: 2
-        }
+          quantity: 2,
+        },
       };
 
       const request = new NextRequest('http://localhost:3000/api/db', {
         method: 'POST',
         body: JSON.stringify(insertData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -348,14 +365,14 @@ describe('Database API Error Handling', () => {
         table: 'users',
         data: {
           email: 'existing@example.com', // Already exists
-          name: 'New User'
-        }
+          name: 'New User',
+        },
       };
 
       const request = new NextRequest('http://localhost:3000/api/db', {
         method: 'POST',
         body: JSON.stringify(insertData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -367,20 +384,22 @@ describe('Database API Error Handling', () => {
 
     it('should handle deadlock detection', async () => {
       const { executeTransaction } = require('../../../lib/database/query-executor');
-      executeTransaction.mockRejectedValue(new Error('Deadlock detected and resolved by rolling back transaction'));
+      executeTransaction.mockRejectedValue(
+        new Error('Deadlock detected and resolved by rolling back transaction')
+      );
 
       const transactionData = {
         operation: 'transaction',
         queries: [
           'UPDATE accounts SET balance = balance - 100 WHERE id = 1',
-          'UPDATE accounts SET balance = balance + 100 WHERE id = 2'
-        ]
+          'UPDATE accounts SET balance = balance + 100 WHERE id = 2',
+        ],
       };
 
       const request = new NextRequest('http://localhost:3000/api/db', {
         method: 'POST',
         body: JSON.stringify(transactionData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -392,7 +411,9 @@ describe('Database API Error Handling', () => {
 
     it('should handle batch operation with partial failures', async () => {
       const { executeBatch } = require('../../../lib/database/query-executor');
-      executeBatch.mockRejectedValue(new Error('Batch operation failed: 2 of 5 operations succeeded'));
+      executeBatch.mockRejectedValue(
+        new Error('Batch operation failed: 2 of 5 operations succeeded')
+      );
 
       const batchData = {
         operation: 'batch',
@@ -401,14 +422,14 @@ describe('Database API Error Handling', () => {
           { type: 'insert', table: 'users', data: { name: 'User2' } },
           { type: 'insert', table: 'users', data: { name: null } }, // Should fail
           { type: 'insert', table: 'users', data: { name: 'User4' } },
-          { type: 'insert', table: 'users', data: { name: 'User5' } }
-        ]
+          { type: 'insert', table: 'users', data: { name: 'User5' } },
+        ],
       };
 
       const request = new NextRequest('http://localhost:3000/api/db', {
         method: 'POST',
         body: JSON.stringify(batchData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -425,13 +446,13 @@ describe('Database API Error Handling', () => {
       const backupData = {
         operation: 'backup',
         type: 'full',
-        destination: '/backups/db_backup_20231201.sql'
+        destination: '/backups/db_backup_20231201.sql',
       };
 
       const request = new NextRequest('http://localhost:3000/api/db', {
         method: 'POST',
         body: JSON.stringify(backupData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -448,13 +469,13 @@ describe('Database API Error Handling', () => {
       const restoreData = {
         operation: 'restore',
         backupFile: '/backups/corrupted_backup.sql',
-        targetDatabase: 'test_db'
+        targetDatabase: 'test_db',
       };
 
       const request = new NextRequest('http://localhost:3000/api/db', {
         method: 'POST',
         body: JSON.stringify(restoreData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -468,18 +489,20 @@ describe('Database API Error Handling', () => {
   describe('PUT /api/db - Database Updates', () => {
     it('should handle table structure modification failure', async () => {
       const { alterTable } = require('../../../lib/database/schema-manager');
-      alterTable.mockRejectedValue(new Error('Cannot drop column: column is referenced by foreign key'));
+      alterTable.mockRejectedValue(
+        new Error('Cannot drop column: column is referenced by foreign key')
+      );
 
       const alterData = {
         table: 'users',
         operation: 'drop_column',
-        column: 'id'
+        column: 'id',
       };
 
       const request = new NextRequest('http://localhost:3000/api/db', {
         method: 'PUT',
         body: JSON.stringify(alterData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await PUT(request);
@@ -497,13 +520,13 @@ describe('Database API Error Handling', () => {
         table: 'users',
         operation: 'create_index',
         indexName: 'idx_nonexistent',
-        columns: ['nonexistent_column']
+        columns: ['nonexistent_column'],
       };
 
       const request = new NextRequest('http://localhost:3000/api/db', {
         method: 'PUT',
         body: JSON.stringify(indexData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await PUT(request);
@@ -520,13 +543,13 @@ describe('Database API Error Handling', () => {
       const alterData = {
         table: 'users',
         operation: 'add_column',
-        column: { name: 'new_field', type: 'VARCHAR(100)' }
+        column: { name: 'new_field', type: 'VARCHAR(100)' },
       };
 
       const request = new NextRequest('http://localhost:3000/api/db', {
         method: 'PUT',
         body: JSON.stringify(alterData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await PUT(request);
@@ -538,18 +561,20 @@ describe('Database API Error Handling', () => {
 
     it('should handle data type conversion failure', async () => {
       const { alterTable } = require('../../../lib/database/schema-manager');
-      alterTable.mockRejectedValue(new Error('Cannot convert VARCHAR to INTEGER: invalid data in column'));
+      alterTable.mockRejectedValue(
+        new Error('Cannot convert VARCHAR to INTEGER: invalid data in column')
+      );
 
       const alterData = {
         table: 'users',
         operation: 'modify_column',
-        column: { name: 'phone', oldType: 'VARCHAR(20)', newType: 'INTEGER' }
+        column: { name: 'phone', oldType: 'VARCHAR(20)', newType: 'INTEGER' },
       };
 
       const request = new NextRequest('http://localhost:3000/api/db', {
         method: 'PUT',
         body: JSON.stringify(alterData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await PUT(request);
@@ -566,7 +591,7 @@ describe('Database API Error Handling', () => {
       dropTable.mockRejectedValue(new Error('Table "nonexistent_table" does not exist'));
 
       const request = new NextRequest('http://localhost:3000/api/db?table=nonexistent_table', {
-        method: 'DELETE'
+        method: 'DELETE',
       });
 
       const response = await DELETE(request);
@@ -579,17 +604,21 @@ describe('Database API Error Handling', () => {
 
     it('should handle table with foreign key references', async () => {
       const { dropTable } = require('../../../lib/database/schema-manager');
-      dropTable.mockRejectedValue(new Error('Cannot drop table: referenced by foreign key constraints'));
+      dropTable.mockRejectedValue(
+        new Error('Cannot drop table: referenced by foreign key constraints')
+      );
 
       const request = new NextRequest('http://localhost:3000/api/db?table=users', {
-        method: 'DELETE'
+        method: 'DELETE',
       });
 
       const response = await DELETE(request);
       const data = await response.json();
 
       expect(response.status).toBe(400);
-      expect(data.error.message).toContain('Cannot drop table: referenced by foreign key constraints');
+      expect(data.error.message).toContain(
+        'Cannot drop table: referenced by foreign key constraints'
+      );
     });
 
     it('should handle backup deletion failure', async () => {
@@ -597,7 +626,7 @@ describe('Database API Error Handling', () => {
       deleteBackup.mockRejectedValue(new Error('Cannot delete backup: file is in use'));
 
       const request = new NextRequest('http://localhost:3000/api/db?backup=backup_20231201.sql', {
-        method: 'DELETE'
+        method: 'DELETE',
       });
 
       const response = await DELETE(request);
@@ -609,11 +638,13 @@ describe('Database API Error Handling', () => {
 
     it('should handle unauthorized table deletion', async () => {
       const { checkDatabasePermissions } = require('../../../lib/auth/session');
-      checkDatabasePermissions.mockRejectedValue(new Error('Insufficient permissions to drop table'));
+      checkDatabasePermissions.mockRejectedValue(
+        new Error('Insufficient permissions to drop table')
+      );
 
       const request = new NextRequest('http://localhost:3000/api/db?table=critical_table', {
         method: 'DELETE',
-        headers: { 'Authorization': 'Bearer limited-user-token' }
+        headers: { Authorization: 'Bearer limited-user-token' },
       });
 
       const response = await DELETE(request);
@@ -627,10 +658,12 @@ describe('Database API Error Handling', () => {
   describe('Database Connection Management', () => {
     it('should handle connection pool reset failure', async () => {
       const { resetConnectionPool } = require('../../../lib/database/connection-manager');
-      resetConnectionPool.mockRejectedValue(new Error('Failed to reset connection pool: active connections exist'));
+      resetConnectionPool.mockRejectedValue(
+        new Error('Failed to reset connection pool: active connections exist')
+      );
 
       const request = new NextRequest('http://localhost:3000/api/db?action=reset_pool', {
-        method: 'POST'
+        method: 'POST',
       });
 
       const response = await POST(request);
@@ -642,22 +675,24 @@ describe('Database API Error Handling', () => {
 
     it('should handle invalid connection configuration', async () => {
       const { validateConnectionConfig } = require('../../../lib/database/connection-manager');
-      validateConnectionConfig.mockRejectedValue(new Error('Invalid connection configuration: missing host'));
+      validateConnectionConfig.mockRejectedValue(
+        new Error('Invalid connection configuration: missing host')
+      );
 
       const configData = {
         operation: 'test_connection',
         config: {
           database: 'test_db',
           user: 'test_user',
-          password: 'test_pass'
+          password: 'test_pass',
           // Missing host
-        }
+        },
       };
 
       const request = new NextRequest('http://localhost:3000/api/db', {
         method: 'POST',
         body: JSON.stringify(configData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -669,7 +704,9 @@ describe('Database API Error Handling', () => {
 
     it('should handle connection leak detection', async () => {
       const { getConnectionStatus } = require('../../../lib/database/connection-manager');
-      getConnectionStatus.mockRejectedValue(new Error('Connection leak detected: 95 of 100 connections in use'));
+      getConnectionStatus.mockRejectedValue(
+        new Error('Connection leak detected: 95 of 100 connections in use')
+      );
 
       const request = new NextRequest('http://localhost:3000/api/db?action=connection_status');
       const response = await GET(request);
@@ -685,7 +722,9 @@ describe('Database API Error Handling', () => {
       const { optimizeQuery } = require('../../../lib/database/query-executor');
       optimizeQuery.mockRejectedValue(new Error('Query optimization failed: query too complex'));
 
-      const request = new NextRequest('http://localhost:3000/api/db?action=optimize&sql=SELECT * FROM users WHERE complex_condition');
+      const request = new NextRequest(
+        'http://localhost:3000/api/db?action=optimize&sql=SELECT * FROM users WHERE complex_condition'
+      );
       const response = await GET(request);
       const data = await response.json();
 
@@ -695,9 +734,13 @@ describe('Database API Error Handling', () => {
 
     it('should handle query plan generation failure', async () => {
       const { getQueryPlan } = require('../../../lib/database/query-executor');
-      getQueryPlan.mockRejectedValue(new Error('Cannot generate query plan: invalid query structure'));
+      getQueryPlan.mockRejectedValue(
+        new Error('Cannot generate query plan: invalid query structure')
+      );
 
-      const request = new NextRequest('http://localhost:3000/api/db?action=explain&sql=INVALID QUERY');
+      const request = new NextRequest(
+        'http://localhost:3000/api/db?action=explain&sql=INVALID QUERY'
+      );
       const response = await GET(request);
       const data = await response.json();
 
@@ -709,9 +752,12 @@ describe('Database API Error Handling', () => {
       const { cancelQuery } = require('../../../lib/database/query-executor');
       cancelQuery.mockRejectedValue(new Error('Cannot cancel query: query has already completed'));
 
-      const request = new NextRequest('http://localhost:3000/api/db?action=cancel&queryId=query-123', {
-        method: 'DELETE'
-      });
+      const request = new NextRequest(
+        'http://localhost:3000/api/db?action=cancel&queryId=query-123',
+        {
+          method: 'DELETE',
+        }
+      );
 
       const response = await DELETE(request);
       const data = await response.json();
@@ -738,7 +784,9 @@ describe('Database API Error Handling', () => {
       const { validateBackup } = require('../../../lib/database/backup-manager');
       validateBackup.mockRejectedValue(new Error('Backup validation failed: checksum mismatch'));
 
-      const request = new NextRequest('http://localhost:3000/api/db?action=validate_backup&file=backup.sql');
+      const request = new NextRequest(
+        'http://localhost:3000/api/db?action=validate_backup&file=backup.sql'
+      );
       const response = await GET(request);
       const data = await response.json();
 
@@ -748,18 +796,20 @@ describe('Database API Error Handling', () => {
 
     it('should handle backup scheduling conflict', async () => {
       const { scheduleBackup } = require('../../../lib/database/backup-manager');
-      scheduleBackup.mockRejectedValue(new Error('Backup scheduling conflict: another backup is already scheduled'));
+      scheduleBackup.mockRejectedValue(
+        new Error('Backup scheduling conflict: another backup is already scheduled')
+      );
 
       const scheduleData = {
         operation: 'schedule_backup',
         schedule: '0 2 * * *', // Daily at 2 AM
-        type: 'full'
+        type: 'full',
       };
 
       const request = new NextRequest('http://localhost:3000/api/db', {
         method: 'POST',
         body: JSON.stringify(scheduleData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -798,7 +848,9 @@ describe('Database API Error Handling', () => {
       const { executeQuery } = require('../../../lib/database/query-executor');
       executeQuery.mockRejectedValue(new Error('Test error'));
 
-      const request = new NextRequest('http://localhost:3000/api/db?action=query&sql=SELECT * FROM users');
+      const request = new NextRequest(
+        'http://localhost:3000/api/db?action=query&sql=SELECT * FROM users'
+      );
       const response = await GET(request);
       const data = await response.json();
 

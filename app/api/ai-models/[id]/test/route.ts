@@ -16,16 +16,20 @@ export const POST = createApiRoute(
   async (req: NextRequest, { validatedBody, validatedQuery, user, requestId, params }) => {
     try {
       const routeParams = await params;
-      
+
       const result = await aiModelManager.testModel(routeParams.id);
-    
+
       return ApiResponseWrapper.success({
         success: true,
         data: result,
       });
     } catch (error) {
-      return ApiResponseWrapper.error(ErrorCode.INTERNAL_SERVER_ERROR, 'Failed to test AI model', null, 500);
+      return ApiResponseWrapper.error(
+        ErrorCode.INTERNAL_SERVER_ERROR,
+        'Failed to test AI model',
+        null,
+        500
+      );
     }
   }
 );
-

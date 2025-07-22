@@ -1,45 +1,46 @@
-// @ts-nocheck
 /// <reference lib="dom" />
-import { Observable, BehaviorSubject } from "rxjs"
-import { retry, catchError, timeout } from "rxjs/operators"
-import { v4 as uuidv4 } from "uuid"
+import { Observable, BehaviorSubject } from 'rxjs';
+import { retry, catchError, timeout } from 'rxjs/operators';
+import { v4 as uuidv4 } from 'uuid';
 
 export interface FastGPTConfig {
-  apiKey: string
-  baseUrl: string
-  useProxy: boolean
-  timeout: number
-  maxRetries: number
-  retryDelay: number
+  apiKey: string;
+  baseUrl: string;
+  useProxy: boolean;
+  timeout: number;
+  maxRetries: number;
+  retryDelay: number;
 }
 
 import { ChatMessage } from '../types/interfaces';
-import { logger } from '@/lib/utils/logger';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
 
 export interface ChatContext {
-  sessionId: string
-  appId: string
-  userId: string
-  messages: ChatMessage[]
-  variables: Record<string, any>
-  systemPrompt?: string
-  maxContextLength: number
+  sessionId: string;
+  appId: string;
+  userId: string;
+  messages: ChatMessage[];
+  variables: Record<string, any>;
+  systemPrompt?: string;
+  maxContextLength: number;
 }
 
 export interface StreamResponse {
-  id: string
-  content: string
-  delta: string
-  isComplete: boolean
-  metadata?: Record<string, any>
+  id: string;
+  content: string;
+  delta: string;
+  isComplete: boolean;
+  metadata?: Record<string, any>;
 }
 
 export interface ConnectionStatus {
-  isConnected: boolean
-  lastPing: Date | null
-  latency: number
-  errorCount: number
-  retryCount: number
+  isConnected: boolean;
+  lastPing: Date | null;
+  latency: number;
+  errorCount: number;
+  retryCount: number;
 }
 
 /**
@@ -47,45 +48,49 @@ export interface ConnectionStatus {
  * 支持上下文记忆、错误重试、连接监控等高级功能
  */
 export class EnhancedFastGPTClient {
-  private config: FastGPTConfig
+  private config: FastGPTConfig;
   private connectionStatus$ = new BehaviorSubject<ConnectionStatus>({
     isConnected: false,
     lastPing: null,
     latency: 0,
     errorCount: 0,
     retryCount: 0,
-  })
+  });
 
-  private contextCache = new Map<string, ChatContext>()
-  private messageQueue: Array<{ context: ChatContext; resolve: Function; reject: Function }> = []
-  private isProcessing = false
+  private contextCache = new Map<string, ChatContext>();
+  private messageQueue: Array<{ context: ChatContext; resolve: Function; reject: Function }> = [];
+  private isProcessing = false;
 
   constructor(config: FastGPTConfig) {
-    this.config = config
-    this.startHealthCheck()
+    this.config = config;
+    this.startHealthCheck();
   }
 
   /**
    * 获取连接状态
    */
   getConnectionStatus(): Observable<ConnectionStatus> {
-    return this.connectionStatus$.asObservable()
+    return this.connectionStatus$.asObservable();
   }
 
   /**
    * 初始化聊天上下文
    */
-  async initializeContext(appId: string, userId: string, systemPrompt?: string): Promise<ChatContext> {
-    const sessionId = uuidv4()
+  async initializeContext(
+    appId: string,
+    userId: string,
+    systemPrompt?: string
+  ): Promise<ChatContext> {
+    const sessionId = uuidv4();
 
     try {
       // 调用FastGPT初始化接口
-      const response = await this.makeRequest("/api/fastgpt/init-chat", {
-        method: "POST",
+      const response = await this.makeRequest('/api/fastgpt/init-chat', {
+        method: 'POST',
         body: JSON.stringify({ appId, userId, systemPrompt }),
-      })
+      });
 
-      const data = await response.json()
+      const data = await response.json();
 
       const context: ChatContext = {
         sessionId,
@@ -95,26 +100,26 @@ export class EnhancedFastGPTClient {
         variables: data.variables || {},
         systemPrompt: systemPrompt || data.systemPrompt,
         maxContextLength: 4000, // 可配置的上下文长度限制
-      }
+      };
 
       // 添加欢迎消息
       if (data.welcomeMessage) {
         context.messages.push({
           id: uuidv4(),
-          role: "assistant",
+          role: 'assistant',
           content: data.welcomeMessage,
           timestamp: new Date(),
           metadata: { isWelcome: true },
-        })
+        });
       }
 
       // 缓存上下文
-      this.contextCache.set(sessionId, context)
+      this.contextCache.set(sessionId, context);
 
-      return context
+      return context;
     } catch (error) {
-      logger.error("Failed to initialize context:", error)
-      throw new Error(`Context initialization failed: ${error.message}`)
+      logger.error('Failed to initialize context:', error);
+      throw new Error(`Context initialization failed: ${error.message}`);
     }
   }
 
@@ -122,29 +127,29 @@ export class EnhancedFastGPTClient {
    * 发送消息并获取流式响应
    */
   sendMessage(sessionId: string, content: string, files?: File[]): Observable<StreamResponse> {
-    return new Observable((observer) => {
-      const context = this.contextCache.get(sessionId)
+    return new Observable(observer => {
+      const context = this.contextCache.get(sessionId);
       if (!context) {
-        observer.error(new Error("Context not found"))
-        return
+        observer.error(new Error('Context not found'));
+        return;
       }
 
       // 添加用户消息到上下文
       const userMessage: ChatMessage = {
         id: uuidv4(),
-        role: "user",
+        role: 'user',
         content,
         timestamp: new Date(),
-        metadata: files ? { files: files.map((f) => f.name) } : undefined,
-      }
+        metadata: files ? { files: files.map(f => f.name) } : undefined,
+      };
 
-      context.messages.push(userMessage)
+      context.messages.push(userMessage);
 
       // 智能上下文管理
-      this.manageContext(context)
+      this.manageContext(context);
 
       // 准备API请求
-      const messages = this.prepareMessages(context)
+      const messages = this.prepareMessages(context);
       const requestBody = {
         appId: context.appId,
         chatId: sessionId,
@@ -154,47 +159,51 @@ export class EnhancedFastGPTClient {
         system: context.systemPrompt,
         variables: context.variables,
         userId: context.userId,
-      }
+      };
 
       // 发送请求
-      this.streamRequest("/api/fastgpt/chat", requestBody)
+      this.streamRequest('/api/fastgpt/chat', requestBody)
         .pipe(
           timeout(this.config.timeout),
           retry({
             count: this.config.maxRetries,
             delay: (error, retryCount) => {
-              logger.warn(`Retry attempt ${retryCount} for session ${sessionId}:`, error.message)
-              this.updateConnectionStatus({ retryCount })
-              return new Promise((resolve) => setTimeout(resolve, this.config.retryDelay * retryCount))
+              logger.warn(`Retry attempt ${retryCount} for session ${sessionId}:`, error.message);
+              this.updateConnectionStatus({ retryCount });
+              return new Promise(resolve =>
+                setTimeout(resolve, this.config.retryDelay * retryCount)
+              );
             },
           }),
-          catchError((error) => {
-            this.updateConnectionStatus({ errorCount: this.connectionStatus$.value.errorCount + 1 })
-            observer.error(new Error(`Stream request failed: ${error.message}`))
-            return []
-          }),
+          catchError(error => {
+            this.updateConnectionStatus({
+              errorCount: this.connectionStatus$.value.errorCount + 1,
+            });
+            observer.error(new Error(`Stream request failed: ${error.message}`));
+            return [];
+          })
         )
         .subscribe({
-          next: (response) => {
-            observer.next(response)
+          next: response => {
+            observer.next(response);
 
             // 如果响应完成，添加到上下文
             if (response.isComplete) {
               const assistantMessage: ChatMessage = {
                 id: response.id,
-                role: "assistant",
+                role: 'assistant',
                 content: response.content,
                 timestamp: new Date(),
                 metadata: response.metadata,
-              }
-              context.messages.push(assistantMessage)
-              this.contextCache.set(sessionId, context)
+              };
+              context.messages.push(assistantMessage);
+              this.contextCache.set(sessionId, context);
             }
           },
-          error: (error) => observer.error(error),
+          error: error => observer.error(error),
           complete: () => observer.complete(),
-        })
-    })
+        });
+    });
   }
 
   /**
@@ -203,10 +212,10 @@ export class EnhancedFastGPTClient {
    */
   private manageContext(context: ChatContext): void {
     if (this.calculateContextLength(context) <= context.maxContextLength) {
-      return
+      return;
     }
 
-    return `Topics discussed: ${Array.from(topics).join(", ")}. Key points: ${keyPoints.join(" ")}`
+    return `Topics discussed: ${Array.from(topics).join(', ')}. Key points: ${keyPoints.join(' ')}`;
   }
 
   /**
@@ -214,84 +223,86 @@ export class EnhancedFastGPTClient {
    */
   private prepareMessages(context: ChatContext): Array<{ role: string; content: string }> {
     return context.messages
-      .filter((msg) => !msg.metadata?.isSummary) // 过滤掉摘要消息，避免重复
-      .map((msg) => ({
+      .filter(msg => !msg.metadata?.isSummary) // 过滤掉摘要消息，避免重复
+      .map(msg => ({
         role: msg.role,
         content: msg.content,
-      }))
+      }));
   }
 
   /**
    * 流式请求处理
    */
   private streamRequest(endpoint: string, body: any): Observable<StreamResponse> {
-    return new Observable((observer) => {
-      const responseId = uuidv4()
-      let accumulatedContent = ""
+    return new Observable(observer => {
+      const responseId = uuidv4();
+      let accumulatedContent = '';
 
       fetch(endpoint, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify(body),
       })
-        .then((response) => {
+        .then(response => {
           if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
           }
 
-          const reader = response.body?.getReader()
+          const reader = response.body?.getReader();
           if (!reader) {
-            throw new Error("Response body is null")
+            throw new Error('Response body is null');
           }
 
-          const decoder = new TextDecoder()
-          let buffer = ""
+          const decoder = new TextDecoder();
+          let buffer = '';
 
           const processChunk = async () => {
             try {
-              const { done, value } = await reader.read()
+              const { done, value } = await reader.read();
 
               if (done) {
                 // 发送最终完成响应
                 observer.next({
                   id: responseId,
                   content: accumulatedContent,
-                  delta: "",
+                  delta: '',
                   isComplete: true,
-                })
-                observer.complete()
-                return
+                });
+                observer.complete();
+                return;
               }
 
-              buffer += decoder.decode(value, { stream: true })
-              const lines = buffer.split("\n")
-              buffer = lines.pop() || "" // 保留不完整的行
+              buffer += decoder.decode(value, { stream: true });
+              const lines = buffer.split('\n');
+              buffer = lines.pop() || ''; // 保留不完整的行
 
               for (const line of lines) {
-                if (line.trim() === "") {continue}
+                if (line.trim() === '') {
+                  continue;
+                }
 
-                if (line.startsWith("data: ")) {
-                  const data = line.slice(6)
+                if (line.startsWith('data: ')) {
+                  const data = line.slice(6);
 
-                  if (data === "[DONE]") {
+                  if (data === '[DONE]') {
                     observer.next({
                       id: responseId,
                       content: accumulatedContent,
-                      delta: "",
+                      delta: '',
                       isComplete: true,
-                    })
-                    observer.complete()
-                    return
+                    });
+                    observer.complete();
+                    return;
                   }
 
                   try {
-                    const parsed = JSON.parse(data)
+                    const parsed = JSON.parse(data);
 
                     if (parsed.choices?.[0]?.delta?.content) {
-                      const delta = parsed.choices[0].delta.content
-                      accumulatedContent += delta
+                      const delta = parsed.choices[0].delta.content;
+                      accumulatedContent += delta;
 
                       observer.next({
                         id: responseId,
@@ -299,24 +310,24 @@ export class EnhancedFastGPTClient {
                         delta,
                         isComplete: false,
                         metadata: parsed.metadata,
-                      })
+                      });
                     }
                   } catch (e) {
-                    logger.warn("Failed to parse SSE data:", data)
+                    logger.warn('Failed to parse SSE data:', data);
                   }
                 }
               }
 
-              processChunk()
+              processChunk();
             } catch (error) {
-              observer.error(error)
+              observer.error(error);
             }
-          }
+          };
 
-          processChunk()
+          processChunk();
         })
-        .catch((error) => observer.error(error))
-    })
+        .catch(error => observer.error(error));
+    });
   }
 
   /**
@@ -330,27 +341,27 @@ export class EnhancedFastGPTClient {
         const response = await fetch(endpoint, {
           ...options,
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
             ...options.headers,
           },
-        })
+        });
 
         if (response.ok) {
           this.updateConnectionStatus({
             isConnected: true,
             lastPing: new Date(),
             errorCount: 0,
-          })
-          return response
+          });
+          return response;
         } else {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
       } catch (error) {
-        lastError = error as Error
+        lastError = error as Error;
 
         if (attempt < this.config.maxRetries) {
-          logger.warn(`Request attempt ${attempt + 1} failed, retrying...`, error.message)
-          await new Promise((resolve) => setTimeout(resolve, this.config.retryDelay * (attempt + 1)))
+          logger.warn(`Request attempt ${attempt + 1} failed, retrying...`, error.message);
+          await new Promise(resolve => setTimeout(resolve, this.config.retryDelay * (attempt + 1)));
         }
       }
     }
@@ -358,17 +369,17 @@ export class EnhancedFastGPTClient {
     this.updateConnectionStatus({
       isConnected: false,
       errorCount: this.connectionStatus$.value.errorCount + 1,
-    })
+    });
 
-    throw lastError!
+    throw lastError!;
   }
 
   /**
    * 更新连接状态
    */
   private updateConnectionStatus(updates: Partial<ConnectionStatus>): void {
-    const current = this.connectionStatus$.value
-    this.connectionStatus$.next({ ...current, ...updates })
+    const current = this.connectionStatus$.value;
+    this.connectionStatus$.next({ ...current, ...updates });
   }
 
   /**
@@ -377,63 +388,63 @@ export class EnhancedFastGPTClient {
   private startHealthCheck(): void {
     setInterval(async () => {
       try {
-        const start = Date.now()
-        await this.makeRequest("/api/fastgpt/health", { method: "GET" })
-        const latency = Date.now() - start
+        const start = Date.now();
+        await this.makeRequest('/api/fastgpt/health', { method: 'GET' });
+        const latency = Date.now() - start;
 
         this.updateConnectionStatus({
           isConnected: true,
           lastPing: new Date(),
           latency,
-        })
+        });
       } catch (error) {
         this.updateConnectionStatus({
           isConnected: false,
           errorCount: this.connectionStatus$.value.errorCount + 1,
-        })
+        });
       }
-    }, 30000) // 每30秒检查一次
+    }, 30000); // 每30秒检查一次
   }
 
   /**
    * 获取上下文信息
    */
   getContext(sessionId: string): ChatContext | undefined {
-    return this.contextCache.get(sessionId)
+    return this.contextCache.get(sessionId);
   }
 
   /**
    * 清理上下文
    */
   clearContext(sessionId: string): void {
-    this.contextCache.delete(sessionId)
+    this.contextCache.delete(sessionId);
   }
 
   /**
    * 获取所有活跃会话
    */
   getActiveSessions(): string[] {
-    return Array.from(this.contextCache.keys())
+    return Array.from(this.contextCache.keys());
   }
 
   /**
    * 导出聊天历史
    */
   exportChatHistory(sessionId: string): ChatMessage[] | null {
-    const context = this.contextCache.get(sessionId)
-    return context ? [...context.messages] : null
+    const context = this.contextCache.get(sessionId);
+    return context ? [...context.messages] : null;
   }
 
   /**
    * 设置消息为重要
    */
   markMessageAsImportant(sessionId: string, messageId: string): void {
-    const context = this.contextCache.get(sessionId)
+    const context = this.contextCache.get(sessionId);
     if (context) {
-      const message = context.messages.find((m) => m.id === messageId)
+      const message = context.messages.find(m => m.id === messageId);
       if (message) {
-        message.metadata = { ...message.metadata, isImportant: true }
-        this.contextCache.set(sessionId, context)
+        message.metadata = { ...message.metadata, isImportant: true };
+        this.contextCache.set(sessionId, context);
       }
     }
   }
@@ -441,13 +452,13 @@ export class EnhancedFastGPTClient {
 
 // 默认配置
 export const defaultFastGPTConfig: FastGPTConfig = {
-  apiKey: process.env.FASTGPT_API_KEY || "",
-  baseUrl: process.env.FASTGPT_API_URL || "https://zktecoaihub.com",
+  apiKey: process.env.FASTGPT_API_KEY || '',
+  baseUrl: process.env.FASTGPT_API_URL || 'https://zktecoaihub.com',
   useProxy: true,
   timeout: 30000,
   maxRetries: 3,
   retryDelay: 1000,
-}
+};
 
 // 全局客户端实例
-export const enhancedFastGPTClient = new EnhancedFastGPTClient(defaultFastGPTConfig)
+export const enhancedFastGPTClient = new EnhancedFastGPTClient(defaultFastGPTConfig);

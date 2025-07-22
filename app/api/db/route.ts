@@ -53,7 +53,8 @@ export const GET = createApiRoute(
 
       if (apiPath === 'init') {
         // 检查是否已初始化
-        const isInitialized = fs.existsSync(AGENTS_FILE) && readJsonFile(AGENTS_FILE, []).length > 0;
+        const isInitialized =
+          fs.existsSync(AGENTS_FILE) && readJsonFile(AGENTS_FILE, []).length > 0;
         return ApiResponseWrapper.success({ initialized: isInitialized });
       }
 
@@ -68,18 +69,22 @@ export const GET = createApiRoute(
         const agentId = apiPath.split('agent/')[1];
         const agents = readJsonFile(AGENTS_FILE, []);
         const agent = agents.find((a: any) => a.id === agentId);
-        
+
         if (!agent) {
           return ApiResponseWrapper.error(ErrorCode.NOT_FOUND, 'Agent not found', null);
         }
-        
+
         return ApiResponseWrapper.success(agent);
       }
 
       return ApiResponseWrapper.error(ErrorCode.VALIDATION_ERROR, 'Invalid path', null);
     } catch (error) {
       console.error('GET /api/db error:', error);
-      return ApiResponseWrapper.error(ErrorCode.INTERNAL_SERVER_ERROR, 'Internal server error', null);
+      return ApiResponseWrapper.error(
+        ErrorCode.INTERNAL_SERVER_ERROR,
+        'Internal server error',
+        null
+      );
     }
   }
 );
@@ -138,10 +143,10 @@ export const POST = createApiRoute(
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           };
-          
+
           agents.push(newAgent);
           writeJsonFile(AGENTS_FILE, agents);
-          
+
           return ApiResponseWrapper.success(newAgent);
         } catch (error) {
           console.error('Create agent error:', error);
@@ -153,7 +158,11 @@ export const POST = createApiRoute(
       return ApiResponseWrapper.error(ErrorCode.VALIDATION_ERROR, `未知操作: ${action}`, null);
     } catch (error) {
       console.error('POST /api/db error:', error);
-      return ApiResponseWrapper.error(ErrorCode.INTERNAL_SERVER_ERROR, 'Internal server error', null);
+      return ApiResponseWrapper.error(
+        ErrorCode.INTERNAL_SERVER_ERROR,
+        'Internal server error',
+        null
+      );
     }
   }
 );
@@ -191,7 +200,11 @@ export const PUT = createApiRoute(
       return ApiResponseWrapper.error(ErrorCode.VALIDATION_ERROR, 'Invalid path', null);
     } catch (error) {
       console.error('PUT /api/db error:', error);
-      return ApiResponseWrapper.error(ErrorCode.INTERNAL_SERVER_ERROR, 'Internal server error', null);
+      return ApiResponseWrapper.error(
+        ErrorCode.INTERNAL_SERVER_ERROR,
+        'Internal server error',
+        null
+      );
     }
   }
 );
@@ -219,8 +232,11 @@ export const DELETE = createApiRoute(
       return ApiResponseWrapper.error(ErrorCode.VALIDATION_ERROR, 'Invalid path', null);
     } catch (error) {
       console.error('DELETE /api/db error:', error);
-      return ApiResponseWrapper.error(ErrorCode.INTERNAL_SERVER_ERROR, 'Internal server error', null);
+      return ApiResponseWrapper.error(
+        ErrorCode.INTERNAL_SERVER_ERROR,
+        'Internal server error',
+        null
+      );
     }
   }
 );
-

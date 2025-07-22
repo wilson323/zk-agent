@@ -25,7 +25,7 @@ export type QueryType = 'select' | 'insert' | 'update' | 'delete' | 'raw';
 /**
  * 事务隔离级别
  */
-export type IsolationLevel = 
+export type IsolationLevel =
   | 'READ_UNCOMMITTED'
   | 'READ_COMMITTED'
   | 'REPEATABLE_READ'
@@ -61,12 +61,14 @@ export interface DatabaseConnectionConfig {
   password: string;
   charset?: string;
   timezone?: string;
-  ssl?: boolean | {
-    ca?: string;
-    cert?: string;
-    key?: string;
-    rejectUnauthorized?: boolean;
-  };
+  ssl?:
+    | boolean
+    | {
+        ca?: string;
+        cert?: string;
+        key?: string;
+        rejectUnauthorized?: boolean;
+      };
   pool?: {
     min?: number;
     max?: number;
@@ -121,13 +123,28 @@ export interface DatabaseConnection {
 /**
  * WHERE 条件操作符
  */
-export type WhereOperator = 
-  | '=' | '!=' | '<>' | '<' | '<=' | '>' | '>=' 
-  | 'LIKE' | 'NOT LIKE' | 'ILIKE' | 'NOT ILIKE'
-  | 'IN' | 'NOT IN' | 'BETWEEN' | 'NOT BETWEEN'
-  | 'IS NULL' | 'IS NOT NULL'
-  | 'EXISTS' | 'NOT EXISTS'
-  | 'REGEXP' | 'NOT REGEXP';
+export type WhereOperator =
+  | '='
+  | '!='
+  | '<>'
+  | '<'
+  | '<='
+  | '>'
+  | '>='
+  | 'LIKE'
+  | 'NOT LIKE'
+  | 'ILIKE'
+  | 'NOT ILIKE'
+  | 'IN'
+  | 'NOT IN'
+  | 'BETWEEN'
+  | 'NOT BETWEEN'
+  | 'IS NULL'
+  | 'IS NOT NULL'
+  | 'EXISTS'
+  | 'NOT EXISTS'
+  | 'REGEXP'
+  | 'NOT REGEXP';
 
 /**
  * WHERE 条件
@@ -242,12 +259,17 @@ export interface RelationConfig {
 /**
  * 模型事件类型
  */
-export type ModelEventType = 
-  | 'creating' | 'created'
-  | 'updating' | 'updated'
-  | 'deleting' | 'deleted'
-  | 'saving' | 'saved'
-  | 'restoring' | 'restored';
+export type ModelEventType =
+  | 'creating'
+  | 'created'
+  | 'updating'
+  | 'updated'
+  | 'deleting'
+  | 'deleted'
+  | 'saving'
+  | 'saved'
+  | 'restoring'
+  | 'restored';
 
 /**
  * 模型事件处理器
@@ -354,13 +376,28 @@ export interface SeedConfig {
 /**
  * 列类型
  */
-export type ColumnType = 
-  | 'bigint' | 'int' | 'smallint' | 'tinyint'
-  | 'decimal' | 'float' | 'double'
-  | 'varchar' | 'char' | 'text' | 'longtext'
-  | 'date' | 'datetime' | 'timestamp' | 'time'
-  | 'boolean' | 'json' | 'blob' | 'binary'
-  | 'enum' | 'set';
+export type ColumnType =
+  | 'bigint'
+  | 'int'
+  | 'smallint'
+  | 'tinyint'
+  | 'decimal'
+  | 'float'
+  | 'double'
+  | 'varchar'
+  | 'char'
+  | 'text'
+  | 'longtext'
+  | 'date'
+  | 'datetime'
+  | 'timestamp'
+  | 'time'
+  | 'boolean'
+  | 'json'
+  | 'blob'
+  | 'binary'
+  | 'enum'
+  | 'set';
 
 /**
  * 列定义
@@ -448,10 +485,13 @@ export interface QueryPerformanceStats {
     sql: string;
     time: number;
   };
-  queryTypeStats: Record<QueryType, {
-    count: number;
-    averageTime: number;
-  }>;
+  queryTypeStats: Record<
+    QueryType,
+    {
+      count: number;
+      averageTime: number;
+    }
+  >;
 }
 
 /**
@@ -513,7 +553,7 @@ export interface Transaction {
 /**
  * 数据库错误类型
  */
-export type DatabaseErrorType = 
+export type DatabaseErrorType =
   | 'CONNECTION_ERROR'
   | 'QUERY_ERROR'
   | 'TRANSACTION_ERROR'

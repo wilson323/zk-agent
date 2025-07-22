@@ -13,10 +13,7 @@ export async function GET(request: NextRequest) {
     // 验证管理员权限
     const authResult = await authenticateRequest(request);
     if (!authResult || !authResult.success || authResult.user?.['role'] !== 'admin') {
-      return NextResponse.json(
-        { error: '需要管理员权限' },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: '需要管理员权限' }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);
@@ -24,50 +21,37 @@ export async function GET(request: NextRequest) {
     const analysisId = searchParams.get('analysisId');
 
     if (!errorId && !analysisId) {
-      return NextResponse.json(
-        { error: '需要提供 errorId 或 analysisId 参数' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '需要提供 errorId 或 analysisId 参数' }, { status: 400 });
     }
 
     let analysis;
-    
+
     if (analysisId) {
       // 通过分析ID获取结果
       analysis = rootCauseAnalyzer.getAnalysis(analysisId);
       if (!analysis) {
-        return NextResponse.json(
-          { error: '未找到指定的根因分析结果' },
-          { status: 404 }
-        );
+        return NextResponse.json({ error: '未找到指定的根因分析结果' }, { status: 404 });
       }
     } else if (errorId) {
       // 通过错误ID获取或生成分析
       analysis = await errorMonitor.getErrorRootCauseAnalysis(errorId);
       if (!analysis) {
-        return NextResponse.json(
-          { error: '未找到指定的错误或无法生成根因分析' },
-          { status: 404 }
-        );
+        return NextResponse.json({ error: '未找到指定的错误或无法生成根因分析' }, { status: 404 });
       }
     }
 
     return NextResponse.json({
       success: true,
-      data: analysis
+      data: analysis,
     });
-
   } catch (error) {
     console.error('Root cause analysis API error:', error);
     globalErrorHandler.handleError(error as Error, {
       method: 'GET',
-      url: request.url
+      url: request.url,
     });
-    
-    return NextResponse.json(
-      { error: '获取根因分析失败' },
-      { status: 500 }
-    );
+
+    return NextResponse.json({ error: '获取根因分析失败' }, { status: 500 });
   }
 }
 
@@ -80,29 +64,20 @@ export async function POST(request: NextRequest) {
     // 验证管理员权限
     const authResult = await authenticateRequest(request);
     if (!authResult || !authResult.success || authResult.user?.['role'] !== 'admin') {
-      return NextResponse.json(
-        { error: '需要管理员权限' },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: '需要管理员权限' }, { status: 403 });
     }
 
     const body = await request.json();
     const { errorId, force: _force = false } = body;
 
     if (!errorId) {
-      return NextResponse.json(
-        { error: '需要提供 errorId' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: '需要提供 errorId' }, { status: 400 });
     }
 
     // 获取错误报告
     const errorReport = null; // errorMonitor.getErrorById(errorId); // Method doesn't exist
     if (!errorReport) {
-      return NextResponse.json(
-        { error: '未找到指定的错误报告' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: '未找到指定的错误报告' }, { status: 404 });
     }
 
     // 执行根因分析
@@ -117,22 +92,20 @@ export async function POST(request: NextRequest) {
         rootCause: analysis.rootCause,
         confidence: analysis.confidence,
         impactAssessment: analysis.impactAssessment,
-        recommendations: analysis.recommendations.filter((r: any) => r.priority === 'HIGH' || r.priority === 'CRITICAL'),
-        analysisTimestamp: analysis.analysisTimestamp
-      }
+        recommendations: analysis.recommendations.filter(
+          (r: any) => r.priority === 'HIGH' || r.priority === 'CRITICAL'
+        ),
+        analysisTimestamp: analysis.analysisTimestamp,
+      },
     });
-
   } catch (error) {
     console.error('Root cause analysis trigger error:', error);
     globalErrorHandler.handleError(error as Error, {
       method: 'POST',
-      url: request.url
+      url: request.url,
     });
-    
-    return NextResponse.json(
-      { error: '触发根因分析失败' },
-      { status: 500 }
-    );
+
+    return NextResponse.json({ error: '触发根因分析失败' }, { status: 500 });
   }
 }
 
@@ -145,21 +118,19 @@ export async function PUT(request: NextRequest) {
     // 验证管理员权限
     const authResult = await authenticateRequest(request);
     if (!authResult || !authResult.success || authResult.user?.['role'] !== 'admin') {
-      return NextResponse.json(
-        { error: '需要管理员权限' },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: '需要管理员权限' }, { status: 403 });
     }
 
     const body = await request.json();
-    const { 
+    const {
       timeRange = 24 * 60 * 60 * 1000, // 默认24小时
       severity = ['HIGH', 'CRITICAL'], // 默认只分析高严重性错误
-      limit = 10 // 默认最多分析10个错误
+      limit = 10, // 默认最多分析10个错误
     } = body;
 
     // 获取最近的错误
-    const recentErrors = errorMonitor.getRecentErrors(limit * 2)
+    const recentErrors = errorMonitor
+      .getRecentErrors(limit * 2)
       .filter((error: any) => {
         const isInTimeRange = Date.now() - error.timestamp.getTime() <= timeRange;
         const isTargetSeverity = severity.includes(error.error?.['severity']);
@@ -173,13 +144,13 @@ export async function PUT(request: NextRequest) {
         message: '没有找到符合条件的错误需要分析',
         data: {
           analyzed: 0,
-          results: []
-        }
+          results: [],
+        },
       });
     }
 
     // 批量执行根因分析
-    const analysisPromises = recentErrors.map(async (errorReport) => {
+    const analysisPromises = recentErrors.map(async errorReport => {
       try {
         const analysis = await rootCauseAnalyzer.analyzeRootCause(errorReport);
         return {
@@ -188,13 +159,13 @@ export async function PUT(request: NextRequest) {
           analysisId: analysis.id,
           rootCause: analysis.rootCause,
           confidence: analysis.confidence,
-          businessImpact: analysis.impactAssessment.businessImpact
+          businessImpact: analysis.impactAssessment.businessImpact,
         };
       } catch (error) {
         return {
           success: false,
           errorId: errorReport.id,
-          error: error instanceof Error ? error.message : '分析失败'
+          error: error instanceof Error ? error.message : '分析失败',
         };
       }
     });
@@ -210,20 +181,16 @@ export async function PUT(request: NextRequest) {
         analyzed: successful.length,
         failed: failed.length,
         results: successful,
-        errors: failed
-      }
+        errors: failed,
+      },
     });
-
   } catch (error) {
     console.error('Batch root cause analysis error:', error);
     globalErrorHandler.handleError(error as Error, {
       method: 'PUT',
-      url: request.url
+      url: request.url,
     });
-    
-    return NextResponse.json(
-      { error: '批量根因分析失败' },
-      { status: 500 }
-    );
+
+    return NextResponse.json({ error: '批量根因分析失败' }, { status: 500 });
   }
 }

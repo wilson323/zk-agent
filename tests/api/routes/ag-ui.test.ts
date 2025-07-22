@@ -20,7 +20,7 @@ jest.mock('../../../lib/services/ag-ui-manager', () => ({
   checkAgentPermissions: jest.fn(),
   getAgentMetrics: jest.fn(),
   deployAgent: jest.fn(),
-  testAgentConnection: jest.fn()
+  testAgentConnection: jest.fn(),
 }));
 
 jest.mock('../../../lib/services/cad-analysis-service', () => ({
@@ -28,7 +28,7 @@ jest.mock('../../../lib/services/cad-analysis-service', () => ({
   getAnalysisHistory: jest.fn(),
   validateCADFormat: jest.fn(),
   extractCADMetadata: jest.fn(),
-  generateAnalysisReport: jest.fn()
+  generateAnalysisReport: jest.fn(),
 }));
 
 jest.mock('../../../lib/services/chat-service', () => ({
@@ -37,7 +37,7 @@ jest.mock('../../../lib/services/chat-service', () => ({
   getChatHistory: jest.fn(),
   validateChatSession: jest.fn(),
   endChatSession: jest.fn(),
-  getChatMetrics: jest.fn()
+  getChatMetrics: jest.fn(),
 }));
 
 jest.mock('../../../lib/services/compliance-service', () => ({
@@ -45,13 +45,13 @@ jest.mock('../../../lib/services/compliance-service', () => ({
   getComplianceReport: jest.fn(),
   validateComplianceRules: jest.fn(),
   updateComplianceConfig: jest.fn(),
-  getComplianceHistory: jest.fn()
+  getComplianceHistory: jest.fn(),
 }));
 
 jest.mock('../../../lib/auth/session', () => ({
   validateSession: jest.fn(),
   getUserPermissions: jest.fn(),
-  checkAdminAccess: jest.fn()
+  checkAdminAccess: jest.fn(),
 }));
 
 jest.mock('../../../lib/storage/agent-store', () => ({
@@ -59,7 +59,7 @@ jest.mock('../../../lib/storage/agent-store', () => ({
   getAgent: jest.fn(),
   updateAgent: jest.fn(),
   deleteAgent: jest.fn(),
-  listAgents: jest.fn()
+  listAgents: jest.fn(),
 }));
 
 describe('AG-UI API Error Handling', () => {
@@ -107,10 +107,12 @@ describe('AG-UI API Error Handling', () => {
 
     it('should handle insufficient permissions for agent access', async () => {
       const { checkAgentPermissions } = require('../../../lib/services/ag-ui-manager');
-      checkAgentPermissions.mockRejectedValue(new Error('Insufficient permissions to access agents'));
+      checkAgentPermissions.mockRejectedValue(
+        new Error('Insufficient permissions to access agents')
+      );
 
       const request = new NextRequest('http://localhost:3000/api/ag-ui', {
-        headers: { 'Authorization': 'Bearer limited-user-token' }
+        headers: { Authorization: 'Bearer limited-user-token' },
       });
 
       const response = await GET(request);
@@ -134,7 +136,9 @@ describe('AG-UI API Error Handling', () => {
     });
 
     it('should handle invalid filter parameters', async () => {
-      const request = new NextRequest('http://localhost:3000/api/ag-ui?status=invalid&type=unknown');
+      const request = new NextRequest(
+        'http://localhost:3000/api/ag-ui?status=invalid&type=unknown'
+      );
       const response = await GET(request);
       const data = await response.json();
 
@@ -166,9 +170,9 @@ describe('AG-UI API Error Handling', () => {
         config: {
           model: 'gpt-3.5-turbo',
           temperature: 0.7,
-          maxTokens: 1000
+          maxTokens: 1000,
         },
-        description: 'Test agent for validation'
+        description: 'Test agent for validation',
       };
     });
 
@@ -180,7 +184,7 @@ describe('AG-UI API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/ag-ui', {
         method: 'POST',
         body: JSON.stringify(invalidData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -194,20 +198,22 @@ describe('AG-UI API Error Handling', () => {
 
     it('should handle invalid agent configuration', async () => {
       const { validateAgentConfig } = require('../../../lib/services/ag-ui-manager');
-      validateAgentConfig.mockRejectedValue(new Error('Invalid agent configuration: temperature out of range'));
+      validateAgentConfig.mockRejectedValue(
+        new Error('Invalid agent configuration: temperature out of range')
+      );
 
       const invalidConfigData = {
         ...validAgentData,
         config: {
           ...validAgentData.config,
-          temperature: 2.5 // Invalid temperature
-        }
+          temperature: 2.5, // Invalid temperature
+        },
       };
 
       const request = new NextRequest('http://localhost:3000/api/ag-ui', {
         method: 'POST',
         body: JSON.stringify(invalidConfigData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -224,7 +230,7 @@ describe('AG-UI API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/ag-ui', {
         method: 'POST',
         body: JSON.stringify(validAgentData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -237,15 +243,17 @@ describe('AG-UI API Error Handling', () => {
 
     it('should handle agent creation permission denied', async () => {
       const { checkAgentPermissions } = require('../../../lib/services/ag-ui-manager');
-      checkAgentPermissions.mockRejectedValue(new Error('Insufficient permissions to create agents'));
+      checkAgentPermissions.mockRejectedValue(
+        new Error('Insufficient permissions to create agents')
+      );
 
       const request = new NextRequest('http://localhost:3000/api/ag-ui', {
         method: 'POST',
         body: JSON.stringify(validAgentData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer limited-user-token'
-        }
+          Authorization: 'Bearer limited-user-token',
+        },
       });
 
       const response = await POST(request);
@@ -263,10 +271,10 @@ describe('AG-UI API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/ag-ui', {
         method: 'POST',
         body: JSON.stringify({ ...validAgentData, name: 'Existing Agent' }),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer admin-token'
-        }
+          Authorization: 'Bearer admin-token',
+        },
       });
 
       const response = await POST(request);
@@ -284,10 +292,10 @@ describe('AG-UI API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/ag-ui', {
         method: 'POST',
         body: JSON.stringify(validAgentData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer admin-token'
-        }
+          Authorization: 'Bearer admin-token',
+        },
       });
 
       const response = await POST(request);
@@ -304,10 +312,10 @@ describe('AG-UI API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/ag-ui', {
         method: 'POST',
         body: JSON.stringify({ ...validAgentData, deploy: true }),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer admin-token'
-        }
+          Authorization: 'Bearer admin-token',
+        },
       });
 
       const response = await POST(request);
@@ -320,16 +328,16 @@ describe('AG-UI API Error Handling', () => {
     it('should handle invalid agent type', async () => {
       const invalidTypeData = {
         ...validAgentData,
-        type: 'invalid-type'
+        type: 'invalid-type',
       };
 
       const request = new NextRequest('http://localhost:3000/api/ag-ui', {
         method: 'POST',
         body: JSON.stringify(invalidTypeData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer admin-token'
-        }
+          Authorization: 'Bearer admin-token',
+        },
       });
 
       const response = await POST(request);
@@ -344,10 +352,10 @@ describe('AG-UI API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/ag-ui', {
         method: 'POST',
         body: '{invalid json}',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer admin-token'
-        }
+          Authorization: 'Bearer admin-token',
+        },
       });
 
       const response = await POST(request);
@@ -365,10 +373,10 @@ describe('AG-UI API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/ag-ui', {
         method: 'POST',
         body: JSON.stringify(validAgentData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer admin-token'
-        }
+          Authorization: 'Bearer admin-token',
+        },
       });
 
       const response = await POST(request);
@@ -386,16 +394,16 @@ describe('AG-UI API Error Handling', () => {
 
       const updateData = {
         id: 'nonexistent-agent',
-        name: 'Updated Agent'
+        name: 'Updated Agent',
       };
 
       const request = new NextRequest('http://localhost:3000/api/ag-ui', {
         method: 'PUT',
         body: JSON.stringify(updateData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer admin-token'
-        }
+          Authorization: 'Bearer admin-token',
+        },
       });
 
       const response = await PUT(request);
@@ -408,21 +416,23 @@ describe('AG-UI API Error Handling', () => {
 
     it('should handle concurrent agent update conflict', async () => {
       const { updateAgent } = require('../../../lib/services/ag-ui-manager');
-      updateAgent.mockRejectedValue(new Error('Concurrent update detected: agent modified by another user'));
+      updateAgent.mockRejectedValue(
+        new Error('Concurrent update detected: agent modified by another user')
+      );
 
       const updateData = {
         id: 'agent-123',
         name: 'Updated Agent',
-        version: 1
+        version: 1,
       };
 
       const request = new NextRequest('http://localhost:3000/api/ag-ui', {
         method: 'PUT',
         body: JSON.stringify(updateData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer admin-token'
-        }
+          Authorization: 'Bearer admin-token',
+        },
       });
 
       const response = await PUT(request);
@@ -435,20 +445,22 @@ describe('AG-UI API Error Handling', () => {
 
     it('should handle agent update permission denied', async () => {
       const { checkAgentPermissions } = require('../../../lib/services/ag-ui-manager');
-      checkAgentPermissions.mockRejectedValue(new Error('Insufficient permissions to update this agent'));
+      checkAgentPermissions.mockRejectedValue(
+        new Error('Insufficient permissions to update this agent')
+      );
 
       const updateData = {
         id: 'agent-123',
-        name: 'Updated Agent'
+        name: 'Updated Agent',
       };
 
       const request = new NextRequest('http://localhost:3000/api/ag-ui', {
         method: 'PUT',
         body: JSON.stringify(updateData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer limited-user-token'
-        }
+          Authorization: 'Bearer limited-user-token',
+        },
       });
 
       const response = await PUT(request);
@@ -461,20 +473,22 @@ describe('AG-UI API Error Handling', () => {
 
     it('should handle agent in use during update', async () => {
       const { updateAgent } = require('../../../lib/services/ag-ui-manager');
-      updateAgent.mockRejectedValue(new Error('Cannot update agent: currently in use by active sessions'));
+      updateAgent.mockRejectedValue(
+        new Error('Cannot update agent: currently in use by active sessions')
+      );
 
       const updateData = {
         id: 'active-agent-123',
-        config: { temperature: 0.8 }
+        config: { temperature: 0.8 },
       };
 
       const request = new NextRequest('http://localhost:3000/api/ag-ui', {
         method: 'PUT',
         body: JSON.stringify(updateData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer admin-token'
-        }
+          Authorization: 'Bearer admin-token',
+        },
       });
 
       const response = await PUT(request);
@@ -492,7 +506,7 @@ describe('AG-UI API Error Handling', () => {
 
       const request = new NextRequest('http://localhost:3000/api/ag-ui?id=nonexistent-agent', {
         method: 'DELETE',
-        headers: { 'Authorization': 'Bearer admin-token' }
+        headers: { Authorization: 'Bearer admin-token' },
       });
 
       const response = await DELETE(request);
@@ -505,11 +519,13 @@ describe('AG-UI API Error Handling', () => {
 
     it('should handle agent deletion permission denied', async () => {
       const { checkAgentPermissions } = require('../../../lib/services/ag-ui-manager');
-      checkAgentPermissions.mockRejectedValue(new Error('Insufficient permissions to delete agents'));
+      checkAgentPermissions.mockRejectedValue(
+        new Error('Insufficient permissions to delete agents')
+      );
 
       const request = new NextRequest('http://localhost:3000/api/ag-ui?id=agent-123', {
         method: 'DELETE',
-        headers: { 'Authorization': 'Bearer limited-user-token' }
+        headers: { Authorization: 'Bearer limited-user-token' },
       });
 
       const response = await DELETE(request);
@@ -526,7 +542,7 @@ describe('AG-UI API Error Handling', () => {
 
       const request = new NextRequest('http://localhost:3000/api/ag-ui?id=agent-with-deps', {
         method: 'DELETE',
-        headers: { 'Authorization': 'Bearer admin-token' }
+        headers: { Authorization: 'Bearer admin-token' },
       });
 
       const response = await DELETE(request);
@@ -542,7 +558,7 @@ describe('AG-UI API Error Handling', () => {
 
       const request = new NextRequest('http://localhost:3000/api/ag-ui?id=agent-123', {
         method: 'DELETE',
-        headers: { 'Authorization': 'Bearer admin-token' }
+        headers: { Authorization: 'Bearer admin-token' },
       });
 
       const response = await DELETE(request);
@@ -561,10 +577,10 @@ describe('AG-UI API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/ag-ui/cad-analysis', {
         method: 'POST',
         body: JSON.stringify({ file: 'large-cad-file.dwg' }),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer user-token'
-        }
+          Authorization: 'Bearer user-token',
+        },
       });
 
       const response = await POST(request);
@@ -581,10 +597,10 @@ describe('AG-UI API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/ag-ui/cad-analysis', {
         method: 'POST',
         body: JSON.stringify({ file: 'unsupported.xyz' }),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer user-token'
-        }
+          Authorization: 'Bearer user-token',
+        },
       });
 
       const response = await POST(request);
@@ -601,10 +617,10 @@ describe('AG-UI API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/ag-ui/cad-analysis', {
         method: 'POST',
         body: JSON.stringify({ file: 'complex-model.dwg', timeout: 30000 }),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer user-token'
-        }
+          Authorization: 'Bearer user-token',
+        },
       });
 
       const response = await POST(request);
@@ -621,10 +637,10 @@ describe('AG-UI API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/ag-ui/cad-analysis', {
         method: 'POST',
         body: JSON.stringify({ file: 'corrupted.dwg' }),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer user-token'
-        }
+          Authorization: 'Bearer user-token',
+        },
       });
 
       const response = await POST(request);
@@ -643,10 +659,10 @@ describe('AG-UI API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/ag-ui/chat', {
         method: 'POST',
         body: JSON.stringify({ agentId: 'agent-123' }),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer user-token'
-        }
+          Authorization: 'Bearer user-token',
+        },
       });
 
       const response = await POST(request);
@@ -663,10 +679,10 @@ describe('AG-UI API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/ag-ui/chat', {
         method: 'POST',
         body: JSON.stringify({ sessionId: 'invalid-session', message: 'Hello' }),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer user-token'
-        }
+          Authorization: 'Bearer user-token',
+        },
       });
 
       const response = await POST(request);
@@ -683,10 +699,10 @@ describe('AG-UI API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/ag-ui/chat', {
         method: 'POST',
         body: JSON.stringify({ sessionId: 'session-123', message: 'Rapid message' }),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer user-token'
-        }
+          Authorization: 'Bearer user-token',
+        },
       });
 
       const response = await POST(request);
@@ -704,10 +720,10 @@ describe('AG-UI API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/ag-ui/chat', {
         method: 'POST',
         body: JSON.stringify({ sessionId: 'session-123', message: 'Hello' }),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer user-token'
-        }
+          Authorization: 'Bearer user-token',
+        },
       });
 
       const response = await POST(request);
@@ -721,15 +737,17 @@ describe('AG-UI API Error Handling', () => {
   describe('Compliance API Error Handling', () => {
     it('should handle compliance audit failure', async () => {
       const { performComplianceAudit } = require('../../../lib/services/compliance-service');
-      performComplianceAudit.mockRejectedValue(new Error('Compliance audit failed: missing required data'));
+      performComplianceAudit.mockRejectedValue(
+        new Error('Compliance audit failed: missing required data')
+      );
 
       const request = new NextRequest('http://localhost:3000/api/ag-ui/compliance/audit', {
         method: 'POST',
         body: JSON.stringify({ auditType: 'security' }),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer admin-token'
-        }
+          Authorization: 'Bearer admin-token',
+        },
       });
 
       const response = await POST(request);
@@ -741,15 +759,17 @@ describe('AG-UI API Error Handling', () => {
 
     it('should handle invalid compliance rules', async () => {
       const { validateComplianceRules } = require('../../../lib/services/compliance-service');
-      validateComplianceRules.mockRejectedValue(new Error('Invalid compliance rules configuration'));
+      validateComplianceRules.mockRejectedValue(
+        new Error('Invalid compliance rules configuration')
+      );
 
       const request = new NextRequest('http://localhost:3000/api/ag-ui/compliance/audit', {
         method: 'POST',
         body: JSON.stringify({ rules: 'invalid-rules' }),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer admin-token'
-        }
+          Authorization: 'Bearer admin-token',
+        },
       });
 
       const response = await POST(request);
@@ -763,7 +783,9 @@ describe('AG-UI API Error Handling', () => {
       const { getComplianceReport } = require('../../../lib/services/compliance-service');
       getComplianceReport.mockRejectedValue(new Error('Compliance report generation timeout'));
 
-      const request = new NextRequest('http://localhost:3000/api/ag-ui/compliance/audit?reportId=report-123');
+      const request = new NextRequest(
+        'http://localhost:3000/api/ag-ui/compliance/audit?reportId=report-123'
+      );
       const response = await GET(request);
       const data = await response.json();
 
@@ -780,16 +802,16 @@ describe('AG-UI API Error Handling', () => {
       const validAgentData = {
         name: 'Test Agent',
         type: 'chat',
-        config: { model: 'gpt-3.5-turbo' }
+        config: { model: 'gpt-3.5-turbo' },
       };
 
       const request = new NextRequest('http://localhost:3000/api/ag-ui', {
         method: 'POST',
         body: JSON.stringify(validAgentData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer admin-token'
-        }
+          Authorization: 'Bearer admin-token',
+        },
       });
 
       const response = await POST(request);
@@ -805,16 +827,16 @@ describe('AG-UI API Error Handling', () => {
 
       const validAgentData = {
         name: 'Test Agent',
-        type: 'chat'
+        type: 'chat',
       };
 
       const request = new NextRequest('http://localhost:3000/api/ag-ui', {
         method: 'POST',
         body: JSON.stringify(validAgentData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer admin-token'
-        }
+          Authorization: 'Bearer admin-token',
+        },
       });
 
       await POST(request);
@@ -829,16 +851,16 @@ describe('AG-UI API Error Handling', () => {
 
       const validAgentData = {
         name: 'Test Agent',
-        type: 'chat'
+        type: 'chat',
       };
 
       const request = new NextRequest('http://localhost:3000/api/ag-ui', {
         method: 'POST',
         body: JSON.stringify(validAgentData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer admin-token'
-        }
+          Authorization: 'Bearer admin-token',
+        },
       });
 
       const response = await POST(request);

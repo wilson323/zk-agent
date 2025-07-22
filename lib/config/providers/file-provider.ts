@@ -6,9 +6,16 @@
 import { promises as fs } from 'fs';
 import { join, extname } from 'path';
 import { watch } from 'chokidar';
-import { ConfigProvider, AppConfig, ConfigUpdateEvent, ConfigValidationResult } from '../core/types';
+import {
+  ConfigProvider,
+  AppConfig,
+  ConfigUpdateEvent,
+  ConfigValidationResult,
+} from '../core/types';
 import { validatePartialConfig } from '../core/validation';
-import { Logger } from '../../utils/logger';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
 
 export class FileConfigProvider implements ConfigProvider {
   private configPath: string;
@@ -35,7 +42,7 @@ export class FileConfigProvider implements ConfigProvider {
 
       const content = await fs.readFile(this.configPath, 'utf-8');
       const config = this.parseConfigContent(content);
-      
+
       // 更新最后修改时间
       const stats = await fs.stat(this.configPath);
       this.lastModified = stats.mtime;
@@ -55,16 +62,16 @@ export class FileConfigProvider implements ConfigProvider {
     try {
       // 确保目录存在
       await this.ensureDirectoryExists();
-      
+
       const content = this.stringifyConfig(config);
       await fs.writeFile(this.configPath, content, 'utf-8');
-      
+
       // 更新最后修改时间
       const stats = await fs.stat(this.configPath);
       this.lastModified = stats.mtime;
-      
+
       this.logger.debug(`Saved config to file: ${this.configPath}`);
-      
+
       // 触发更新事件
       const event: ConfigUpdateEvent = {
         key: 'root',
@@ -73,7 +80,7 @@ export class FileConfigProvider implements ConfigProvider {
         timestamp: new Date(),
         source: 'file',
       };
-      
+
       this.notifyWatchers(event);
     } catch (error) {
       this.logger.error(`Failed to save config to file: ${this.configPath}`, { error });
@@ -86,7 +93,7 @@ export class FileConfigProvider implements ConfigProvider {
    */
   watch(callback: (event: ConfigUpdateEvent) => void): void {
     this.watchers.push(callback);
-    
+
     // 如果还没有文件监听器，创建一个
     if (!this.fileWatcher) {
       this.setupFileWatcher();
@@ -136,7 +143,10 @@ export class FileConfigProvider implements ConfigProvider {
    * 确保目录存在
    */
   private async ensureDirectoryExists(): Promise<void> {
-    const dir = this.configPath.substring(0, this.configPath.lastIndexOf('/') || this.configPath.lastIndexOf('\\'));
+    const dir = this.configPath.substring(
+      0,
+      this.configPath.lastIndexOf('/') || this.configPath.lastIndexOf('\\')
+    );
     try {
       await fs.mkdir(dir, { recursive: true });
     } catch (error) {
@@ -149,7 +159,7 @@ export class FileConfigProvider implements ConfigProvider {
    */
   private parseConfigContent(content: string): Partial<AppConfig> {
     const ext = extname(this.configPath).toLowerCase();
-    
+
     switch (ext) {
       case '.json':
         return JSON.parse(content);
@@ -170,7 +180,7 @@ export class FileConfigProvider implements ConfigProvider {
    */
   private stringifyConfig(config: Partial<AppConfig>): string {
     const ext = extname(this.configPath).toLowerCase();
-    
+
     switch (ext) {
       case '.json':
         return JSON.stringify(config, null, 2);
@@ -220,7 +230,7 @@ export class FileConfigProvider implements ConfigProvider {
         .replace(/export\s+default\s+/, 'return ')
         .replace(/export\s+\{[^}]*\}\s*;?/, '')
         .replace(/module\.exports\s*=\s*/, 'return ');
-      
+
       const func = new Function(cleanContent);
       return func();
     } catch (error) {
@@ -248,7 +258,7 @@ export class FileConfigProvider implements ConfigProvider {
           }
 
           const newConfig = await this.load();
-          
+
           const event: ConfigUpdateEvent = {
             key: 'root',
             oldValue: null,
@@ -256,7 +266,7 @@ export class FileConfigProvider implements ConfigProvider {
             timestamp: new Date(),
             source: 'file',
           };
-          
+
           this.notifyWatchers(event);
           this.logger.info(`Config file changed: ${this.configPath}`);
         } catch (error) {

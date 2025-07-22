@@ -15,39 +15,41 @@ export const GET = createApiRoute(
   async (_req: NextRequest, { params, validatedBody, validatedQuery, user, requestId }) => {
     try {
       // 获取总点赞数
-      const totalLikes = await db?.like.count() || 0;
-      
+      const totalLikes = (await db?.like.count()) || 0;
+
       // 获取今日点赞数
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const todayLikes = await db?.like.count({
-        where: {
-          createdAt: {
-            gte: today,
+      const todayLikes =
+        (await db?.like.count({
+          where: {
+            createdAt: {
+              gte: today,
+            },
           },
-        },
-      }) || 0;
-      
+        })) || 0;
+
       // 获取热门项目
-      const popularItems = await db?.like.groupBy({
-        by: ["itemId", "itemType"],
-        _count: {
-          id: true,
-        },
-        orderBy: {
+      const popularItems =
+        (await db?.like.groupBy({
+          by: ['itemId', 'itemType'],
           _count: {
-            id: "desc",
+            id: true,
           },
-        },
-        take: 10,
-      }) || [];
-      
-      const formattedPopularItems = popularItems.map((item) => ({
+          orderBy: {
+            _count: {
+              id: 'desc',
+            },
+          },
+          take: 10,
+        })) || [];
+
+      const formattedPopularItems = popularItems.map(item => ({
         itemId: item.itemId,
         itemType: item.itemType,
         likeCount: item._count.id,
       }));
-      
+
       return ApiResponseWrapper.success({
         totalLikes,
         todayLikes,
@@ -55,11 +57,7 @@ export const GET = createApiRoute(
       });
     } catch (error) {
       console.error('Likes stats error:', error);
-      return ApiResponseWrapper.error(
-        'Internal server error',
-        500
-      );
+      return ApiResponseWrapper.error('Internal server error', 500);
     }
   }
 );
-

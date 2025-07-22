@@ -1,11 +1,11 @@
-import type React from "react"
-import { motion } from "framer-motion"
-import { Sparkles, Zap } from "lucide-react"
+import type React from 'react';
+import { motion } from 'framer-motion';
+import { Sparkles, Zap } from 'lucide-react';
 
 interface AnimatedOrbProps {
-  color1: string
-  color2: string
-  delay?: number
+  color1: string;
+  color2: string;
+  delay?: number;
 }
 
 export function AnimatedOrb({ color1, color2, delay = 0 }: AnimatedOrbProps) {
@@ -20,7 +20,7 @@ export function AnimatedOrb({ color1, color2, delay = 0 }: AnimatedOrbProps) {
         transition={{
           repeat: Number.POSITIVE_INFINITY,
           duration: 3,
-          ease: "easeInOut",
+          ease: 'easeInOut',
           delay: delay,
         }}
       />
@@ -34,11 +34,11 @@ export function AnimatedOrb({ color1, color2, delay = 0 }: AnimatedOrbProps) {
         transition={{
           repeat: Number.POSITIVE_INFINITY,
           duration: 2,
-          ease: "easeInOut",
+          ease: 'easeInOut',
           delay: delay + 0.2,
         }}
       >
-        <Sparkles className="h-6 w-6" />
+        <Sparkles className='h-6 w-6' />
       </motion.div>
       <motion.div
         className={`absolute -bottom-2 -left-2 text-${color1}`}
@@ -50,12 +50,12 @@ export function AnimatedOrb({ color1, color2, delay = 0 }: AnimatedOrbProps) {
         transition={{
           repeat: Number.POSITIVE_INFINITY,
           duration: 2.5,
-          ease: "easeInOut",
+          ease: 'easeInOut',
           delay: delay + 0.5,
         }}
       >
-        <Zap className="h-5 w-5" />
+        <Zap className='h-5 w-5' />
       </motion.div>
     </>
-  )
+  );
 }

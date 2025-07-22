@@ -1,14 +1,15 @@
 /** @type {import('next').NextConfig} */
 
 // 导入bundle分析器插件
-const withBundleAnalyzer = process.env.ANALYZE === 'true' 
-  ? require('@next/bundle-analyzer')({ enabled: true })
-  : (config) => config;
+const withBundleAnalyzer =
+  process.env.ANALYZE === 'true'
+    ? require('@next/bundle-analyzer')({ enabled: true })
+    : config => config;
 
 const nextConfig = {
   // 构建优化 (swcMinify在Next.js 13+中默认启用)
   compress: true,
-  
+
   // 实验性功能
   experimental: {
     optimizeCss: true,
@@ -42,7 +43,7 @@ const nextConfig = {
   // 性能优化
   poweredByHeader: false,
   generateEtags: true,
-  
+
   // Bundle分析和优化
   webpack: (config, { dev, isServer }) => {
     // 客户端环境下的Node.js模块fallback配置
@@ -58,8 +59,8 @@ const nextConfig = {
         cluster: false,
         'mock-aws-s3': false,
         'aws-sdk': false,
-        'nock': false,
-      }
+        nock: false,
+      };
     }
 
     // 生产环境优化
@@ -81,24 +82,24 @@ const nextConfig = {
             reuseExistingChunk: true,
           },
         },
-      }
+      };
 
       // 压缩优化
-      config.optimization.minimize = true
+      config.optimization.minimize = true;
     }
 
     // SVG处理
     config.module.rules.push({
       test: /\.svg$/,
       use: ['@svgr/webpack'],
-    })
+    });
 
-    return config
+    return config;
   },
 
   // 输出配置
   output: 'standalone',
-  
+
   // 重定向和重写
   async redirects() {
     return [
@@ -107,7 +108,7 @@ const nextConfig = {
         destination: '/admin/dashboard',
         permanent: true,
       },
-    ]
+    ];
   },
 
   // 头部优化
@@ -139,7 +140,7 @@ const nextConfig = {
           },
         ],
       },
-    ]
+    ];
   },
 
   // TypeScript和ESLint配置
@@ -150,6 +151,6 @@ const nextConfig = {
     ignoreDuringBuilds: false,
     dirs: ['app', 'components', 'lib', 'hooks'],
   },
-}
+};
 
-export default withBundleAnalyzer(nextConfig)
+export default withBundleAnalyzer(nextConfig);

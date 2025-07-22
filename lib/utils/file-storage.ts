@@ -11,7 +11,9 @@ import fs from 'fs/promises';
 import path from 'path';
 import * as crypto from 'crypto';
 import { fileStorageConfig } from '@/config/env';
-import { log } from './logger';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
 import { createError } from './error-handler';
 import { CloudStorageProvider, FileType } from '../types/enums';
 
@@ -44,11 +46,7 @@ export interface IUploadOptions {
 
 // 文件存储基类
 export abstract class BaseFileStorage {
-  abstract upload(
-    buffer: Buffer,
-    fileName: string,
-    options: IUploadOptions
-  ): Promise<IFileInfo>;
+  abstract upload(buffer: Buffer, fileName: string, options: IUploadOptions): Promise<IFileInfo>;
 
   abstract download(filePath: string): Promise<Buffer>;
   abstract delete(filePath: string): Promise<void>;
@@ -69,17 +67,13 @@ export class LocalFileStorage extends BaseFileStorage {
     this.baseUrl = baseUrl;
   }
 
-  async upload(
-    buffer: Buffer,
-    fileName: string,
-    options: IUploadOptions
-  ): Promise<IFileInfo> {
+  async upload(buffer: Buffer, fileName: string, options: IUploadOptions): Promise<IFileInfo> {
     try {
       // 生成文件ID和路径
       const fileId: any = crypto.randomUUID();
       const ext: any = path.extname(fileName);
       const generatedFileName: any = `${fileId}${ext}`;
-      
+
       // 构建存储路径
       const typeDir: any = this.getTypeDirectory(options.fileType);
       const dateDir: any = new Date().toISOString().slice(0, 7); // YYYY-MM
@@ -128,7 +122,7 @@ export class LocalFileStorage extends BaseFileStorage {
     try {
       const fullPath: any = path.join(this.baseDir, filePath);
       const buffer: any = await fs.readFile(fullPath);
-      
+
       log.info('文件下载成功', { filePath, size: buffer.length });
       return buffer;
     } catch (error) {
@@ -141,7 +135,7 @@ export class LocalFileStorage extends BaseFileStorage {
     try {
       const fullPath: any = path.join(this.baseDir, filePath);
       await fs.unlink(fullPath);
-      
+
       log.info('文件删除成功', { filePath });
     } catch (error) {
       log.error('本地文件删除失败', error, { filePath });
@@ -161,14 +155,14 @@ export class LocalFileStorage extends BaseFileStorage {
 
   async getUrl(filePath: string, expiresIn?: number): Promise<string> {
     const url: any = `${this.baseUrl}/${filePath.replace(/\\/g, '/')}`;
-    
+
     if (expiresIn) {
       // 对于本地存储，可以添加签名参数
       const expires: any = Math.floor(Date.now() / 1000) + expiresIn;
       const signature: any = this.generateSignature(filePath, expires);
       return `${url}?expires=${expires}&signature=${signature}`;
     }
-    
+
     return url;
   }
 
@@ -182,7 +176,7 @@ export class LocalFileStorage extends BaseFileStorage {
       [FileType.AVATAR]: 'avatars',
       [FileType.ATTACHMENT]: 'attachments',
     };
-    
+
     return typeMap[fileType] || 'misc';
   }
 
@@ -222,7 +216,7 @@ export class LocalFileStorage extends BaseFileStorage {
       '.iges': 'application/iges',
       '.igs': 'application/iges',
     };
-    
+
     return mimeMap[ext] || 'application/octet-stream';
   }
 
@@ -251,7 +245,7 @@ export class LocalFileStorage extends BaseFileStorage {
     if (!allowedTypes || allowedTypes.length === 0) {
       return true; // 如果没有限制，则允许所有类型
     }
-    
+
     const extension = path.extname(fileName).toLowerCase();
     return allowedTypes.includes(extension);
   }
@@ -281,21 +275,17 @@ export class CloudFileStorage extends BaseFileStorage {
   // 这里可以实现S3、OSS、COS等云存储
   // 为了简化，这里提供一个基础框架
 
-  async upload(
-    buffer: Buffer,
-    fileName: string,
-    options: IUploadOptions
-  ): Promise<IFileInfo> {
+  async upload(buffer: Buffer, fileName: string, options: IUploadOptions): Promise<IFileInfo> {
     try {
       // 生成唯一文件路径
       const fileId = this.generateFileId();
       const fileExtension = fileName.split('.').pop() || '';
       const storagePath = `${options.folder || 'uploads'}/${fileId}.${fileExtension}`;
-      
+
       // 模拟云存储上传过程
       // 在实际应用中，这里应该调用具体的云存储服务API
       // 例如：AWS S3, Google Cloud Storage, Azure Blob Storage等
-      
+
       const fileInfo: IFileInfo = {
         id: fileId,
         originalName: fileName,
@@ -307,16 +297,16 @@ export class CloudFileStorage extends BaseFileStorage {
         metadata: {
           provider: 'cloud',
           bucket: options.bucket || 'default-bucket',
-          region: 'us-east-1'
-        }
+          region: 'us-east-1',
+        },
       };
-      
+
       // 在实际实现中，这里应该执行真实的上传操作
       // await this.cloudProvider.upload(storagePath, buffer, {
       //   contentType: fileInfo.mimeType,
       //   metadata: fileInfo.metadata
       // });
-      
+
       log.info(`文件上传成功: ${fileName} -> ${storagePath}`);
       return fileInfo;
     } catch (error) {
@@ -329,14 +319,14 @@ export class CloudFileStorage extends BaseFileStorage {
     try {
       // 在实际应用中，这里应该从数据库或缓存中获取文件信息
       // const fileInfo = await this.getFileInfo(fileId);
-      
+
       // 模拟从云存储下载文件
       // 在实际实现中，这里应该调用具体的云存储服务API
       // const buffer = await this.cloudProvider.download(fileInfo.storagePath);
-      
+
       // 模拟下载过程
       const mockBuffer = Buffer.from(`Mock file content for ${fileId}`, 'utf-8');
-      
+
       log.info(`文件下载成功: ${fileId}`);
       return mockBuffer;
     } catch (error) {
@@ -349,14 +339,14 @@ export class CloudFileStorage extends BaseFileStorage {
     try {
       // 在实际应用中，这里应该从数据库获取文件信息
       // const fileInfo = await this.getFileInfo(fileId);
-      
+
       // 模拟从云存储删除文件
       // 在实际实现中，这里应该调用具体的云存储服务API
       // await this.cloudProvider.delete(fileInfo.storagePath);
-      
+
       // 同时从数据库中删除文件记录
       // await this.deleteFileRecord(fileId);
-      
+
       log.info(`文件删除成功: ${fileId}`);
       return true;
     } catch (error) {
@@ -370,13 +360,13 @@ export class CloudFileStorage extends BaseFileStorage {
       // 在实际应用中，这里应该检查数据库中的文件记录
       // const fileInfo = await this.getFileInfo(fileId);
       // if (!fileInfo) return false;
-      
+
       // 然后检查云存储中是否真实存在该文件
       // const exists = await this.cloudProvider.exists(fileInfo.storagePath);
-      
+
       // 模拟存在检查
       const exists = Math.random() > 0.1; // 90%的概率文件存在
-      
+
       log.info(`文件存在检查: ${fileId} - ${exists ? '存在' : '不存在'}`);
       return exists;
     } catch (error) {
@@ -389,20 +379,20 @@ export class CloudFileStorage extends BaseFileStorage {
     try {
       // 在实际应用中，这里应该从数据库获取文件信息
       // const fileInfo = await this.getFileInfo(fileId);
-      
+
       // 生成带签名的临时URL（用于私有文件）
       // 或返回公共URL（用于公共文件）
-      
+
       const baseUrl = 'https://your-cloud-storage.com';
       const expirationTime = expiresIn || 3600; // 默认1小时过期
-      const timestamp = Date.now() + (expirationTime * 1000);
-      
+      const timestamp = Date.now() + expirationTime * 1000;
+
       // 模拟签名URL生成
       // 在实际实现中，这里应该使用云存储提供商的SDK生成预签名URL
       // const signedUrl = await this.cloudProvider.getSignedUrl(fileInfo.storagePath, expirationTime);
-      
+
       const mockSignedUrl = `${baseUrl}/files/${fileId}?expires=${timestamp}&signature=mock_signature_${fileId}`;
-      
+
       log.info(`生成文件URL: ${fileId}, 过期时间: ${expirationTime}秒`);
       return mockSignedUrl;
     } catch (error) {
@@ -443,9 +433,9 @@ export class FileStorageManager {
     try {
       // 在实际应用中，这里应该初始化AWS S3客户端
       // 需要安装 @aws-sdk/client-s3 包
-      
+
       // import { S3Client } from '@aws-sdk/client-s3';
-      // 
+      //
       // this.s3Client = new S3Client({
       //   region: process.env.AWS_REGION || 'us-east-1',
       //   credentials: {
@@ -453,10 +443,10 @@ export class FileStorageManager {
       //     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!
       //   }
       // });
-      
+
       // 验证S3连接
       // await this.s3Client.send(new HeadBucketCommand({ Bucket: this.bucketName }));
-      
+
       log.info('S3客户端初始化成功');
     } catch (error) {
       log.error('S3客户端初始化失败:', error);
@@ -467,18 +457,14 @@ export class FileStorageManager {
   /**
    * 上传文件
    */
-  async uploadFile(
-    buffer: Buffer,
-    fileName: string,
-    options: IUploadOptions
-  ): Promise<IFileInfo> {
+  async uploadFile(buffer: Buffer, fileName: string, options: IUploadOptions): Promise<IFileInfo> {
     // 验证文件
     this.validateFile(buffer, fileName, options);
 
     // 选择存储提供商
     const storageType: any = options.storageType || this.defaultStorage;
     const storage: any = this.storages.get(storageType);
-    
+
     if (!storage) {
       throw createError.system(`不支持的存储类型: ${storageType}`);
     }
@@ -528,33 +514,41 @@ export class FileStorageManager {
   async cleanupExpiredFiles(): Promise<void> {
     try {
       log.info('开始清理过期文件...');
-      
+
       // 在实际应用中，这里应该查询数据库中的过期文件
       // const expiredFiles = await this.getExpiredFiles();
-      
+
       // 模拟获取过期文件列表
       const mockExpiredFiles = [
-        { id: 'expired_1', storagePath: 'temp/expired_1.jpg', uploadedAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000) },
-        { id: 'expired_2', storagePath: 'temp/expired_2.pdf', uploadedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000) }
+        {
+          id: 'expired_1',
+          storagePath: 'temp/expired_1.jpg',
+          uploadedAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000),
+        },
+        {
+          id: 'expired_2',
+          storagePath: 'temp/expired_2.pdf',
+          uploadedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
+        },
       ];
-      
+
       let cleanedCount = 0;
-      
+
       for (const file of mockExpiredFiles) {
         try {
           // 从云存储删除文件
           // await this.cloudProvider.delete(file.storagePath);
-          
+
           // 从数据库删除记录
           // await this.deleteFileRecord(file.id);
-          
+
           cleanedCount++;
           log.info(`已清理过期文件: ${file.id}`);
         } catch (error) {
           log.error(`清理文件失败: ${file.id}`, error);
         }
       }
-      
+
       log.info(`过期文件清理完成，共清理 ${cleanedCount} 个文件`);
     } catch (error) {
       log.error('过期文件清理失败:', error);
@@ -571,7 +565,7 @@ export class FileStorageManager {
     options: { width?: number; height?: number; quality?: number } = {}
   ): Promise<Buffer> {
     const { width = 200, height = 200, quality = 80 } = options;
-    
+
     try {
       // 检查文件是否为图片格式
       const supportedFormats = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
@@ -579,10 +573,10 @@ export class FileStorageManager {
       if (!fileExtension || !supportedFormats.includes(fileExtension)) {
         throw new Error('不支持的图片格式');
       }
-      
+
       // 在实际实现中，这里应该使用图片处理库如 Sharp
       // import sharp from 'sharp';
-      // 
+      //
       // return await sharp(originalBuffer)
       //   .resize(width, height, {
       //     fit: 'cover',
@@ -590,10 +584,10 @@ export class FileStorageManager {
       //   })
       //   .jpeg({ quality })
       //   .toBuffer();
-      
+
       // 模拟缩略图生成过程
       log.info(`生成缩略图: ${fileName}, 尺寸: ${width}x${height}, 质量: ${quality}`);
-      
+
       // 暂时返回原图（在实际应用中应该返回处理后的缩略图）
       return originalBuffer;
     } catch (error) {
@@ -605,36 +599,32 @@ export class FileStorageManager {
   private getStorage(storageType?: StorageType): BaseFileStorage {
     const type: any = storageType || this.defaultStorage;
     const storage: any = this.storages.get(type);
-    
+
     if (!storage) {
       throw createError.system(`不支持的存储类型: ${type}`);
     }
-    
+
     return storage;
   }
 
-  private validateFile(
-    buffer: Buffer,
-    fileName: string,
-    options: IUploadOptions
-  ): void {
+  private validateFile(buffer: Buffer, fileName: string, options: IUploadOptions): void {
     // 检查文件大小
     const maxSize: any = options.maxSize || fileStorageConfig.maxFileSize;
     if (buffer.length > maxSize) {
-      throw createError.validation(
-        `文件大小超过限制 (${Math.round(maxSize / 1024 / 1024)}MB)`,
-        { fileSize: buffer.length, maxSize }
-      );
+      throw createError.validation(`文件大小超过限制 (${Math.round(maxSize / 1024 / 1024)}MB)`, {
+        fileSize: buffer.length,
+        maxSize,
+      });
     }
 
     // 检查文件类型
     if (options.allowedMimeTypes) {
       const mimeType: any = this.getMimeType(fileName);
       if (!options.allowedMimeTypes.includes(mimeType)) {
-        throw createError.validation(
-          '不支持的文件类型',
-          { mimeType, allowedTypes: options.allowedMimeTypes }
-        );
+        throw createError.validation('不支持的文件类型', {
+          mimeType,
+          allowedTypes: options.allowedMimeTypes,
+        });
       }
     }
 
@@ -658,7 +648,7 @@ export class FileStorageManager {
       '.dwg': 'application/acad',
       '.dxf': 'application/dxf',
     };
-    
+
     return mimeMap[ext] || 'application/octet-stream';
   }
 }
@@ -667,11 +657,8 @@ export class FileStorageManager {
 export const fileStorage: any = new FileStorageManager();
 
 // 便捷函数
-export const uploadFile: any = (
-  buffer: Buffer,
-  fileName: string,
-  options: IUploadOptions
-) => fileStorage.uploadFile(buffer, fileName, options);
+export const uploadFile: any = (buffer: Buffer, fileName: string, options: IUploadOptions) =>
+  fileStorage.uploadFile(buffer, fileName, options);
 
 export const downloadFile: any = (filePath: string, storageType?: StorageType) =>
   fileStorage.downloadFile(filePath, storageType);
@@ -679,10 +666,7 @@ export const downloadFile: any = (filePath: string, storageType?: StorageType) =
 export const deleteFile: any = (filePath: string, storageType?: StorageType) =>
   fileStorage.deleteFile(filePath, storageType);
 
-export const getFileUrl: any = (
-  filePath: string,
-  expiresIn?: number,
-  storageType?: StorageType
-) => fileStorage.getFileUrl(filePath, expiresIn, storageType);
+export const getFileUrl: any = (filePath: string, expiresIn?: number, storageType?: StorageType) =>
+  fileStorage.getFileUrl(filePath, expiresIn, storageType);
 
 export default fileStorage;

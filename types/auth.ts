@@ -4,102 +4,102 @@
  */
 
 export interface User {
-  id: string
-  email: string
-  name?: string
-  avatar?: string
-  role: "user" | "admin"
-  createdAt: Date
-  updatedAt: Date
+  id: string;
+  email: string;
+  name?: string;
+  avatar?: string;
+  role: 'user' | 'admin';
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface LoginRequest {
-  email: string
-  password: string
-  rememberMe?: boolean
+  email: string;
+  password: string;
+  rememberMe?: boolean;
 }
 
 export interface RegisterRequest {
-  email: string
-  password: string
-  name?: string
-  inviteCode?: string
+  email: string;
+  password: string;
+  name?: string;
+  inviteCode?: string;
 }
 
 export interface LoginResponse {
-  success: boolean
-  user?: User
+  success: boolean;
+  user?: User;
   tokens?: {
-    accessToken: string
-    refreshToken: string
-    expiresIn: number
-  }
-  error?: string
+    accessToken: string;
+    refreshToken: string;
+    expiresIn: number;
+  };
+  error?: string;
 }
 
 export interface RefreshTokenRequest {
-  refreshToken: string
+  refreshToken: string;
 }
 
 export interface ChangePasswordRequest {
-  currentPassword: string
-  newPassword: string
+  currentPassword: string;
+  newPassword: string;
 }
 
 export interface ResetPasswordRequest {
-  email: string
+  email: string;
 }
 
 export interface ResetPasswordConfirmRequest {
-  token: string
-  newPassword: string
+  token: string;
+  newPassword: string;
 }
 
 export interface UserProfile {
-  id: string
-  email: string
-  name?: string
-  avatar?: string
-  role: string
-  createdAt: Date
-  updatedAt: Date
-  lastLoginAt?: Date
-  loginCount: number
+  id: string;
+  email: string;
+  name?: string;
+  avatar?: string;
+  role: string;
+  createdAt: Date;
+  updatedAt: Date;
+  lastLoginAt?: Date;
+  loginCount: number;
 }
 
 export interface AuthSession {
-  user: User
-  expiresAt: Date
-  isValid: boolean
+  user: User;
+  expiresAt: Date;
+  isValid: boolean;
 }
 
 export interface AuthError {
-  code: string
-  message: string
-  details?: any
+  code: string;
+  message: string;
+  details?: any;
 }
 
 // 认证状态枚举
 export enum AuthStatus {
-  LOADING = "loading",
-  AUTHENTICATED = "authenticated",
-  UNAUTHENTICATED = "unauthenticated",
-  ERROR = "error",
+  LOADING = 'loading',
+  AUTHENTICATED = 'authenticated',
+  UNAUTHENTICATED = 'unauthenticated',
+  ERROR = 'error',
 }
 
 // 权限相关类型
 export interface Permission {
-  id: string
-  name: string
-  description: string
-  resource: string
-  action: string
+  id: string;
+  name: string;
+  description: string;
+  resource: string;
+  action: string;
 }
 
 export interface Role {
-  id: string
-  name: string
-  description: string
-  permissions: Permission[]
-  isDefault: boolean
+  id: string;
+  name: string;
+  description: string;
+  permissions: Permission[];
+  isDefault: boolean;
 }

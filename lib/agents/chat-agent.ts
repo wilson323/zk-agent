@@ -1,4 +1,8 @@
-import { logger } from '@/lib/utils/logger';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
+
+const logger = getLogger();
 
 /**
  * 对话智能体 - 上下文恢复和API容错实现
@@ -15,7 +19,7 @@ import {
   ChatContext,
   ChatResponse,
   delay,
-  calculateBackoffDelay
+  calculateBackoffDelay,
 } from '../errors/agent-errors';
 
 // 聊天模型配置接口
@@ -49,20 +53,22 @@ class MemoryCache implements CacheInterface {
 
   async get(key: string): Promise<any> {
     const item = this.cache.get(key);
-    if (!item) {return null;}
-    
+    if (!item) {
+      return null;
+    }
+
     if (Date.now() > item.expiry) {
       this.cache.delete(key);
       return null;
     }
-    
+
     return item.value;
   }
 
   async set(key: string, value: any, ttl: number = 3600000): Promise<void> {
     this.cache.set(key, {
       value,
-      expiry: Date.now() + ttl
+      expiry: Date.now() + ttl,
     });
   }
 
@@ -109,14 +115,12 @@ class ChatContextManager {
       // 尝试从缓存恢复
       const cachedContext = await this.cache.get(`chat_context_${chatId}`);
       if (cachedContext) {
-
         return cachedContext;
       }
 
       // 从数据库恢复
       const dbContext = await this.database.getChatContext(chatId);
       if (dbContext) {
-
         await this.cache.set(`chat_context_${chatId}`, dbContext, this.contextTTL);
         return dbContext;
       }
@@ -138,17 +142,17 @@ class ChatContextManager {
     try {
       // 保存到缓存
       await this.cache.set(`chat_context_${context.chatId}`, context, this.contextTTL);
-      
+
       // 保存到数据库
       if (!context.isTemporary) {
         await this.database.saveChatContext(context);
       }
     } catch (error) {
       logger.error('保存上下文失败:', error);
-      throw new ChatContextLost(
-        '无法保存聊天上下文',
-        { chatId: context.chatId, error: error instanceof Error ? error.message : '未知错误' }
-      );
+      throw new ChatContextLost('无法保存聊天上下文', {
+        chatId: context.chatId,
+        error: error instanceof Error ? error.message : '未知错误',
+      });
     }
   }
 
@@ -159,7 +163,7 @@ class ChatContextManager {
     return {
       chatId,
       messages: [],
-      isTemporary: false
+      isTemporary: false,
     };
   }
 
@@ -171,7 +175,7 @@ class ChatContextManager {
       chatId,
       messages: [],
       isTemporary: true,
-      warningMessage: '对话上下文已重置，之前的对话记录可能丢失'
+      warningMessage: '对话上下文已重置，之前的对话记录可能丢失',
     };
   }
 
@@ -180,7 +184,6 @@ class ChatContextManager {
    */
   async cleanupExpiredContexts(): Promise<void> {
     // 这里可以实现清理逻辑
-
   }
 }
 
@@ -194,7 +197,7 @@ class ChatModelManager {
       maxTokens: 8192,
       rateLimit: 60,
       priority: 1,
-      isAvailable: true
+      isAvailable: true,
     },
     {
       id: 'gpt-3.5-turbo',
@@ -203,7 +206,7 @@ class ChatModelManager {
       maxTokens: 4096,
       rateLimit: 120,
       priority: 2,
-      isAvailable: true
+      isAvailable: true,
     },
     {
       id: 'claude-3',
@@ -212,8 +215,8 @@ class ChatModelManager {
       maxTokens: 8192,
       rateLimit: 50,
       priority: 3,
-      isAvailable: true
-    }
+      isAvailable: true,
+    },
   ];
 
   private currentModelId = 'gpt-4';
@@ -239,10 +242,7 @@ class ChatModelManager {
       .sort((a, b) => a.priority - b.priority);
 
     if (availableModels.length === 0) {
-      throw new ChatModelUnavailable(
-        '没有可用的备用模型',
-        { currentModel: this.currentModelId }
-      );
+      throw new ChatModelUnavailable('没有可用的备用模型', { currentModel: this.currentModelId });
     }
 
     const fallbackModel = availableModels[0];
@@ -251,7 +251,7 @@ class ChatModelManager {
     }
 
     this.currentModelId = fallbackModel.id;
-    
+
     return fallbackModel;
   }
 
@@ -261,7 +261,9 @@ class ChatModelManager {
   checkRateLimit(modelId: string): boolean {
     const now = Date.now();
     const model = this.models.find(m => m.id === modelId);
-    if (!model) {return false;}
+    if (!model) {
+      return false;
+    }
 
     const requests = this.rateLimitTracker.get(modelId) || [];
     const recentRequests = requests.filter(time => now - time < 60000); // 最近1分钟
@@ -276,7 +278,7 @@ class ChatModelManager {
     const now = Date.now();
     const requests = this.rateLimitTracker.get(modelId) || [];
     requests.push(now);
-    
+
     // 清理1分钟前的记录
     const recentRequests = requests.filter(time => now - time < 60000);
     this.rateLimitTracker.set(modelId, recentRequests);
@@ -313,10 +315,10 @@ class ChatAPIHandler {
       try {
         // 检查速率限制
         if (!this.modelManager.checkRateLimit(currentModel.id)) {
-          throw new ChatRateLimit(
-            `模型 ${currentModel.name} 达到速率限制`,
-            { modelId: currentModel.id, attempt }
-          );
+          throw new ChatRateLimit(`模型 ${currentModel.name} 达到速率限制`, {
+            modelId: currentModel.id,
+            attempt,
+          });
         }
 
         // 记录请求
@@ -339,7 +341,6 @@ class ChatAPIHandler {
           // 切换到备用模型
           try {
             currentModel = this.modelManager.switchToFallbackModel();
-
           } catch (switchError) {
             throw new ChatServiceUnavailable(
               '所有聊天模型都不可用',
@@ -356,11 +357,10 @@ class ChatAPIHandler {
       }
     }
 
-    throw new ChatServiceUnavailable(
-      `对话服务暂时不可用，已重试${this.maxRetries}次`,
-      lastError,
-      { attempts: this.maxRetries, model: currentModel.id }
-    );
+    throw new ChatServiceUnavailable(`对话服务暂时不可用，已重试${this.maxRetries}次`, lastError, {
+      attempts: this.maxRetries,
+      model: currentModel.id,
+    });
   }
 
   /**
@@ -374,7 +374,7 @@ class ChatAPIHandler {
     try {
       // 模拟API调用
       await this.simulateAPICall(model);
-      
+
       // 模拟可能的失败
       const failureRate = this.getFailureRate(model);
       if (Math.random() < failureRate) {
@@ -383,15 +383,15 @@ class ChatAPIHandler {
 
       // 构造响应
       const responseMessage = this.generateResponse(message, model);
-      
+
       // 更新上下文
       const updatedContext = {
         ...context,
         messages: [
           ...context.messages,
           { role: 'user', content: message, timestamp: new Date() },
-          { role: 'assistant', content: responseMessage, timestamp: new Date() }
-        ]
+          { role: 'assistant', content: responseMessage, timestamp: new Date() },
+        ],
       };
 
       return {
@@ -400,20 +400,14 @@ class ChatAPIHandler {
         metadata: {
           model: model.name,
           tokens: Math.floor(Math.random() * 1000) + 100,
-          processingTime: Math.floor(Math.random() * 2000) + 500
-        }
+          processingTime: Math.floor(Math.random() * 2000) + 500,
+        },
       };
     } catch (error) {
       if (error instanceof Error && error.message.includes('rate limit')) {
-        throw new ChatRateLimit(
-          `模型 ${model.name} 速率限制`,
-          { modelId: model.id }
-        );
+        throw new ChatRateLimit(`模型 ${model.name} 速率限制`, { modelId: model.id });
       } else if (error instanceof Error && error.message.includes('unavailable')) {
-        throw new ChatModelUnavailable(
-          `模型 ${model.name} 不可用`,
-          { modelId: model.id }
-        );
+        throw new ChatModelUnavailable(`模型 ${model.name} 不可用`, { modelId: model.id });
       } else {
         throw new ChatAPIError(
           `API调用失败: ${error instanceof Error ? error.message : '未知错误'}`,
@@ -431,9 +425,9 @@ class ChatAPIHandler {
     const modelDelay = {
       'gpt-4': 1000,
       'gpt-3.5-turbo': 500,
-      'claude-3': 800
+      'claude-3': 800,
     };
-    
+
     const delay = modelDelay[model.id as keyof typeof modelDelay] || baseDelay;
     await new Promise(resolve => setTimeout(resolve, delay + Math.random() * 500));
   }
@@ -445,9 +439,9 @@ class ChatAPIHandler {
     const failureRates = {
       'gpt-4': 0.1,
       'gpt-3.5-turbo': 0.15,
-      'claude-3': 0.12
+      'claude-3': 0.12,
     };
-    
+
     return failureRates[model.id as keyof typeof failureRates] || 0.2;
   }
 
@@ -459,9 +453,9 @@ class ChatAPIHandler {
       `我理解您的问题："${message}"。让我为您提供详细的回答...`,
       `基于您的询问，我认为...`,
       `这是一个很好的问题。根据我的分析...`,
-      `让我帮您解决这个问题...`
+      `让我帮您解决这个问题...`,
     ];
-    
+
     const baseResponse = responses[Math.floor(Math.random() * responses.length)];
     return `${baseResponse} (由 ${model.name} 生成)`;
   }
@@ -473,10 +467,7 @@ export class ChatAgent {
   private modelManager: ChatModelManager;
   private apiHandler: ChatAPIHandler;
 
-  constructor(
-    cache?: CacheInterface,
-    database?: DatabaseInterface
-  ) {
+  constructor(cache?: CacheInterface, database?: DatabaseInterface) {
     this.contextManager = new ChatContextManager(cache, database);
     this.modelManager = new ChatModelManager();
     this.apiHandler = new ChatAPIHandler(this.modelManager);
@@ -489,21 +480,21 @@ export class ChatAgent {
     try {
       // 恢复或创建上下文
       const context = await this.contextManager.recoverContext(chatId);
-      
+
       // 发送消息
       const response = await this.apiHandler.sendMessage(message, context);
-      
+
       // 保存更新后的上下文
       await this.contextManager.saveContext(response.context);
-      
+
       return response;
     } catch (error) {
       logger.error('发送消息失败:', error);
-      
+
       if (error instanceof AgentError) {
         throw error;
       }
-      
+
       throw new ChatAPIError(
         `发送消息失败: ${error instanceof Error ? error.message : '未知错误'}`,
         { chatId, message }
@@ -532,16 +523,13 @@ export class ChatAgent {
       const newContext = {
         chatId,
         messages: [],
-        isTemporary: false
+        isTemporary: false,
       };
-      
+
       await this.contextManager.saveContext(newContext);
     } catch (error) {
       logger.error('清除聊天上下文失败:', error);
-      throw new ChatContextLost(
-        '无法清除聊天上下文',
-        { chatId }
-      );
+      throw new ChatContextLost('无法清除聊天上下文', { chatId });
     }
   }
 
@@ -567,7 +555,7 @@ export class ChatAgent {
       currentModel: this.modelManager.getCurrentModel().name,
       maxRetries: this.apiHandler['maxRetries'],
       contextTTL: this.contextManager['contextTTL'],
-      availableModels: this.modelManager['models'].filter(m => m.isAvailable).length
+      availableModels: this.modelManager['models'].filter(m => m.isAvailable).length,
     };
   }
 }

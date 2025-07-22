@@ -29,7 +29,7 @@ const mockRouter = {
 
 module.exports = {
   useRouter: () => mockRouter,
-  withRouter: (Component) => Component,
+  withRouter: Component => Component,
   Router: mockRouter,
   default: mockRouter,
 };

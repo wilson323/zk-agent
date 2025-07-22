@@ -15,14 +15,14 @@ export const POST = createApiRoute(
   async (req: NextRequest, { params, validatedBody, validatedQuery, user, requestId }) => {
     try {
       const { itemId, itemType } = await req.json();
-      
+
       if (!itemId || !itemType) {
         return ApiResponseWrapper.error('Missing itemId or itemType', 400);
       }
-      
+
       // 获取当前用户ID
-      const userId = _user?.id || "anonymous";
-      
+      const userId = _user?.id || 'anonymous';
+
       // 检查是否已经点赞
       const existingLike = await db?.like.findUnique({
         where: {
@@ -33,10 +33,10 @@ export const POST = createApiRoute(
           },
         },
       });
-      
+
       let isLiked: boolean;
       let likeCount: number;
-      
+
       if (existingLike) {
         // 取消点赞
         await db?.like.delete({
@@ -55,23 +55,20 @@ export const POST = createApiRoute(
         });
         isLiked = true;
       }
-      
+
       // 获取最新点赞数
-      likeCount = await db?.like.count({
-        where: { itemId, itemType },
-      }) || 0;
-      
+      likeCount =
+        (await db?.like.count({
+          where: { itemId, itemType },
+        })) || 0;
+
       return ApiResponseWrapper.success({
         isLiked,
         likeCount,
       });
     } catch (error) {
       console.error('Like toggle error:', error);
-      return ApiResponseWrapper.error(
-        'Internal server error',
-        500
-      );
+      return ApiResponseWrapper.error('Internal server error', 500);
     }
   }
 );
-

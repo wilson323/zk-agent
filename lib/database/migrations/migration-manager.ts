@@ -80,7 +80,7 @@ export class MigrationManager {
       autoRun: false,
       validateChecksums: true,
       backupBeforeMigration: false,
-      ...config
+      ...config,
     };
   }
 
@@ -168,7 +168,7 @@ export class MigrationManager {
     try {
       const content = await fs.readFile(filePath, 'utf-8');
       const checksum = crypto.createHash('md5').update(content).digest('hex');
-      
+
       // 动态导入迁移文件
       const migrationModule = await import(filePath);
       const migration = migrationModule.default || migrationModule;
@@ -181,7 +181,7 @@ export class MigrationManager {
       return {
         ...migration,
         checksum,
-        createdAt: migration.createdAt || new Date()
+        createdAt: migration.createdAt || new Date(),
       };
     } catch (error) {
       logger.error(`Failed to load migration file ${filePath}:`, error);
@@ -197,13 +197,16 @@ export class MigrationManager {
     description?: string,
     template?: 'table' | 'column' | 'index' | 'data'
   ): Promise<string> {
-    const timestamp = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14);
+    const timestamp = new Date()
+      .toISOString()
+      .replace(/[^0-9]/g, '')
+      .slice(0, 14);
     const id = `${timestamp}_${name.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
     const fileName = `${id}.ts`;
     const filePath = path.join(this.config.migrationsPath, fileName);
 
     const migrationContent = this.generateMigrationTemplate(id, name, description, template);
-    
+
     await fs.mkdir(this.config.migrationsPath, { recursive: true });
     await fs.writeFile(filePath, migrationContent);
 
@@ -220,7 +223,7 @@ export class MigrationManager {
     template?: string
   ): string {
     const templateContent = this.getTemplateContent(template);
-    
+
     return `/**
  * Migration: ${name}
  * ${description ? `Description: ${description}` : ''}
@@ -229,7 +232,11 @@ export class MigrationManager {
 
 import { QueryBuilder } from '../core/query-builder';
 import { Migration } from '../migrations/migration-manager';
-import { logger } from '@/lib/utils/logger';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
+
+const logger = getLogger();
 
 const migration: Migration = {
   id: '${id}',
@@ -268,21 +275,21 @@ export default migration;
       )
     \`);`,
           down: `// 删除表
-    await queryBuilder.raw('DROP TABLE IF EXISTS example_table');`
+    await queryBuilder.raw('DROP TABLE IF EXISTS example_table');`,
         };
       case 'column':
         return {
           up: `// 添加列
     await queryBuilder.raw('ALTER TABLE example_table ADD COLUMN new_column VARCHAR(255)');`,
           down: `// 删除列
-    await queryBuilder.raw('ALTER TABLE example_table DROP COLUMN new_column');`
+    await queryBuilder.raw('ALTER TABLE example_table DROP COLUMN new_column');`,
         };
       case 'index':
         return {
           up: `// 创建索引
     await queryBuilder.raw('CREATE INDEX idx_example ON example_table (column_name)');`,
           down: `// 删除索引
-    await queryBuilder.raw('DROP INDEX idx_example ON example_table');`
+    await queryBuilder.raw('DROP INDEX idx_example ON example_table');`,
         };
       case 'data':
         return {
@@ -292,14 +299,14 @@ export default migration;
       // 其他字段...
     });`,
           down: `// 删除数据
-    await queryBuilder.table('example_table').where('name', 'example').delete();`
+    await queryBuilder.table('example_table').where('name', 'example').delete();`,
         };
       default:
         return {
           up: `// 实现迁移逻辑
     // await queryBuilder.raw('YOUR SQL HERE');`,
           down: `// 实现回滚逻辑
-    // await queryBuilder.raw('YOUR ROLLBACK SQL HERE');`
+    // await queryBuilder.raw('YOUR ROLLBACK SQL HERE');`,
         };
     }
   }
@@ -309,7 +316,7 @@ export default migration;
    */
   async runPendingMigrations(): Promise<MigrationRecord[]> {
     await this.ensureInitialized();
-    
+
     const status = await this.getStatus();
     if (status.pending.length === 0) {
       return [];
@@ -320,7 +327,7 @@ export default migration;
     }
 
     await this.acquireLock();
-    
+
     try {
       const executed: MigrationRecord[] = [];
       const currentBatch = status.currentBatch + 1;
@@ -333,21 +340,20 @@ export default migration;
 
           const connection = await this.connectionManager.getConnection('default');
           const queryBuilder = new QueryBuilder(connection);
-          
+
           await migration.up(queryBuilder);
-          
+
           const record: MigrationRecord = {
             id: migration.id,
             name: migration.name,
             version: migration.version,
             batch: currentBatch,
             executedAt: new Date(),
-            checksum: migration.checksum || ''
+            checksum: migration.checksum || '',
           };
-          
+
           await this.recordMigration(record);
           executed.push(record);
-
         } catch (error) {
           logger.error(`Migration failed: ${migration.name}`, error);
           throw error;
@@ -365,7 +371,7 @@ export default migration;
    */
   async rollback(options: RollbackOptions = {}): Promise<MigrationRecord[]> {
     await this.ensureInitialized();
-    
+
     const status = await this.getStatus();
     if (status.executed.length === 0) {
       return [];
@@ -376,14 +382,13 @@ export default migration;
     }
 
     const toRollback = this.getMigrationsToRollback(status.executed, options);
-    
-    if (options.dryRun) {
 
+    if (options.dryRun) {
       return toRollback;
     }
 
     await this.acquireLock();
-    
+
     try {
       const rolledBack: MigrationRecord[] = [];
 
@@ -397,12 +402,11 @@ export default migration;
 
           const connection = await this.connectionManager.getConnection('default');
           const queryBuilder = new QueryBuilder(connection);
-          
+
           await migration.down(queryBuilder);
           await this.removeMigrationRecord(record.id);
-          
-          rolledBack.push(record);
 
+          rolledBack.push(record);
         } catch (error) {
           logger.error(`Rollback failed: ${record.name}`, error);
           throw error;
@@ -420,17 +424,15 @@ export default migration;
    */
   async getStatus(): Promise<MigrationStatus> {
     await this.ensureInitialized();
-    
+
     const executed = await this.getExecutedMigrations();
     const executedIds = new Set(executed.map(m => m.id));
     const pending = Array.from(this.migrations.values())
       .filter(m => !executedIds.has(m.id))
       .sort((a, b) => a.id.localeCompare(b.id));
-    
-    const currentBatch = executed.length > 0 
-      ? Math.max(...executed.map(m => m.batch))
-      : 0;
-    
+
+    const currentBatch = executed.length > 0 ? Math.max(...executed.map(m => m.batch)) : 0;
+
     const isLocked = await this.isLocked();
 
     return {
@@ -438,7 +440,7 @@ export default migration;
       executed,
       failed: [], // TODO: 实现失败记录跟踪
       currentBatch,
-      isLocked
+      isLocked,
     };
   }
 
@@ -448,12 +450,12 @@ export default migration;
   private async getExecutedMigrations(): Promise<MigrationRecord[]> {
     const connection = await this.connectionManager.getConnection('default');
     const queryBuilder = new QueryBuilder(connection);
-    
+
     const results = await queryBuilder
       .table(this.config.tableName)
       .orderBy('executed_at', 'asc')
       .get();
-    
+
     return results.map(row => ({
       id: row.id,
       name: row.name,
@@ -461,7 +463,7 @@ export default migration;
       batch: row.batch,
       executedAt: new Date(row.executed_at),
       checksum: row.checksum,
-      rollbackData: row.rollback_data ? JSON.parse(row.rollback_data) : undefined
+      rollbackData: row.rollback_data ? JSON.parse(row.rollback_data) : undefined,
     }));
   }
 
@@ -471,7 +473,7 @@ export default migration;
   private async recordMigration(record: MigrationRecord): Promise<void> {
     const connection = await this.connectionManager.getConnection('default');
     const queryBuilder = new QueryBuilder(connection);
-    
+
     await queryBuilder.table(this.config.tableName).insert({
       id: record.id,
       name: record.name,
@@ -479,7 +481,7 @@ export default migration;
       batch: record.batch,
       executed_at: record.executedAt,
       checksum: record.checksum,
-      rollback_data: record.rollbackData ? JSON.stringify(record.rollbackData) : null
+      rollback_data: record.rollbackData ? JSON.stringify(record.rollbackData) : null,
     });
   }
 
@@ -489,7 +491,7 @@ export default migration;
   private async removeMigrationRecord(id: string): Promise<void> {
     const connection = await this.connectionManager.getConnection('default');
     const queryBuilder = new QueryBuilder(connection);
-    
+
     await queryBuilder.table(this.config.tableName).where('id', id).delete();
   }
 
@@ -501,20 +503,20 @@ export default migration;
     options: RollbackOptions
   ): MigrationRecord[] {
     const sorted = executed.sort((a, b) => b.executedAt.getTime() - a.executedAt.getTime());
-    
+
     if (options.steps) {
       return sorted.slice(0, options.steps);
     }
-    
+
     if (options.toBatch) {
       return sorted.filter(m => m.batch > options.toBatch!);
     }
-    
+
     if (options.toVersion) {
       const index = sorted.findIndex(m => m.version === options.toVersion);
       return index >= 0 ? sorted.slice(0, index) : [];
     }
-    
+
     // 默认回滚最后一个批次
     const lastBatch = Math.max(...sorted.map(m => m.batch));
     return sorted.filter(m => m.batch === lastBatch);
@@ -525,7 +527,6 @@ export default migration;
    */
   private async acquireLock(): Promise<void> {
     // TODO: 实现分布式锁机制
-
   }
 
   /**
@@ -533,7 +534,6 @@ export default migration;
    */
   private async releaseLock(): Promise<void> {
     // TODO: 实现分布式锁机制
-
   }
 
   /**
@@ -549,7 +549,6 @@ export default migration;
    */
   private async createBackup(migrationId: string): Promise<void> {
     // TODO: 实现数据库备份
-
   }
 
   /**
@@ -566,23 +565,23 @@ export default migration;
    */
   async validateIntegrity(): Promise<{ valid: boolean; errors: string[] }> {
     const errors: string[] = [];
-    
+
     try {
       const executed = await this.getExecutedMigrations();
-      
+
       for (const record of executed) {
         const migration = this.migrations.get(record.id);
-        
+
         if (!migration) {
           errors.push(`Migration file not found: ${record.id}`);
           continue;
         }
-        
+
         if (this.config.validateChecksums && migration.checksum !== record.checksum) {
           errors.push(`Checksum mismatch for migration: ${record.id}`);
         }
       }
-      
+
       return { valid: errors.length === 0, errors };
     } catch (error) {
       errors.push(`Validation failed: ${error}`);
@@ -597,13 +596,12 @@ export default migration;
     if (!confirm) {
       throw new Error('Reset requires explicit confirmation');
     }
-    
+
     const connection = await this.connectionManager.getConnection('default');
     const queryBuilder = new QueryBuilder(connection);
-    
+
     await queryBuilder.raw(`DROP TABLE IF EXISTS ${this.config.tableName}`);
     await this.createMigrationsTable();
-
   }
 }
 

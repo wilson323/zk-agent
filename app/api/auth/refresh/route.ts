@@ -1,52 +1,61 @@
 /**
  * @file auth\refresh\route.ts
- * @description Token refresh API route
+ * @description 安全的令牌刷新API路由
  * @author ZK-Agent Team
  * @date 2025-06-25
  */
 
 import { NextRequest } from 'next/server';
-import { createApiRoute, RouteConfigs } from '@/lib/middleware/api-route-wrapper';
+import { createApiRoute } from '@/lib/middleware/api-route-wrapper';
 import { ApiResponseWrapper } from '@/lib/utils/api-helper';
 import { ErrorCode } from '@/types/core';
 import { z } from 'zod';
+import { secureRefreshToken } from '@/lib/services/enhanced-auth-service';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
+
+const logger = getLogger();
 
 const refreshSchema = z.object({
-  refreshToken: z.string().min(1, "刷新令牌不能为空")
+  refreshToken: z.string().min(10, '刷新令牌无效或格式不正确'),
 });
 
 export const POST = createApiRoute(
   {
     method: 'POST',
     requireAuth: false,
-    rateLimit: { requests: 100, windowMs: 60000 }, // 每分钟100次
+    rateLimit: { requests: 10, windowMs: 60000 }, // 每分钟10次（防止暴力破解）
     validation: { body: refreshSchema },
-    timeout: 60000
+    timeout: 10000, // 10秒超时
   },
-  async (req: NextRequest, { params, validatedBody, validatedQuery, user, requestId }) => {
+  async (req: NextRequest, { validatedBody, requestId }) => {
     try {
       const { refreshToken } = validatedBody;
-      
-      // 模拟刷新令牌验证
-      if (!refreshToken || refreshToken.length < 10) {
-        return ApiResponseWrapper.error(ErrorCode.AUTHENTICATION_ERROR, '无效的刷新令牌', null, 401);
+
+      // 使用增强版认证服务刷新令牌
+      const newTokens = await secureRefreshToken(refreshToken);
+
+      if (!newTokens) {
+        logger.warn(`令牌刷新失败，可能是无效的刷新令牌`, { requestId });
+        return ApiResponseWrapper.error(
+          ErrorCode.AUTHENTICATION_ERROR,
+          '无效的刷新令牌',
+          null,
+          401
+        );
       }
-      
-      // 模拟生成新的访问令牌
-      const newAccessToken = `new_access_token_${Date.now()}`;
-      const newRefreshToken = `new_refresh_token_${Date.now()}`;
-      
-      const result = {
-        accessToken: newAccessToken,
-        refreshToken: newRefreshToken,
-        expiresIn: 3600, // 1小时
-        tokenType: 'Bearer'
-      };
-      
-      return ApiResponseWrapper.success(result);
-    } catch (error) {
-      console.error('Token refresh error:', error);
-      return ApiResponseWrapper.error(ErrorCode.INTERNAL_SERVER_ERROR, 'Internal server error', null, 500);
+
+      // 返回新的令牌对
+      return ApiResponseWrapper.success(newTokens);
+    } catch (error: any) {
+      logger.error('令牌刷新错误:', error, { requestId });
+      return ApiResponseWrapper.error(
+        ErrorCode.INTERNAL_SERVER_ERROR,
+        '令牌刷新失败',
+        { message: error.message },
+        500
+      );
     }
   }
 );

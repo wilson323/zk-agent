@@ -6,34 +6,36 @@
  * @version 1.0.0
  */
 
-import { EventEmitter } from 'events'
-import { Logger } from '../utils/logger'
-import { DatabaseMetrics, PerformanceThresholds, Alert, AlertLevel } from './unified-interfaces'
+import { EventEmitter } from 'events';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
+import { DatabaseMetrics, PerformanceThresholds, Alert, AlertLevel } from './unified-interfaces';
 
 /**
  * 高级监控配置接口
  */
 interface AdvancedMonitoringConfig {
   /** 是否启用预测性分析 */
-  enablePredictiveAnalysis: boolean
+  enablePredictiveAnalysis: boolean;
   /** 是否启用异常检测 */
-  enableAnomalyDetection: boolean
+  enableAnomalyDetection: boolean;
   /** 是否启用自动告警 */
-  enableAutoAlerting: boolean
+  enableAutoAlerting: boolean;
   /** 是否启用性能基准测试 */
-  enableBenchmarking: boolean
+  enableBenchmarking: boolean;
   /** 是否启用趋势分析 */
-  enableTrendAnalysis: boolean
+  enableTrendAnalysis: boolean;
   /** 监控间隔(毫秒) */
-  monitoringInterval: number
+  monitoringInterval: number;
   /** 数据保留天数 */
-  dataRetentionDays: number
+  dataRetentionDays: number;
   /** 异常检测敏感度 */
-  anomalyDetectionSensitivity: 'LOW' | 'MEDIUM' | 'HIGH'
+  anomalyDetectionSensitivity: 'LOW' | 'MEDIUM' | 'HIGH';
   /** 预测时间窗口(小时) */
-  predictionTimeWindow: number
+  predictionTimeWindow: number;
   /** 告警冷却时间(分钟) */
-  alertCooldownMinutes: number
+  alertCooldownMinutes: number;
 }
 
 /**
@@ -41,19 +43,19 @@ interface AdvancedMonitoringConfig {
  */
 interface PerformanceTrend {
   /** 时间戳 */
-  timestamp: Date
+  timestamp: Date;
   /** 指标名称 */
-  metricName: string
+  metricName: string;
   /** 指标值 */
-  value: number
+  value: number;
   /** 趋势方向 */
-  trend: 'INCREASING' | 'DECREASING' | 'STABLE'
+  trend: 'INCREASING' | 'DECREASING' | 'STABLE';
   /** 变化率 */
-  changeRate: number
+  changeRate: number;
   /** 预测值 */
-  predictedValue?: number
+  predictedValue?: number;
   /** 置信度 */
-  confidence?: number
+  confidence?: number;
 }
 
 /**
@@ -61,25 +63,25 @@ interface PerformanceTrend {
  */
 interface AnomalyDetectionResult {
   /** 是否检测到异常 */
-  anomalyDetected: boolean
+  anomalyDetected: boolean;
   /** 异常类型 */
-  anomalyType: 'SPIKE' | 'DROP' | 'PATTERN_CHANGE' | 'THRESHOLD_BREACH'
+  anomalyType: 'SPIKE' | 'DROP' | 'PATTERN_CHANGE' | 'THRESHOLD_BREACH';
   /** 异常严重程度 */
-  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
+  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   /** 异常描述 */
-  description: string
+  description: string;
   /** 异常指标 */
-  affectedMetrics: string[]
+  affectedMetrics: string[];
   /** 检测时间 */
-  detectedAt: Date
+  detectedAt: Date;
   /** 异常值 */
-  anomalyValue: number
+  anomalyValue: number;
   /** 期望值 */
-  expectedValue: number
+  expectedValue: number;
   /** 偏差程度 */
-  deviationPercentage: number
+  deviationPercentage: number;
   /** 建议措施 */
-  recommendations: string[]
+  recommendations: string[];
 }
 
 /**
@@ -87,46 +89,46 @@ interface AnomalyDetectionResult {
  */
 interface BenchmarkResult {
   /** 测试ID */
-  testId: string
+  testId: string;
   /** 测试名称 */
-  testName: string
+  testName: string;
   /** 测试时间 */
-  timestamp: Date
+  timestamp: Date;
   /** 测试持续时间(毫秒) */
-  duration: number
+  duration: number;
   /** 查询执行次数 */
-  queryCount: number
+  queryCount: number;
   /** 平均响应时间(毫秒) */
-  averageResponseTime: number
+  averageResponseTime: number;
   /** 最小响应时间(毫秒) */
-  minResponseTime: number
+  minResponseTime: number;
   /** 最大响应时间(毫秒) */
-  maxResponseTime: number
+  maxResponseTime: number;
   /** 95百分位响应时间(毫秒) */
-  p95ResponseTime: number
+  p95ResponseTime: number;
   /** 99百分位响应时间(毫秒) */
-  p99ResponseTime: number
+  p99ResponseTime: number;
   /** 吞吐量(查询/秒) */
-  throughput: number
+  throughput: number;
   /** 错误率 */
-  errorRate: number
+  errorRate: number;
   /** CPU使用率 */
-  cpuUsage: number
+  cpuUsage: number;
   /** 内存使用率 */
-  memoryUsage: number
+  memoryUsage: number;
   /** 连接池利用率 */
-  poolUtilization: number
+  poolUtilization: number;
   /** 测试结果 */
-  result: 'PASSED' | 'FAILED' | 'WARNING'
+  result: 'PASSED' | 'FAILED' | 'WARNING';
   /** 性能评分 */
-  performanceScore: number
+  performanceScore: number;
   /** 与基准的比较 */
   comparisonWithBaseline?: {
-    responseTimeChange: number
-    throughputChange: number
-    errorRateChange: number
-    overallChange: number
-  }
+    responseTimeChange: number;
+    throughputChange: number;
+    errorRateChange: number;
+    overallChange: number;
+  };
 }
 
 /**
@@ -134,25 +136,25 @@ interface BenchmarkResult {
  */
 interface PredictionResult {
   /** 预测指标 */
-  metric: string
+  metric: string;
   /** 预测时间点 */
-  predictedAt: Date
+  predictedAt: Date;
   /** 预测值 */
-  predictedValue: number
+  predictedValue: number;
   /** 置信区间下限 */
-  confidenceLower: number
+  confidenceLower: number;
   /** 置信区间上限 */
-  confidenceUpper: number
+  confidenceUpper: number;
   /** 预测置信度 */
-  confidence: number
+  confidence: number;
   /** 预测模型 */
-  model: 'LINEAR_REGRESSION' | 'MOVING_AVERAGE' | 'EXPONENTIAL_SMOOTHING' | 'ARIMA'
+  model: 'LINEAR_REGRESSION' | 'MOVING_AVERAGE' | 'EXPONENTIAL_SMOOTHING' | 'ARIMA';
   /** 预测准确性 */
-  accuracy?: number
+  accuracy?: number;
   /** 趋势预测 */
-  trendPrediction: 'IMPROVING' | 'DEGRADING' | 'STABLE'
+  trendPrediction: 'IMPROVING' | 'DEGRADING' | 'STABLE';
   /** 风险评估 */
-  riskAssessment: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
+  riskAssessment: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 }
 
 /**
@@ -160,48 +162,48 @@ interface PredictionResult {
  */
 interface MonitoringReport {
   /** 报告ID */
-  reportId: string
+  reportId: string;
   /** 生成时间 */
-  generatedAt: Date
+  generatedAt: Date;
   /** 报告周期 */
-  period: string
+  period: string;
   /** 总体健康状态 */
-  overallHealth: 'EXCELLENT' | 'GOOD' | 'FAIR' | 'POOR' | 'CRITICAL'
+  overallHealth: 'EXCELLENT' | 'GOOD' | 'FAIR' | 'POOR' | 'CRITICAL';
   /** 性能摘要 */
   performanceSummary: {
-    averageResponseTime: number
-    peakResponseTime: number
-    totalQueries: number
-    errorRate: number
-    uptime: number
-  }
+    averageResponseTime: number;
+    peakResponseTime: number;
+    totalQueries: number;
+    errorRate: number;
+    uptime: number;
+  };
   /** 趋势分析 */
-  trendAnalysis: PerformanceTrend[]
+  trendAnalysis: PerformanceTrend[];
   /** 异常检测结果 */
-  anomalies: AnomalyDetectionResult[]
+  anomalies: AnomalyDetectionResult[];
   /** 预测分析 */
-  predictions: PredictionResult[]
+  predictions: PredictionResult[];
   /** 基准测试结果 */
-  benchmarks: BenchmarkResult[]
+  benchmarks: BenchmarkResult[];
   /** 告警统计 */
   alertStats: {
-    totalAlerts: number
-    criticalAlerts: number
-    resolvedAlerts: number
-    averageResolutionTime: number
-  }
+    totalAlerts: number;
+    criticalAlerts: number;
+    resolvedAlerts: number;
+    averageResolutionTime: number;
+  };
   /** 建议措施 */
-  recommendations: string[]
+  recommendations: string[];
   /** 性能评分 */
-  performanceScore: number
+  performanceScore: number;
 }
 
 /**
  * 历史数据点接口
  */
 interface HistoricalDataPoint {
-  timestamp: Date
-  metrics: DatabaseMetrics
+  timestamp: Date;
+  metrics: DatabaseMetrics;
 }
 
 /**
@@ -215,23 +217,23 @@ interface HistoricalDataPoint {
  * - 智能告警和通知系统
  */
 export class DatabaseMonitoringEnhancer extends EventEmitter {
-  private logger: Logger
-  private config: AdvancedMonitoringConfig
-  private historicalData: HistoricalDataPoint[] = []
-  private performanceTrends: Map<string, PerformanceTrend[]> = new Map()
-  private anomalies: AnomalyDetectionResult[] = []
-  private benchmarkResults: BenchmarkResult[] = []
-  private predictions: Map<string, PredictionResult[]> = new Map()
-  private activeAlerts: Map<string, Alert> = new Map()
-  private alertCooldowns: Map<string, Date> = new Map()
-  private baselineMetrics: DatabaseMetrics | null = null
-  private isMonitoring: boolean = false
-  private monitoringTimer: NodeJS.Timeout | null = null
+  private logger: Logger;
+  private config: AdvancedMonitoringConfig;
+  private historicalData: HistoricalDataPoint[] = [];
+  private performanceTrends: Map<string, PerformanceTrend[]> = new Map();
+  private anomalies: AnomalyDetectionResult[] = [];
+  private benchmarkResults: BenchmarkResult[] = [];
+  private predictions: Map<string, PredictionResult[]> = new Map();
+  private activeAlerts: Map<string, Alert> = new Map();
+  private alertCooldowns: Map<string, Date> = new Map();
+  private baselineMetrics: DatabaseMetrics | null = null;
+  private isMonitoring: boolean = false;
+  private monitoringTimer: NodeJS.Timeout | null = null;
 
   constructor(config: Partial<AdvancedMonitoringConfig> = {}) {
-    super()
-    this.logger = new Logger('DatabaseMonitoringEnhancer')
-    
+    super();
+    this.logger = new Logger('DatabaseMonitoringEnhancer');
+
     this.config = {
       enablePredictiveAnalysis: true,
       enableAnomalyDetection: true,
@@ -243,10 +245,10 @@ export class DatabaseMonitoringEnhancer extends EventEmitter {
       anomalyDetectionSensitivity: 'MEDIUM',
       predictionTimeWindow: 24, // 24小时
       alertCooldownMinutes: 15,
-      ...config
-    }
-    
-    this.logger.info('数据库监控增强器已初始化', { config: this.config })
+      ...config,
+    };
+
+    this.logger.info('数据库监控增强器已初始化', { config: this.config });
   }
 
   /**
@@ -254,38 +256,47 @@ export class DatabaseMonitoringEnhancer extends EventEmitter {
    */
   public startEnhancedMonitoring(): void {
     if (this.isMonitoring) {
-      this.logger.warn('增强监控已在运行中')
-      return
+      this.logger.warn('增强监控已在运行中');
+      return;
     }
-    
-    this.isMonitoring = true
-    
+
+    this.isMonitoring = true;
+
     // 启动定期监控
     this.monitoringTimer = setInterval(() => {
-      this.performMonitoringCycle()
-    }, this.config.monitoringInterval)
-    
+      this.performMonitoringCycle();
+    }, this.config.monitoringInterval);
+
     // 启动数据清理任务
-    setInterval(() => {
-      this.cleanupHistoricalData()
-    }, 24 * 60 * 60 * 1000) // 每天清理一次
-    
+    setInterval(
+      () => {
+        this.cleanupHistoricalData();
+      },
+      24 * 60 * 60 * 1000
+    ); // 每天清理一次
+
     // 启动预测分析任务
     if (this.config.enablePredictiveAnalysis) {
-      setInterval(() => {
-        this.performPredictiveAnalysis()
-      }, 60 * 60 * 1000) // 每小时执行一次
+      setInterval(
+        () => {
+          this.performPredictiveAnalysis();
+        },
+        60 * 60 * 1000
+      ); // 每小时执行一次
     }
-    
+
     // 启动基准测试任务
     if (this.config.enableBenchmarking) {
-      setInterval(() => {
-        this.runPerformanceBenchmark()
-      }, 6 * 60 * 60 * 1000) // 每6小时执行一次
+      setInterval(
+        () => {
+          this.runPerformanceBenchmark();
+        },
+        6 * 60 * 60 * 1000
+      ); // 每6小时执行一次
     }
-    
-    this.logger.info('增强监控已启动')
-    this.emit('monitoring_started')
+
+    this.logger.info('增强监控已启动');
+    this.emit('monitoring_started');
   }
 
   /**
@@ -293,18 +304,18 @@ export class DatabaseMonitoringEnhancer extends EventEmitter {
    */
   public stopEnhancedMonitoring(): void {
     if (!this.isMonitoring) {
-      return
+      return;
     }
-    
-    this.isMonitoring = false
-    
+
+    this.isMonitoring = false;
+
     if (this.monitoringTimer) {
-      clearInterval(this.monitoringTimer)
-      this.monitoringTimer = null
+      clearInterval(this.monitoringTimer);
+      this.monitoringTimer = null;
     }
-    
-    this.logger.info('增强监控已停止')
-    this.emit('monitoring_stopped')
+
+    this.logger.info('增强监控已停止');
+    this.emit('monitoring_stopped');
   }
 
   /**
@@ -313,29 +324,28 @@ export class DatabaseMonitoringEnhancer extends EventEmitter {
   private async performMonitoringCycle(): Promise<void> {
     try {
       // 获取当前指标（这里需要从实际的监控系统获取）
-      const currentMetrics = await this.getCurrentMetrics()
-      
+      const currentMetrics = await this.getCurrentMetrics();
+
       // 记录历史数据
-      this.recordHistoricalData(currentMetrics)
-      
+      this.recordHistoricalData(currentMetrics);
+
       // 异常检测
       if (this.config.enableAnomalyDetection) {
-        const anomalies = this.detectAnomalies(currentMetrics)
-        this.processAnomalies(anomalies)
+        const anomalies = this.detectAnomalies(currentMetrics);
+        this.processAnomalies(anomalies);
       }
-      
+
       // 趋势分析
       if (this.config.enableTrendAnalysis) {
-        this.analyzeTrends(currentMetrics)
+        this.analyzeTrends(currentMetrics);
       }
-      
+
       // 自动告警
       if (this.config.enableAutoAlerting) {
-        this.checkAndTriggerAlerts(currentMetrics)
+        this.checkAndTriggerAlerts(currentMetrics);
       }
-      
     } catch (error) {
-      this.logger.error('监控周期执行失败', { error })
+      this.logger.error('监控周期执行失败', { error });
     }
   }
 
@@ -390,7 +400,7 @@ export class DatabaseMonitoringEnhancer extends EventEmitter {
         otherErrors: Math.floor(Math.random() * 2),
         reconnectAttempts: Math.floor(Math.random() * 3),
       },
-    }
+    };
   }
 
   /**
@@ -399,15 +409,16 @@ export class DatabaseMonitoringEnhancer extends EventEmitter {
   private recordHistoricalData(metrics: DatabaseMetrics): void {
     const dataPoint: HistoricalDataPoint = {
       timestamp: new Date(),
-      metrics
-    }
-    
-    this.historicalData.push(dataPoint)
-    
+      metrics,
+    };
+
+    this.historicalData.push(dataPoint);
+
     // 限制历史数据数量
-    const maxDataPoints = (this.config.dataRetentionDays * 24 * 60 * 60 * 1000) / this.config.monitoringInterval
+    const maxDataPoints =
+      (this.config.dataRetentionDays * 24 * 60 * 60 * 1000) / this.config.monitoringInterval;
     if (this.historicalData.length > maxDataPoints) {
-      this.historicalData = this.historicalData.slice(-Math.floor(maxDataPoints))
+      this.historicalData = this.historicalData.slice(-Math.floor(maxDataPoints));
     }
   }
 
@@ -415,37 +426,37 @@ export class DatabaseMonitoringEnhancer extends EventEmitter {
    * 异常检测
    */
   private detectAnomalies(currentMetrics: DatabaseMetrics): AnomalyDetectionResult[] {
-    const anomalies: AnomalyDetectionResult[] = []
-    
+    const anomalies: AnomalyDetectionResult[] = [];
+
     if (this.historicalData.length < 10) {
-      return anomalies // 需要足够的历史数据
+      return anomalies; // 需要足够的历史数据
     }
-    
+
     // 获取最近的历史数据用于比较
-    const recentData = this.historicalData.slice(-20)
-    
+    const recentData = this.historicalData.slice(-20);
+
     // 检测各项指标的异常
     const metricsToCheck = [
       { key: 'queries.averageTime', name: '平均查询时间' },
       { key: 'connections.active', name: '连接数' },
       { key: 'errors.queryErrors', name: '错误数' },
       { key: 'performance.cpuUsage', name: 'CPU使用率' },
-      { key: 'performance.memoryUsage', name: '内存使用率' }
-    ]
-    
+      { key: 'performance.memoryUsage', name: '内存使用率' },
+    ];
+
     for (const metric of metricsToCheck) {
       const anomaly = this.detectMetricAnomaly(
         this.getNestedProperty(currentMetrics, metric.key) as number,
         recentData.map(d => this.getNestedProperty(d.metrics, metric.key) as number),
         metric.name
-      )
-      
+      );
+
       if (anomaly) {
-        anomalies.push(anomaly)
+        anomalies.push(anomaly);
       }
     }
-    
-    return anomalies
+
+    return anomalies;
   }
 
   private getNestedProperty(obj: any, path: string): any {
@@ -460,34 +471,36 @@ export class DatabaseMonitoringEnhancer extends EventEmitter {
     historicalValues: number[],
     metricName: string
   ): AnomalyDetectionResult | null {
-    const mean = historicalValues.reduce((sum, val) => sum + val, 0) / historicalValues.length
-    const variance = historicalValues.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / historicalValues.length
-    const stdDev = Math.sqrt(variance)
-    
+    const mean = historicalValues.reduce((sum, val) => sum + val, 0) / historicalValues.length;
+    const variance =
+      historicalValues.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) /
+      historicalValues.length;
+    const stdDev = Math.sqrt(variance);
+
     // 根据敏感度设置阈值
     const thresholdMultiplier = {
-      'LOW': 3,
-      'MEDIUM': 2,
-      'HIGH': 1.5
-    }[this.config.anomalyDetectionSensitivity]
-    
-    const upperThreshold = mean + (stdDev * thresholdMultiplier)
-    const lowerThreshold = mean - (stdDev * thresholdMultiplier)
-    
+      LOW: 3,
+      MEDIUM: 2,
+      HIGH: 1.5,
+    }[this.config.anomalyDetectionSensitivity];
+
+    const upperThreshold = mean + stdDev * thresholdMultiplier;
+    const lowerThreshold = mean - stdDev * thresholdMultiplier;
+
     if (currentValue > upperThreshold || currentValue < lowerThreshold) {
-      const deviationPercentage = Math.abs((currentValue - mean) / mean) * 100
-      
-      let severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
+      const deviationPercentage = Math.abs((currentValue - mean) / mean) * 100;
+
+      let severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
       if (deviationPercentage > 100) {
-        severity = 'CRITICAL'
+        severity = 'CRITICAL';
       } else if (deviationPercentage > 50) {
-        severity = 'HIGH'
+        severity = 'HIGH';
       } else if (deviationPercentage > 25) {
-        severity = 'MEDIUM'
+        severity = 'MEDIUM';
       } else {
-        severity = 'LOW'
+        severity = 'LOW';
       }
-      
+
       return {
         anomalyDetected: true,
         anomalyType: currentValue > upperThreshold ? 'SPIKE' : 'DROP',
@@ -498,46 +511,46 @@ export class DatabaseMonitoringEnhancer extends EventEmitter {
         anomalyValue: currentValue,
         expectedValue: mean,
         deviationPercentage,
-        recommendations: this.generateAnomalyRecommendations(metricName, severity)
-      }
+        recommendations: this.generateAnomalyRecommendations(metricName, severity),
+      };
     }
-    
-    return null
+
+    return null;
   }
 
   /**
    * 生成异常处理建议
    */
   private generateAnomalyRecommendations(metricName: string, severity: string): string[] {
-    const recommendations: string[] = []
-    
+    const recommendations: string[] = [];
+
     switch (metricName) {
       case '平均查询时间':
-        recommendations.push('检查慢查询日志')
-        recommendations.push('优化查询索引')
+        recommendations.push('检查慢查询日志');
+        recommendations.push('优化查询索引');
         if (severity === 'CRITICAL') {
-          recommendations.push('考虑增加数据库资源')
+          recommendations.push('考虑增加数据库资源');
         }
-        break
-      
+        break;
+
       case '连接数':
-        recommendations.push('检查连接池配置')
-        recommendations.push('监控应用程序连接使用')
-        break
-      
+        recommendations.push('检查连接池配置');
+        recommendations.push('监控应用程序连接使用');
+        break;
+
       case '错误数':
-        recommendations.push('检查错误日志')
-        recommendations.push('验证数据库连接状态')
-        break
-      
+        recommendations.push('检查错误日志');
+        recommendations.push('验证数据库连接状态');
+        break;
+
       case 'CPU使用率':
       case '内存使用率':
-        recommendations.push('监控系统资源使用')
-        recommendations.push('考虑扩展硬件资源')
-        break
+        recommendations.push('监控系统资源使用');
+        recommendations.push('考虑扩展硬件资源');
+        break;
     }
-    
-    return recommendations
+
+    return recommendations;
   }
 
   /**
@@ -545,11 +558,11 @@ export class DatabaseMonitoringEnhancer extends EventEmitter {
    */
   private processAnomalies(anomalies: AnomalyDetectionResult[]): void {
     for (const anomaly of anomalies) {
-      this.anomalies.push(anomaly)
-      
-      this.logger.warn('检测到性能异常', anomaly)
-      this.emit('anomaly_detected', anomaly)
-      
+      this.anomalies.push(anomaly);
+
+      this.logger.warn('检测到性能异常', anomaly);
+      this.emit('anomaly_detected', anomaly);
+
       // 触发告警
       if (anomaly.severity === 'HIGH' || anomaly.severity === 'CRITICAL') {
         this.triggerAlert({
@@ -557,14 +570,14 @@ export class DatabaseMonitoringEnhancer extends EventEmitter {
           message: anomaly.description,
           timestamp: anomaly.detectedAt,
           metrics: this.createNestedMetrics(anomaly.affectedMetrics[0], anomaly.anomalyValue),
-          threshold: anomaly.expectedValue
-        })
+          threshold: anomaly.expectedValue,
+        });
       }
     }
-    
+
     // 限制异常记录数量
     if (this.anomalies.length > 1000) {
-      this.anomalies = this.anomalies.slice(-500)
+      this.anomalies = this.anomalies.slice(-500);
     }
   }
 
@@ -589,30 +602,30 @@ export class DatabaseMonitoringEnhancer extends EventEmitter {
    */
   private analyzeTrends(currentMetrics: DatabaseMetrics): void {
     if (this.historicalData.length < 5) {
-      return // 需要足够的数据点
+      return; // 需要足够的数据点
     }
-    
+
     const metricsToAnalyze = [
       'queries.averageTime',
       'connections.connectionCount',
       'performance.cpuUsage',
       'performance.memoryUsage',
-      'connections.poolUtilization'
-    ]
-    
+      'connections.poolUtilization',
+    ];
+
     for (const metricName of metricsToAnalyze) {
-      const trend = this.calculateTrend(metricName)
+      const trend = this.calculateTrend(metricName);
       if (trend) {
         if (!this.performanceTrends.has(metricName)) {
-          this.performanceTrends.set(metricName, [])
+          this.performanceTrends.set(metricName, []);
         }
-        
-        const trends = this.performanceTrends.get(metricName)!
-        trends.push(trend)
-        
+
+        const trends = this.performanceTrends.get(metricName)!;
+        trends.push(trend);
+
         // 限制趋势数据数量
         if (trends.length > 100) {
-          this.performanceTrends.set(metricName, trends.slice(-50))
+          this.performanceTrends.set(metricName, trends.slice(-50));
         }
       }
     }
@@ -622,41 +635,41 @@ export class DatabaseMonitoringEnhancer extends EventEmitter {
    * 计算趋势
    */
   private calculateTrend(metricName: string): PerformanceTrend | null {
-    const recentData = this.historicalData.slice(-10)
+    const recentData = this.historicalData.slice(-10);
     if (recentData.length < 5) {
-      return null
+      return null;
     }
-    
-    const values = recentData.map(d => d.metrics[metricName as keyof DatabaseMetrics] as number)
-    const currentValue = values[values.length - 1]
-    const previousValue = values[values.length - 2]
-    
+
+    const values = recentData.map(d => d.metrics[metricName as keyof DatabaseMetrics] as number);
+    const currentValue = values[values.length - 1];
+    const previousValue = values[values.length - 2];
+
     // 计算线性回归斜率
-    const n = values.length
-    const sumX = (n * (n - 1)) / 2
-    const sumY = values.reduce((sum, val) => sum + val, 0)
-    const sumXY = values.reduce((sum, val, index) => sum + (index * val), 0)
-    const sumX2 = values.reduce((sum, _, index) => sum + (index * index), 0)
-    
-    const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX)
-    const changeRate = ((currentValue - previousValue) / previousValue) * 100
-    
-    let trend: 'INCREASING' | 'DECREASING' | 'STABLE'
+    const n = values.length;
+    const sumX = (n * (n - 1)) / 2;
+    const sumY = values.reduce((sum, val) => sum + val, 0);
+    const sumXY = values.reduce((sum, val, index) => sum + index * val, 0);
+    const sumX2 = values.reduce((sum, _, index) => sum + index * index, 0);
+
+    const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+    const changeRate = ((currentValue - previousValue) / previousValue) * 100;
+
+    let trend: 'INCREASING' | 'DECREASING' | 'STABLE';
     if (Math.abs(slope) < 0.01) {
-      trend = 'STABLE'
+      trend = 'STABLE';
     } else if (slope > 0) {
-      trend = 'INCREASING'
+      trend = 'INCREASING';
     } else {
-      trend = 'DECREASING'
+      trend = 'DECREASING';
     }
-    
+
     return {
       timestamp: new Date(),
       metricName,
       value: currentValue,
       trend,
-      changeRate
-    }
+      changeRate,
+    };
   }
 
   /**
@@ -664,14 +677,16 @@ export class DatabaseMonitoringEnhancer extends EventEmitter {
    */
   private checkAndTriggerAlerts(metrics: DatabaseMetrics): void {
     // 检查告警冷却时间
-    const now = new Date()
-    const cooldownExpired = Array.from(this.alertCooldowns.entries())
-      .filter(([_, cooldownTime]) => now.getTime() - cooldownTime.getTime() > this.config.alertCooldownMinutes * 60 * 1000)
-    
+    const now = new Date();
+    const cooldownExpired = Array.from(this.alertCooldowns.entries()).filter(
+      ([_, cooldownTime]) =>
+        now.getTime() - cooldownTime.getTime() > this.config.alertCooldownMinutes * 60 * 1000
+    );
+
     cooldownExpired.forEach(([alertKey]) => {
-      this.alertCooldowns.delete(alertKey)
-    })
-    
+      this.alertCooldowns.delete(alertKey);
+    });
+
     // 定义告警阈值
     const thresholds: PerformanceThresholds = {
       maxConnections: 100,
@@ -683,15 +698,40 @@ export class DatabaseMonitoringEnhancer extends EventEmitter {
       maxLatency: 1000,
       maxFailureRate: 0.05,
       maxReconnectAttempts: 5,
-      minUptime: 0.99
-    }
-    
+      minUptime: 0.99,
+    };
+
     // 检查各项指标
-    this.checkMetricThreshold('queries.averageTime', metrics.queries.averageTime, thresholds.maxResponseTime, '平均查询时间过高')
-    this.checkMetricThreshold('errors.queryErrors', metrics.errors.queryErrors, thresholds.maxErrorRate, '查询错误数量过多')
-    this.checkMetricThreshold('performance.cpuUsage', metrics.performance.cpuUsage, thresholds.maxCpuUsage, 'CPU使用率过高')
-    this.checkMetricThreshold('performance.memoryUsage', metrics.performance.memoryUsage, thresholds.maxMemoryUsage, '内存使用率过高')
-    this.checkMetricThreshold('connections.active', metrics.connections.active, thresholds.maxConnections, '连接池利用率过高')
+    this.checkMetricThreshold(
+      'queries.averageTime',
+      metrics.queries.averageTime,
+      thresholds.maxResponseTime,
+      '平均查询时间过高'
+    );
+    this.checkMetricThreshold(
+      'errors.queryErrors',
+      metrics.errors.queryErrors,
+      thresholds.maxErrorRate,
+      '查询错误数量过多'
+    );
+    this.checkMetricThreshold(
+      'performance.cpuUsage',
+      metrics.performance.cpuUsage,
+      thresholds.maxCpuUsage,
+      'CPU使用率过高'
+    );
+    this.checkMetricThreshold(
+      'performance.memoryUsage',
+      metrics.performance.memoryUsage,
+      thresholds.maxMemoryUsage,
+      '内存使用率过高'
+    );
+    this.checkMetricThreshold(
+      'connections.active',
+      metrics.connections.active,
+      thresholds.maxConnections,
+      '连接池利用率过高'
+    );
   }
 
   /**
@@ -703,36 +743,36 @@ export class DatabaseMonitoringEnhancer extends EventEmitter {
     threshold: number,
     message: string
   ): void {
-    const alertKey = `${metricName}_threshold`
-    
+    const alertKey = `${metricName}_threshold`;
+
     if (this.alertCooldowns.has(alertKey)) {
-      return // 在冷却期内
+      return; // 在冷却期内
     }
-    
+
     if (currentValue > threshold) {
-      let level: AlertLevel
-      const ratio = currentValue / threshold
-      
+      let level: AlertLevel;
+      const ratio = currentValue / threshold;
+
       if (ratio > 2) {
-        level = AlertLevel.CRITICAL
+        level = AlertLevel.CRITICAL;
       } else if (ratio > 1.5) {
-        level = AlertLevel.ERROR
+        level = AlertLevel.ERROR;
       } else if (ratio > 1.2) {
-        level = AlertLevel.WARNING
+        level = AlertLevel.WARNING;
       } else {
-        level = AlertLevel.INFO
+        level = AlertLevel.INFO;
       }
-      
+
       this.triggerAlert({
         level,
         message: `${message}: ${currentValue.toFixed(2)} (阈值: ${threshold})`,
         timestamp: new Date(),
         metrics: this.createNestedMetrics(metricName, currentValue),
-        threshold
-      })
-      
+        threshold,
+      });
+
       // 设置冷却时间
-      this.alertCooldowns.set(alertKey, new Date())
+      this.alertCooldowns.set(alertKey, new Date());
     }
   }
 
@@ -741,18 +781,21 @@ export class DatabaseMonitoringEnhancer extends EventEmitter {
    */
   private triggerAlert(alert: Alert): void {
     // 生成唯一ID用于内部管理
-    const alertId = this.generateId()
-    const alertWithId = { ...alert, id: alertId }
-    this.activeAlerts.set(alertId, alertWithId)
-    
-    this.logger.warn('触发告警', alert)
-    this.emit('alert_triggered', alert)
-    
+    const alertId = this.generateId();
+    const alertWithId = { ...alert, id: alertId };
+    this.activeAlerts.set(alertId, alertWithId);
+
+    this.logger.warn('触发告警', alert);
+    this.emit('alert_triggered', alert);
+
     // 自动解决低级别告警
     if (alert.level === AlertLevel.INFO) {
-      setTimeout(() => {
-        this.resolveAlert(alertId, '自动解决')
-      }, 5 * 60 * 1000) // 5分钟后自动解决
+      setTimeout(
+        () => {
+          this.resolveAlert(alertId, '自动解决');
+        },
+        5 * 60 * 1000
+      ); // 5分钟后自动解决
     }
   }
 
@@ -760,17 +803,17 @@ export class DatabaseMonitoringEnhancer extends EventEmitter {
    * 解决告警
    */
   public resolveAlert(alertId: string, resolution: string): boolean {
-    const alert = this.activeAlerts.get(alertId)
+    const alert = this.activeAlerts.get(alertId);
     if (!alert) {
-      return false
+      return false;
     }
-    
-    this.activeAlerts.delete(alertId)
-    
-    this.logger.info('告警已解决', { alertId, resolution })
-    this.emit('alert_resolved', { alert, resolution })
-    
-    return true
+
+    this.activeAlerts.delete(alertId);
+
+    this.logger.info('告警已解决', { alertId, resolution });
+    this.emit('alert_resolved', { alert, resolution });
+
+    return true;
   }
 
   /**
@@ -778,40 +821,41 @@ export class DatabaseMonitoringEnhancer extends EventEmitter {
    */
   private performPredictiveAnalysis(): void {
     if (this.historicalData.length < 20) {
-      return // 需要足够的历史数据
+      return; // 需要足够的历史数据
     }
-    
+
     const metricsToPredict = [
       'queries.averageTime',
       'connections.connectionCount',
       'performance.cpuUsage',
-      'performance.memoryUsage'
-    ]
-    
+      'performance.memoryUsage',
+    ];
+
     for (const metricName of metricsToPredict) {
-      const prediction = this.predictMetric(metricName)
+      const prediction = this.predictMetric(metricName);
       if (prediction) {
         if (!this.predictions.has(metricName)) {
-          this.predictions.set(metricName, [])
+          this.predictions.set(metricName, []);
         }
-        
-        const predictions = this.predictions.get(metricName)!
-        predictions.push(prediction)
-        
+
+        const predictions = this.predictions.get(metricName)!;
+        predictions.push(prediction);
+
         // 限制预测数据数量
         if (predictions.length > 50) {
-          this.predictions.set(metricName, predictions.slice(-25))
+          this.predictions.set(metricName, predictions.slice(-25));
         }
-        
+
         // 如果预测显示高风险，触发告警
         if (prediction.riskAssessment === 'HIGH' || prediction.riskAssessment === 'CRITICAL') {
           this.triggerAlert({
-            level: prediction.riskAssessment === 'CRITICAL' ? AlertLevel.CRITICAL : AlertLevel.ERROR,
+            level:
+              prediction.riskAssessment === 'CRITICAL' ? AlertLevel.CRITICAL : AlertLevel.ERROR,
             message: `预测分析警告: ${metricName}在未来可能出现问题`,
             timestamp: new Date(),
             metrics: this.createNestedMetrics(metricName, prediction.predictedValue),
-            threshold: 0
-          })
+            threshold: 0,
+          });
         }
       }
     }
@@ -821,50 +865,61 @@ export class DatabaseMonitoringEnhancer extends EventEmitter {
    * 预测指标值
    */
   private predictMetric(metricName: string): PredictionResult | null {
-    const recentData = this.historicalData.slice(-20)
-    const values = recentData.map(d => this.getNestedProperty(d.metrics, metricName) as number)
-    
+    const recentData = this.historicalData.slice(-20);
+    const values = recentData.map(d => this.getNestedProperty(d.metrics, metricName) as number);
+
     // 使用简单的线性回归进行预测
-    const n = values.length
-    const sumX = (n * (n - 1)) / 2
-    const sumY = values.reduce((sum, val) => sum + val, 0)
-    const sumXY = values.reduce((sum, val, index) => sum + (index * val), 0)
-    const sumX2 = values.reduce((sum, _, index) => sum + (index * index), 0)
-    
-    const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX)
-    const intercept = (sumY - slope * sumX) / n
-    
+    const n = values.length;
+    const sumX = (n * (n - 1)) / 2;
+    const sumY = values.reduce((sum, val) => sum + val, 0);
+    const sumXY = values.reduce((sum, val, index) => sum + index * val, 0);
+    const sumX2 = values.reduce((sum, _, index) => sum + index * index, 0);
+
+    const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+    const intercept = (sumY - slope * sumX) / n;
+
     // 预测未来1小时的值
-    const futureX = n + (this.config.predictionTimeWindow * 60 * 60 * 1000) / this.config.monitoringInterval
-    const predictedValue = slope * futureX + intercept
-    
+    const futureX =
+      n + (this.config.predictionTimeWindow * 60 * 60 * 1000) / this.config.monitoringInterval;
+    const predictedValue = slope * futureX + intercept;
+
     // 计算置信区间
-    const residuals = values.map((val, index) => val - (slope * index + intercept))
-    const mse = residuals.reduce((sum, res) => sum + res * res, 0) / n
-    const standardError = Math.sqrt(mse)
-    
-    const confidence = Math.max(0, Math.min(1, 1 - (standardError / Math.abs(predictedValue))))
-    const confidenceLower = predictedValue - 1.96 * standardError
-    const confidenceUpper = predictedValue + 1.96 * standardError
-    
+    const residuals = values.map((val, index) => val - (slope * index + intercept));
+    const mse = residuals.reduce((sum, res) => sum + res * res, 0) / n;
+    const standardError = Math.sqrt(mse);
+
+    const confidence = Math.max(0, Math.min(1, 1 - standardError / Math.abs(predictedValue)));
+    const confidenceLower = predictedValue - 1.96 * standardError;
+    const confidenceUpper = predictedValue + 1.96 * standardError;
+
     // 评估趋势和风险
-    let trendPrediction: 'IMPROVING' | 'DEGRADING' | 'STABLE'
-    let riskAssessment: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
-    
+    let trendPrediction: 'IMPROVING' | 'DEGRADING' | 'STABLE';
+    let riskAssessment: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+
     // 根据指标类型判断趋势是好是坏
-    const isHigherBetter = ['connections.connectionCount', 'performance.throughput', 'cache.hitRate'].includes(metricName);
+    const isHigherBetter = [
+      'connections.connectionCount',
+      'performance.throughput',
+      'cache.hitRate',
+    ].includes(metricName);
 
     if (Math.abs(slope) < 0.01) {
-      trendPrediction = 'STABLE'
-      riskAssessment = 'LOW'
+      trendPrediction = 'STABLE';
+      riskAssessment = 'LOW';
     } else if (slope > 0) {
-      trendPrediction = isHigherBetter ? 'IMPROVING' : 'DEGRADING'
-      riskAssessment = (isHigherBetter && confidence > 0.8) || (!isHigherBetter && confidence < 0.2) ? 'LOW' : 'HIGH'
+      trendPrediction = isHigherBetter ? 'IMPROVING' : 'DEGRADING';
+      riskAssessment =
+        (isHigherBetter && confidence > 0.8) || (!isHigherBetter && confidence < 0.2)
+          ? 'LOW'
+          : 'HIGH';
     } else {
-      trendPrediction = isHigherBetter ? 'DEGRADING' : 'IMPROVING'
-      riskAssessment = (isHigherBetter && confidence < 0.2) || (!isHigherBetter && confidence > 0.8) ? 'HIGH' : 'LOW'
+      trendPrediction = isHigherBetter ? 'DEGRADING' : 'IMPROVING';
+      riskAssessment =
+        (isHigherBetter && confidence < 0.2) || (!isHigherBetter && confidence > 0.8)
+          ? 'HIGH'
+          : 'LOW';
     }
-    
+
     return {
       metric: metricName,
       predictedAt: new Date(Date.now() + this.config.predictionTimeWindow * 60 * 60 * 1000),
@@ -874,34 +929,34 @@ export class DatabaseMonitoringEnhancer extends EventEmitter {
       confidence,
       model: 'LINEAR_REGRESSION',
       trendPrediction,
-      riskAssessment
-    }
+      riskAssessment,
+    };
   }
 
   /**
    * 运行性能基准测试
    */
   private async runPerformanceBenchmark(): Promise<void> {
-    const testId = this.generateId()
-    const testName = `自动基准测试_${new Date().toISOString()}`
-    const startTime = Date.now()
-    
+    const testId = this.generateId();
+    const testName = `自动基准测试_${new Date().toISOString()}`;
+    const startTime = Date.now();
+
     try {
-      this.logger.info('开始性能基准测试', { testId, testName })
-      
+      this.logger.info('开始性能基准测试', { testId, testName });
+
       // 模拟基准测试（实际实现中应该执行真实的数据库操作）
-      const result = await this.simulateBenchmarkTest(testId, testName)
-      
-      this.benchmarkResults.push(result)
-      
+      const result = await this.simulateBenchmarkTest(testId, testName);
+
+      this.benchmarkResults.push(result);
+
       // 限制基准测试结果数量
       if (this.benchmarkResults.length > 100) {
-        this.benchmarkResults = this.benchmarkResults.slice(-50)
+        this.benchmarkResults = this.benchmarkResults.slice(-50);
       }
-      
-      this.logger.info('基准测试完成', result)
-      this.emit('benchmark_completed', result)
-      
+
+      this.logger.info('基准测试完成', result);
+      this.emit('benchmark_completed', result);
+
       // 如果性能显著下降，触发告警
       if (result.performanceScore < 70) {
         this.triggerAlert({
@@ -909,12 +964,11 @@ export class DatabaseMonitoringEnhancer extends EventEmitter {
           message: `性能基准测试显示性能下降: 评分${result.performanceScore}`,
           timestamp: new Date(),
           metrics: { performance_score: result.performanceScore },
-          threshold: 80
-        })
+          threshold: 80,
+        });
       }
-      
     } catch (error) {
-      this.logger.error('基准测试失败', { testId, error })
+      this.logger.error('基准测试失败', { testId, error });
     }
   }
 
@@ -922,40 +976,41 @@ export class DatabaseMonitoringEnhancer extends EventEmitter {
    * 模拟基准测试
    */
   private async simulateBenchmarkTest(testId: string, testName: string): Promise<BenchmarkResult> {
-    const duration = 60000 // 1分钟测试
-    const queryCount = Math.floor(Math.random() * 1000) + 500
-    
+    const duration = 60000; // 1分钟测试
+    const queryCount = Math.floor(Math.random() * 1000) + 500;
+
     // 模拟响应时间数据
-    const responseTimes = Array.from({ length: queryCount }, () => Math.random() * 200 + 10)
-    responseTimes.sort((a, b) => a - b)
-    
-    const averageResponseTime = responseTimes.reduce((sum, time) => sum + time, 0) / responseTimes.length
-    const minResponseTime = responseTimes[0]
-    const maxResponseTime = responseTimes[responseTimes.length - 1]
-    const p95ResponseTime = responseTimes[Math.floor(responseTimes.length * 0.95)]
-    const p99ResponseTime = responseTimes[Math.floor(responseTimes.length * 0.99)]
-    
-    const throughput = (queryCount / duration) * 1000 // 查询/秒
-    const errorRate = Math.random() * 0.05 // 0-5%错误率
-    const cpuUsage = Math.random() * 0.8 + 0.1
-    const memoryUsage = Math.random() * 0.7 + 0.2
-    const poolUtilization = Math.random() * 0.9 + 0.1
-    
+    const responseTimes = Array.from({ length: queryCount }, () => Math.random() * 200 + 10);
+    responseTimes.sort((a, b) => a - b);
+
+    const averageResponseTime =
+      responseTimes.reduce((sum, time) => sum + time, 0) / responseTimes.length;
+    const minResponseTime = responseTimes[0];
+    const maxResponseTime = responseTimes[responseTimes.length - 1];
+    const p95ResponseTime = responseTimes[Math.floor(responseTimes.length * 0.95)];
+    const p99ResponseTime = responseTimes[Math.floor(responseTimes.length * 0.99)];
+
+    const throughput = (queryCount / duration) * 1000; // 查询/秒
+    const errorRate = Math.random() * 0.05; // 0-5%错误率
+    const cpuUsage = Math.random() * 0.8 + 0.1;
+    const memoryUsage = Math.random() * 0.7 + 0.2;
+    const poolUtilization = Math.random() * 0.9 + 0.1;
+
     // 计算性能评分
-    const responseTimeScore = Math.max(0, 100 - (averageResponseTime / 10))
-    const throughputScore = Math.min(100, throughput * 10)
-    const errorRateScore = Math.max(0, 100 - (errorRate * 2000))
-    const performanceScore = (responseTimeScore + throughputScore + errorRateScore) / 3
-    
-    let result: 'PASSED' | 'FAILED' | 'WARNING'
+    const responseTimeScore = Math.max(0, 100 - averageResponseTime / 10);
+    const throughputScore = Math.min(100, throughput * 10);
+    const errorRateScore = Math.max(0, 100 - errorRate * 2000);
+    const performanceScore = (responseTimeScore + throughputScore + errorRateScore) / 3;
+
+    let result: 'PASSED' | 'FAILED' | 'WARNING';
     if (performanceScore >= 80) {
-      result = 'PASSED'
+      result = 'PASSED';
     } else if (performanceScore >= 60) {
-      result = 'WARNING'
+      result = 'WARNING';
     } else {
-      result = 'FAILED'
+      result = 'FAILED';
     }
-    
+
     return {
       testId,
       testName,
@@ -973,53 +1028,53 @@ export class DatabaseMonitoringEnhancer extends EventEmitter {
       memoryUsage,
       poolUtilization,
       result,
-      performanceScore
-    }
+      performanceScore,
+    };
   }
 
   /**
    * 生成监控报告
    */
   public generateMonitoringReport(period: string = '24小时'): MonitoringReport {
-    const reportId = this.generateId()
-    const now = new Date()
-    
+    const reportId = this.generateId();
+    const now = new Date();
+
     // 计算时间范围
-    const periodMs = period === '24小时' ? 24 * 60 * 60 * 1000 : 60 * 60 * 1000
-    const startTime = new Date(now.getTime() - periodMs)
-    
+    const periodMs = period === '24小时' ? 24 * 60 * 60 * 1000 : 60 * 60 * 1000;
+    const startTime = new Date(now.getTime() - periodMs);
+
     // 过滤时间范围内的数据
-    const periodData = this.historicalData.filter(d => d.timestamp >= startTime)
-    const periodAnomalies = this.anomalies.filter(a => a.detectedAt >= startTime)
-    const periodBenchmarks = this.benchmarkResults.filter(b => b.timestamp >= startTime)
-    
+    const periodData = this.historicalData.filter(d => d.timestamp >= startTime);
+    const periodAnomalies = this.anomalies.filter(a => a.detectedAt >= startTime);
+    const periodBenchmarks = this.benchmarkResults.filter(b => b.timestamp >= startTime);
+
     // 计算性能摘要
-    const performanceSummary = this.calculatePerformanceSummary(periodData)
-    
+    const performanceSummary = this.calculatePerformanceSummary(periodData);
+
     // 获取趋势分析
     const trendAnalysis = Array.from(this.performanceTrends.values())
       .flat()
-      .filter(t => t.timestamp >= startTime)
-    
+      .filter(t => t.timestamp >= startTime);
+
     // 获取预测分析
     const predictions = Array.from(this.predictions.values())
       .flat()
-      .filter(p => p.predictedAt >= startTime)
-    
+      .filter(p => p.predictedAt >= startTime);
+
     // 计算告警统计
-    const alertStats = this.calculateAlertStats(startTime)
-    
+    const alertStats = this.calculateAlertStats(startTime);
+
     // 评估整体健康状态
-    const overallHealth = this.assessOverallHealth(performanceSummary, periodAnomalies)
-    
+    const overallHealth = this.assessOverallHealth(performanceSummary, periodAnomalies);
+
     // 生成建议
     const recommendations = this.generateRecommendations(
       performanceSummary,
       periodAnomalies,
       trendAnalysis,
       predictions
-    )
-    
+    );
+
     const report: MonitoringReport = {
       reportId,
       generatedAt: now,
@@ -1032,13 +1087,13 @@ export class DatabaseMonitoringEnhancer extends EventEmitter {
       benchmarks: periodBenchmarks,
       alertStats,
       recommendations,
-      performanceScore: this.calculateOverallPerformanceScore(performanceSummary, periodAnomalies)
-    }
-    
-    this.logger.info('监控报告已生成', { reportId, period })
-    this.emit('report_generated', report)
-    
-    return report
+      performanceScore: this.calculateOverallPerformanceScore(performanceSummary, periodAnomalies),
+    };
+
+    this.logger.info('监控报告已生成', { reportId, period });
+    this.emit('report_generated', report);
+
+    return report;
   }
 
   /**
@@ -1051,21 +1106,24 @@ export class DatabaseMonitoringEnhancer extends EventEmitter {
         peakResponseTime: 0,
         totalQueries: 0,
         errorRate: 0,
-        uptime: 0
-      }
+        uptime: 0,
+      };
     }
-    
-    const responseTimes = data.map(d => d.metrics.averageQueryTime)
-    const queryCounts = data.map(d => d.metrics.totalQueries)
-    const errorCounts = data.map(d => d.metrics.queryErrors)
-    
+
+    const responseTimes = data.map(d => d.metrics.averageQueryTime);
+    const queryCounts = data.map(d => d.metrics.totalQueries);
+    const errorCounts = data.map(d => d.metrics.queryErrors);
+
     return {
-      averageResponseTime: responseTimes.reduce((sum, time) => sum + time, 0) / responseTimes.length,
+      averageResponseTime:
+        responseTimes.reduce((sum, time) => sum + time, 0) / responseTimes.length,
       peakResponseTime: Math.max(...responseTimes),
       totalQueries: queryCounts.reduce((sum, count) => sum + count, 0),
-      errorRate: errorCounts.reduce((sum, count) => sum + count, 0) / queryCounts.reduce((sum, count) => sum + count, 0),
-      uptime: 0.99 // 模拟值
-    }
+      errorRate:
+        errorCounts.reduce((sum, count) => sum + count, 0) /
+        queryCounts.reduce((sum, count) => sum + count, 0),
+      uptime: 0.99, // 模拟值
+    };
   }
 
   /**
@@ -1075,11 +1133,12 @@ export class DatabaseMonitoringEnhancer extends EventEmitter {
     // 这里应该从实际的告警历史中计算
     return {
       totalAlerts: this.activeAlerts.size,
-      criticalAlerts: Array.from(this.activeAlerts.values())
-        .filter(alert => alert.level === AlertLevel.CRITICAL).length,
+      criticalAlerts: Array.from(this.activeAlerts.values()).filter(
+        alert => alert.level === AlertLevel.CRITICAL
+      ).length,
       resolvedAlerts: 0, // 需要维护已解决告警的历史
-      averageResolutionTime: 0 // 需要计算平均解决时间
-    }
+      averageResolutionTime: 0, // 需要计算平均解决时间
+    };
   }
 
   /**
@@ -1089,19 +1148,22 @@ export class DatabaseMonitoringEnhancer extends EventEmitter {
     performanceSummary: any,
     anomalies: AnomalyDetectionResult[]
   ): 'EXCELLENT' | 'GOOD' | 'FAIR' | 'POOR' | 'CRITICAL' {
-    const criticalAnomalies = anomalies.filter(a => a.severity === 'CRITICAL').length
-    const highAnomalies = anomalies.filter(a => a.severity === 'HIGH').length
-    
+    const criticalAnomalies = anomalies.filter(a => a.severity === 'CRITICAL').length;
+    const highAnomalies = anomalies.filter(a => a.severity === 'HIGH').length;
+
     if (criticalAnomalies > 0) {
-      return 'CRITICAL'
+      return 'CRITICAL';
     } else if (highAnomalies > 3) {
-      return 'POOR'
+      return 'POOR';
     } else if (highAnomalies > 1 || performanceSummary.errorRate > 0.02) {
-      return 'FAIR'
-    } else if (performanceSummary.averageResponseTime < 100 && performanceSummary.errorRate < 0.01) {
-      return 'EXCELLENT'
+      return 'FAIR';
+    } else if (
+      performanceSummary.averageResponseTime < 100 &&
+      performanceSummary.errorRate < 0.01
+    ) {
+      return 'EXCELLENT';
     } else {
-      return 'GOOD'
+      return 'GOOD';
     }
   }
 
@@ -1114,37 +1176,42 @@ export class DatabaseMonitoringEnhancer extends EventEmitter {
     trends: PerformanceTrend[],
     predictions: PredictionResult[]
   ): string[] {
-    const recommendations: string[] = []
-    
+    const recommendations: string[] = [];
+
     // 基于性能摘要的建议
     if (performanceSummary.averageResponseTime > 200) {
-      recommendations.push('平均响应时间较高，建议优化查询性能')
+      recommendations.push('平均响应时间较高，建议优化查询性能');
     }
-    
+
     if (performanceSummary.errorRate > 0.02) {
-      recommendations.push('错误率较高，建议检查应用程序和数据库配置')
+      recommendations.push('错误率较高，建议检查应用程序和数据库配置');
     }
-    
+
     // 基于异常的建议
-    const criticalAnomalies = anomalies.filter(a => a.severity === 'CRITICAL')
+    const criticalAnomalies = anomalies.filter(a => a.severity === 'CRITICAL');
     if (criticalAnomalies.length > 0) {
-      recommendations.push('检测到严重异常，建议立即调查并采取措施')
+      recommendations.push('检测到严重异常，建议立即调查并采取措施');
     }
-    
+
     // 基于趋势的建议
-    const degradingTrends = trends.filter(t => t.trend === 'INCREASING' && 
-      ['averageQueryTime', 'cpuUsage', 'memoryUsage'].includes(t.metricName))
+    const degradingTrends = trends.filter(
+      t =>
+        t.trend === 'INCREASING' &&
+        ['averageQueryTime', 'cpuUsage', 'memoryUsage'].includes(t.metricName)
+    );
     if (degradingTrends.length > 0) {
-      recommendations.push('性能指标呈恶化趋势，建议进行容量规划')
+      recommendations.push('性能指标呈恶化趋势，建议进行容量规划');
     }
-    
+
     // 基于预测的建议
-    const highRiskPredictions = predictions.filter(p => p.riskAssessment === 'HIGH' || p.riskAssessment === 'CRITICAL')
+    const highRiskPredictions = predictions.filter(
+      p => p.riskAssessment === 'HIGH' || p.riskAssessment === 'CRITICAL'
+    );
     if (highRiskPredictions.length > 0) {
-      recommendations.push('预测分析显示未来可能出现性能问题，建议提前采取预防措施')
+      recommendations.push('预测分析显示未来可能出现性能问题，建议提前采取预防措施');
     }
-    
-    return recommendations
+
+    return recommendations;
   }
 
   /**
@@ -1154,91 +1221,91 @@ export class DatabaseMonitoringEnhancer extends EventEmitter {
     performanceSummary: any,
     anomalies: AnomalyDetectionResult[]
   ): number {
-    let score = 100
-    
+    let score = 100;
+
     // 响应时间评分
     if (performanceSummary.averageResponseTime > 500) {
-      score -= 30
+      score -= 30;
     } else if (performanceSummary.averageResponseTime > 200) {
-      score -= 15
+      score -= 15;
     } else if (performanceSummary.averageResponseTime > 100) {
-      score -= 5
+      score -= 5;
     }
-    
+
     // 错误率评分
-    score -= performanceSummary.errorRate * 1000
-    
+    score -= performanceSummary.errorRate * 1000;
+
     // 异常评分
-    const criticalAnomalies = anomalies.filter(a => a.severity === 'CRITICAL').length
-    const highAnomalies = anomalies.filter(a => a.severity === 'HIGH').length
-    
-    score -= criticalAnomalies * 20
-    score -= highAnomalies * 10
-    
-    return Math.max(0, Math.min(100, score))
+    const criticalAnomalies = anomalies.filter(a => a.severity === 'CRITICAL').length;
+    const highAnomalies = anomalies.filter(a => a.severity === 'HIGH').length;
+
+    score -= criticalAnomalies * 20;
+    score -= highAnomalies * 10;
+
+    return Math.max(0, Math.min(100, score));
   }
 
   /**
    * 清理历史数据
    */
   private cleanupHistoricalData(): void {
-    const cutoffTime = new Date(Date.now() - this.config.dataRetentionDays * 24 * 60 * 60 * 1000)
-    
+    const cutoffTime = new Date(Date.now() - this.config.dataRetentionDays * 24 * 60 * 60 * 1000);
+
     // 清理历史数据
-    this.historicalData = this.historicalData.filter(d => d.timestamp > cutoffTime)
-    
+    this.historicalData = this.historicalData.filter(d => d.timestamp > cutoffTime);
+
     // 清理异常记录
-    this.anomalies = this.anomalies.filter(a => a.detectedAt > cutoffTime)
-    
+    this.anomalies = this.anomalies.filter(a => a.detectedAt > cutoffTime);
+
     // 清理基准测试结果
-    this.benchmarkResults = this.benchmarkResults.filter(b => b.timestamp > cutoffTime)
-    
+    this.benchmarkResults = this.benchmarkResults.filter(b => b.timestamp > cutoffTime);
+
     // 清理趋势数据
     this.performanceTrends.forEach((trends, metricName) => {
-      const filteredTrends = trends.filter(t => t.timestamp > cutoffTime)
-      this.performanceTrends.set(metricName, filteredTrends)
-    })
-    
+      const filteredTrends = trends.filter(t => t.timestamp > cutoffTime);
+      this.performanceTrends.set(metricName, filteredTrends);
+    });
+
     // 清理预测数据
     this.predictions.forEach((predictions, metricName) => {
-      const filteredPredictions = predictions.filter(p => p.predictedAt > cutoffTime)
-      this.predictions.set(metricName, filteredPredictions)
-    })
-    
+      const filteredPredictions = predictions.filter(p => p.predictedAt > cutoffTime);
+      this.predictions.set(metricName, filteredPredictions);
+    });
+
     this.logger.info('历史数据清理完成', {
       cutoffTime,
-      remainingDataPoints: this.historicalData.length
-    })
+      remainingDataPoints: this.historicalData.length,
+    });
   }
 
   /**
    * 生成唯一ID
    */
   private generateId(): string {
-    return Math.random().toString(36).substr(2, 9)
+    return Math.random().toString(36).substr(2, 9);
   }
 
   /**
    * 获取配置
    */
   public getConfig(): AdvancedMonitoringConfig {
-    return { ...this.config }
+    return { ...this.config };
   }
 
   /**
    * 更新配置
    */
   public updateConfig(newConfig: Partial<AdvancedMonitoringConfig>): void {
-    const oldConfig = { ...this.config }
-    this.config = { ...this.config, ...newConfig }
-    
-    this.logger.info('监控配置已更新', { oldConfig, newConfig: this.config })
-    this.emit('config_updated', { oldConfig, newConfig: this.config })
-    
+    const oldConfig = { ...this.config };
+    this.config = { ...this.config, ...newConfig };
+
+    this.logger.info('监控配置已更新', { oldConfig, newConfig: this.config });
+    this.emit('config_updated', { oldConfig, newConfig: this.config });
+
     // 如果监控间隔改变，重启监控
     if (oldConfig.monitoringInterval !== this.config.monitoringInterval && this.isMonitoring) {
-      this.stopEnhancedMonitoring()
-      this.startEnhancedMonitoring()
+      this.stopEnhancedMonitoring();
+      this.startEnhancedMonitoring();
     }
   }
 
@@ -1254,29 +1321,29 @@ export class DatabaseMonitoringEnhancer extends EventEmitter {
       activeAlerts: this.activeAlerts.size,
       benchmarkResults: this.benchmarkResults.length,
       trends: Array.from(this.performanceTrends.keys()).length,
-      predictions: Array.from(this.predictions.keys()).length
-    }
+      predictions: Array.from(this.predictions.keys()).length,
+    };
   }
 
   /**
    * 销毁监控增强器
    */
   public destroy(): void {
-    this.stopEnhancedMonitoring()
-    
-    this.historicalData = []
-    this.performanceTrends.clear()
-    this.anomalies = []
-    this.benchmarkResults = []
-    this.predictions.clear()
-    this.activeAlerts.clear()
-    this.alertCooldowns.clear()
-    
-    this.removeAllListeners()
-    
-    this.logger.info('数据库监控增强器已销毁')
+    this.stopEnhancedMonitoring();
+
+    this.historicalData = [];
+    this.performanceTrends.clear();
+    this.anomalies = [];
+    this.benchmarkResults = [];
+    this.predictions.clear();
+    this.activeAlerts.clear();
+    this.alertCooldowns.clear();
+
+    this.removeAllListeners();
+
+    this.logger.info('数据库监控增强器已销毁');
   }
 }
 
 // 导出单例实例
-export const databaseMonitoringEnhancer = new DatabaseMonitoringEnhancer()
+export const databaseMonitoringEnhancer = new DatabaseMonitoringEnhancer();

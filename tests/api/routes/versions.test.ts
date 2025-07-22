@@ -18,19 +18,19 @@ jest.mock('../../../lib/services/version-manager', () => ({
   validateVersionFormat: jest.fn(),
   checkVersionCompatibility: jest.fn(),
   deployVersion: jest.fn(),
-  rollbackVersion: jest.fn()
+  rollbackVersion: jest.fn(),
 }));
 
 jest.mock('../../../lib/storage/version-store', () => ({
   storeVersionData: jest.fn(),
   retrieveVersionData: jest.fn(),
   deleteVersionData: jest.fn(),
-  getVersionMetadata: jest.fn()
+  getVersionMetadata: jest.fn(),
 }));
 
 jest.mock('../../../lib/auth/session', () => ({
   validateSession: jest.fn(),
-  checkDeploymentPermissions: jest.fn()
+  checkDeploymentPermissions: jest.fn(),
 }));
 
 describe('Versions API Error Handling', () => {
@@ -104,22 +104,24 @@ describe('Versions API Error Handling', () => {
         changes: [
           'Added new poster templates',
           'Improved CAD analysis performance',
-          'Fixed authentication issues'
+          'Fixed authentication issues',
         ],
         breaking: false,
-        releaseNotes: 'This release includes several improvements...'
+        releaseNotes: 'This release includes several improvements...',
       };
     });
 
     it('should handle invalid version format', async () => {
       const { validateVersionFormat } = require('../../../lib/services/version-manager');
-      validateVersionFormat.mockRejectedValue(new Error('Invalid version format: must follow semver'));
+      validateVersionFormat.mockRejectedValue(
+        new Error('Invalid version format: must follow semver')
+      );
 
       const invalidVersionData = { ...validVersionData, version: 'invalid-version' };
       const request = new NextRequest('http://localhost:3000/api/versions', {
         method: 'POST',
         body: JSON.stringify(invalidVersionData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -137,7 +139,7 @@ describe('Versions API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/versions', {
         method: 'POST',
         body: JSON.stringify(validVersionData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -152,7 +154,7 @@ describe('Versions API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/versions', {
         method: 'POST',
         body: JSON.stringify(incompleteData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -165,12 +167,14 @@ describe('Versions API Error Handling', () => {
 
     it('should handle version compatibility check failure', async () => {
       const { checkVersionCompatibility } = require('../../../lib/services/version-manager');
-      checkVersionCompatibility.mockRejectedValue(new Error('Version incompatible with current system'));
+      checkVersionCompatibility.mockRejectedValue(
+        new Error('Version incompatible with current system')
+      );
 
       const request = new NextRequest('http://localhost:3000/api/versions', {
         method: 'POST',
         body: JSON.stringify(validVersionData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -187,7 +191,7 @@ describe('Versions API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/versions', {
         method: 'POST',
         body: JSON.stringify(validVersionData),
-        headers: { 'Authorization': 'Bearer user-token' }
+        headers: { Authorization: 'Bearer user-token' },
       });
 
       const response = await POST(request);
@@ -204,7 +208,7 @@ describe('Versions API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/versions', {
         method: 'POST',
         body: JSON.stringify(validVersionData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -223,7 +227,7 @@ describe('Versions API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/versions/1.0.0', {
         method: 'PUT',
         body: JSON.stringify({ description: 'Updated description' }),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await PUT(request);
@@ -241,7 +245,7 @@ describe('Versions API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/versions/1.0.0', {
         method: 'PUT',
         body: JSON.stringify({ description: 'Updated description' }),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await PUT(request);
@@ -255,7 +259,7 @@ describe('Versions API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/versions/1.0.0', {
         method: 'PUT',
         body: JSON.stringify({ invalidField: 'value' }),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await PUT(request);
@@ -268,12 +272,14 @@ describe('Versions API Error Handling', () => {
 
     it('should handle version update conflict', async () => {
       const { updateVersion } = require('../../../lib/services/version-manager');
-      updateVersion.mockRejectedValue(new Error('Version update conflict: concurrent modification'));
+      updateVersion.mockRejectedValue(
+        new Error('Version update conflict: concurrent modification')
+      );
 
       const request = new NextRequest('http://localhost:3000/api/versions/1.0.0', {
         method: 'PUT',
         body: JSON.stringify({ description: 'Updated description' }),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await PUT(request);
@@ -290,7 +296,7 @@ describe('Versions API Error Handling', () => {
       retrieveVersionData.mockResolvedValue(null);
 
       const request = new NextRequest('http://localhost:3000/api/versions/1.0.0', {
-        method: 'DELETE'
+        method: 'DELETE',
       });
 
       const response = await DELETE(request);
@@ -305,7 +311,7 @@ describe('Versions API Error Handling', () => {
       deleteVersion.mockRejectedValue(new Error('Cannot delete current active version'));
 
       const request = new NextRequest('http://localhost:3000/api/versions/1.0.0', {
-        method: 'DELETE'
+        method: 'DELETE',
       });
 
       const response = await DELETE(request);
@@ -320,7 +326,7 @@ describe('Versions API Error Handling', () => {
       deleteVersion.mockRejectedValue(new Error('Version has dependencies and cannot be deleted'));
 
       const request = new NextRequest('http://localhost:3000/api/versions/1.0.0', {
-        method: 'DELETE'
+        method: 'DELETE',
       });
 
       const response = await DELETE(request);
@@ -335,7 +341,7 @@ describe('Versions API Error Handling', () => {
       deleteVersionData.mockRejectedValue(new Error('Failed to delete version data from storage'));
 
       const request = new NextRequest('http://localhost:3000/api/versions/1.0.0', {
-        method: 'DELETE'
+        method: 'DELETE',
       });
 
       const response = await DELETE(request);
@@ -349,11 +355,13 @@ describe('Versions API Error Handling', () => {
   describe('Version Deployment Errors', () => {
     it('should handle deployment preparation failure', async () => {
       const { deployVersion } = require('../../../lib/services/version-manager');
-      deployVersion.mockRejectedValue(new Error('Deployment preparation failed: missing dependencies'));
+      deployVersion.mockRejectedValue(
+        new Error('Deployment preparation failed: missing dependencies')
+      );
 
       const request = new NextRequest('http://localhost:3000/api/versions/1.2.0/deploy', {
         method: 'POST',
-        headers: { 'Authorization': 'Bearer deploy-token' }
+        headers: { Authorization: 'Bearer deploy-token' },
       });
 
       const response = await POST(request);
@@ -370,7 +378,7 @@ describe('Versions API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/versions/rollback', {
         method: 'POST',
         body: JSON.stringify({ targetVersion: '1.1.0' }),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -382,15 +390,14 @@ describe('Versions API Error Handling', () => {
 
     it('should handle deployment timeout', async () => {
       const { deployVersion } = require('../../../lib/services/version-manager');
-      deployVersion.mockImplementation(() => 
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Deployment timeout')), 100)
-        )
+      deployVersion.mockImplementation(
+        () =>
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Deployment timeout')), 100))
       );
 
       const request = new NextRequest('http://localhost:3000/api/versions/1.2.0/deploy', {
         method: 'POST',
-        headers: { 'Authorization': 'Bearer deploy-token' }
+        headers: { Authorization: 'Bearer deploy-token' },
       });
 
       const response = await POST(request);
@@ -402,12 +409,14 @@ describe('Versions API Error Handling', () => {
 
     it('should handle deployment environment mismatch', async () => {
       const { deployVersion } = require('../../../lib/services/version-manager');
-      deployVersion.mockRejectedValue(new Error('Version not compatible with production environment'));
+      deployVersion.mockRejectedValue(
+        new Error('Version not compatible with production environment')
+      );
 
       const request = new NextRequest('http://localhost:3000/api/versions/1.2.0/deploy', {
         method: 'POST',
         body: JSON.stringify({ environment: 'production' }),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -421,12 +430,14 @@ describe('Versions API Error Handling', () => {
   describe('Version Validation Errors', () => {
     it('should handle semantic version validation failure', async () => {
       const { validateVersionFormat } = require('../../../lib/services/version-manager');
-      validateVersionFormat.mockRejectedValue(new Error('Version must follow semantic versioning (x.y.z)'));
+      validateVersionFormat.mockRejectedValue(
+        new Error('Version must follow semantic versioning (x.y.z)')
+      );
 
       const request = new NextRequest('http://localhost:3000/api/versions', {
         method: 'POST',
         body: JSON.stringify({ version: '1.2', description: 'Test' }),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -443,7 +454,7 @@ describe('Versions API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/versions', {
         method: 'POST',
         body: JSON.stringify({ version: '0.9.0', description: 'Downgrade' }),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -455,16 +466,18 @@ describe('Versions API Error Handling', () => {
 
     it('should handle breaking change validation', async () => {
       const { checkVersionCompatibility } = require('../../../lib/services/version-manager');
-      checkVersionCompatibility.mockRejectedValue(new Error('Breaking changes require major version increment'));
+      checkVersionCompatibility.mockRejectedValue(
+        new Error('Breaking changes require major version increment')
+      );
 
       const request = new NextRequest('http://localhost:3000/api/versions', {
         method: 'POST',
-        body: JSON.stringify({ 
-          version: '1.2.1', 
+        body: JSON.stringify({
+          version: '1.2.1',
           description: 'Minor update',
-          breaking: true 
+          breaking: true,
         }),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -491,13 +504,13 @@ describe('Versions API Error Handling', () => {
     it('should handle missing release notes', async () => {
       const request = new NextRequest('http://localhost:3000/api/versions', {
         method: 'POST',
-        body: JSON.stringify({ 
-          version: '1.2.0', 
+        body: JSON.stringify({
+          version: '1.2.0',
           description: 'Test',
-          changes: ['Change 1']
+          changes: ['Change 1'],
           // Missing releaseNotes
         }),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -510,12 +523,12 @@ describe('Versions API Error Handling', () => {
     it('should handle invalid changelog format', async () => {
       const request = new NextRequest('http://localhost:3000/api/versions', {
         method: 'POST',
-        body: JSON.stringify({ 
-          version: '1.2.0', 
+        body: JSON.stringify({
+          version: '1.2.0',
           description: 'Test',
-          changes: 'Invalid format - should be array'
+          changes: 'Invalid format - should be array',
         }),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -534,7 +547,7 @@ describe('Versions API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/versions', {
         method: 'POST',
         body: JSON.stringify({ version: '1.2.0', description: 'Test' }),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -551,7 +564,7 @@ describe('Versions API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/versions/1.0.0', {
         method: 'PUT',
         body: JSON.stringify({ description: 'Updated' }),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await PUT(request);
@@ -570,7 +583,7 @@ describe('Versions API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/versions', {
         method: 'POST',
         body: JSON.stringify({ version: '1.2.0', description: 'Test' }),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -587,7 +600,7 @@ describe('Versions API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/versions', {
         method: 'POST',
         body: JSON.stringify({ version: '1.2.0', description: 'Test' }),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       await POST(request);
@@ -603,7 +616,7 @@ describe('Versions API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/versions', {
         method: 'POST',
         body: JSON.stringify({ version: '1.2.0', description: 'Test' }),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);

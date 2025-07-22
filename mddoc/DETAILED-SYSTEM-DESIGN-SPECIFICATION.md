@@ -1,6 +1,7 @@
 # 详细系统设计规范
 
 ## 目录
+
 1. [系统流程图设计](#1-系统流程图设计)
 2. [数据结构设计](#2-数据结构设计)
 3. [完整开发规范](#3-完整开发规范)
@@ -18,13 +19,13 @@ flowchart TB
         WebUI[Web用户界面]
         AdminUI[管理端界面]
     end
-    
+
     subgraph "网关层"
         APIGateway[API网关]
         Auth[认证中间件]
         RateLimit[速率限制]
     end
-    
+
     subgraph "业务服务层"
         ChatService[对话智能体服务]
         CADService[CAD解读服务]
@@ -32,20 +33,20 @@ flowchart TB
         AgentManager[智能体管理器]
         ModelManager[AI模型管理器 - 管理端专用]
     end
-    
+
     subgraph "集成层"
         FastGPTAPI[FastGPT API]
         AliCloudAPI[阿里云千问API]
         SiliconFlowAPI[硅基流动API]
         VoiceAPI[语音识别API]
     end
-    
+
     subgraph "数据层"
         PostgresDB[(PostgreSQL)]
         RedisCache[(Redis缓存)]
         FileStorage[文件存储]
     end
-    
+
     WebUI --> APIGateway
     AdminUI --> APIGateway
     APIGateway --> Auth
@@ -54,22 +55,22 @@ flowchart TB
     RateLimit --> CADService
     RateLimit --> PosterService
     RateLimit --> AgentManager
-    
+
     %% 管理端专用连接
     AdminUI -.-> ModelManager
     ModelManager -.-> PostgresDB
-    
+
     ChatService --> FastGPTAPI
     ChatService --> VoiceAPI
     CADService --> AliCloudAPI
     PosterService --> SiliconFlowAPI
-    
+
     AgentManager --> PostgresDB
     ModelManager --> PostgresDB
     ChatService --> RedisCache
     CADService --> FileStorage
     PosterService --> FileStorage
-    
+
     %% 样式说明
     style ModelManager fill:#ff9999,stroke:#ff0000,stroke-width:2px
     style AdminUI fill:#99ccff,stroke:#0066cc,stroke-width:2px
@@ -85,7 +86,7 @@ sequenceDiagram
     participant A as 智能体服务
     participant F as FastGPT
     participant D as 数据库
-    
+
     U->>W: 访问对话页面
     W->>G: 获取智能体列表
     G->>A: 查询可用智能体
@@ -94,7 +95,7 @@ sequenceDiagram
     A-->>G: 返回智能体数据
     G-->>W: 返回响应
     W-->>U: 显示智能体选择
-    
+
     U->>W: 选择智能体并发送消息
     W->>G: 发送对话请求
     G->>A: 处理对话请求
@@ -115,17 +116,17 @@ flowchart TD
     B -->|STEP| D[STEP解析器]
     B -->|IGES| E[IGES解析器]
     B -->|其他| F[错误提示]
-    
+
     C --> G[提取几何数据]
     D --> G
     E --> G
-    
+
     G --> H[生成3D模型]
     H --> I[AI分析引擎]
     I --> J[生成分析报告]
     J --> K[保存到数据库]
     K --> L[返回结果给用户]
-    
+
     G --> M[生成缩略图]
     M --> N[文件存储]
 ```
@@ -139,40 +140,40 @@ flowchart LR
         FileUpload[文件上传]
         AdminConfig[管理配置]
     end
-    
+
     subgraph "数据处理"
         Validation[数据验证]
         Transform[数据转换]
         Business[业务逻辑]
     end
-    
+
     subgraph "数据存储"
         Cache[缓存层]
         Database[数据库]
         FileStore[文件存储]
     end
-    
+
     subgraph "输出数据"
         APIResponse[API响应]
         UIRender[界面渲染]
         FileDownload[文件下载]
     end
-    
+
     UserInput --> Validation
     FileUpload --> Validation
     AdminConfig --> Validation
-    
+
     Validation --> Transform
     Transform --> Business
-    
+
     Business --> Cache
     Business --> Database
     Business --> FileStore
-    
+
     Cache --> APIResponse
     Database --> APIResponse
     FileStore --> FileDownload
-    
+
     APIResponse --> UIRender
 ```
 
@@ -756,19 +757,19 @@ interface NamingConventions {
   // 1. 文件命名：kebab-case
   // ✅ user-service.ts, chat-interface.tsx
   // ❌ UserService.ts, chatInterface.tsx
-  
+
   // 2. 组件命名：PascalCase
   // ✅ ChatInterface, UserProfile
   // ❌ chatInterface, userProfile
-  
+
   // 3. 变量和函数：camelCase
   // ✅ userName, getUserInfo
   // ❌ user_name, GetUserInfo
-  
+
   // 4. 常量：SCREAMING_SNAKE_CASE
   // ✅ API_ENDPOINT, MAX_RETRY_COUNT
   // ❌ apiEndpoint, maxRetryCount
-  
+
   // 5. 类型和接口：PascalCase
   // ✅ User, UserProfile, APIResponse
   // ❌ user, userProfile, apiResponse
@@ -804,7 +805,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
   // 2. 计算属性
   const sortedMessages = useMemo(() => {
-    return messages.sort((a, b) => 
+    return messages.sort((a, b) =>
       new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
     );
   }, [messages]);
@@ -812,7 +813,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   // 3. 事件处理
   const handleSendMessage = useCallback(async () => {
     if (!inputValue.trim()) return;
-    
+
     setIsLoading(true);
     try {
       await onMessageSend(inputValue);
@@ -844,7 +845,7 @@ import { apiClient } from '@/lib/api/client';
 
 export class AgentService {
   private static instance: AgentService;
-  
+
   static getInstance(): AgentService {
     if (!AgentService.instance) {
       AgentService.instance = new AgentService();
@@ -998,11 +999,9 @@ describe('AgentService', () => {
   describe('getAgents', () => {
     it('应该返回智能体列表', async () => {
       // Arrange
-      const mockAgents = [
-        { id: '1', name: '测试智能体', type: 'chat' }
-      ];
+      const mockAgents = [{ id: '1', name: '测试智能体', type: 'chat' }];
       mockApiClient.get.mockResolvedValue({
-        data: { success: true, data: mockAgents }
+        data: { success: true, data: mockAgents },
       });
 
       // Act
@@ -1011,10 +1010,7 @@ describe('AgentService', () => {
       // Assert
       expect(result.success).toBe(true);
       expect(result.data).toEqual(mockAgents);
-      expect(mockApiClient.get).toHaveBeenCalledWith(
-        '/api/ag-ui/agents',
-        { params: {} }
-      );
+      expect(mockApiClient.get).toHaveBeenCalledWith('/api/ag-ui/agents', { params: {} });
     });
 
     it('应该处理API错误', async () => {
@@ -1044,7 +1040,7 @@ describe('/api/ag-ui/agents', () => {
     await handler(req, res);
 
     expect(res._getStatusCode()).toBe(200);
-    
+
     const data = JSON.parse(res._getData());
     expect(data.success).toBe(true);
     expect(Array.isArray(data.data)).toBe(true);
@@ -1131,7 +1127,7 @@ export class PerformanceMonitor {
       errorRate: 0,
       cpuUsage: 0,
       memoryUsage: 0,
-      databaseConnectionPool: 0
+      databaseConnectionPool: 0,
     };
   }
 }
@@ -1144,6 +1140,7 @@ export class PerformanceMonitor {
 ### 4.1 开发阶段划分
 
 #### 阶段一：基础架构搭建（2周）
+
 1. **第1周**：
    - 数据库设计和创建
    - 基础类型定义
@@ -1157,6 +1154,7 @@ export class PerformanceMonitor {
    - 日志系统
 
 #### 阶段二：核心功能开发（4周）
+
 1. **第3周**：
    - 智能体管理系统
    - FastGPT集成
@@ -1178,6 +1176,7 @@ export class PerformanceMonitor {
    - 用户权限管理
 
 #### 阶段三：优化和测试（2周）
+
 1. **第7周**：
    - 性能优化
    - 安全加固
@@ -1199,14 +1198,14 @@ flowchart LR
     E --> F[安全测试]
     F --> G[用户验收测试]
     G --> H[生产部署]
-    
+
     B --> I[不通过]
     C --> I
     D --> I
     E --> I
     F --> I
     G --> I
-    
+
     I --> A
 ```
 
@@ -1220,14 +1219,14 @@ flowchart TB
     D -->|是| E[构建Docker镜像]
     D -->|否| F[返回修复]
     F --> A
-    
+
     E --> G[推送到注册表]
     G --> H[部署到测试环境]
     H --> I[集成测试]
     I --> J{测试通过?}
     J -->|是| K[部署到生产环境]
     J -->|否| F
-    
+
     K --> L[健康检查]
     L --> M[监控报警]
 ```
@@ -1256,4 +1255,4 @@ flowchart TB
 
 ## 总结
 
-本设计规范提供了完整的系统架构、数据结构设计和开发规范，确保项目能够按照高质量标准进行开发和部署。所有团队成员都应严格遵循这些规范，以确保代码质量、系统可靠性和项目的成功交付。 
+本设计规范提供了完整的系统架构、数据结构设计和开发规范，确保项目能够按照高质量标准进行开发和部署。所有团队成员都应严格遵循这些规范，以确保代码质量、系统可靠性和项目的成功交付。

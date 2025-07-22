@@ -9,13 +9,28 @@ import { DatabaseConnectionManager } from '../core/connection-manager';
 import { QueryBuilder } from '../core/query-builder';
 
 // 列类型定义
-export type ColumnType = 
-  | 'bigint' | 'int' | 'smallint' | 'tinyint'
-  | 'decimal' | 'float' | 'double'
-  | 'varchar' | 'char' | 'text' | 'longtext'
-  | 'date' | 'datetime' | 'timestamp' | 'time'
-  | 'boolean' | 'json' | 'blob' | 'binary'
-  | 'enum' | 'set';
+export type ColumnType =
+  | 'bigint'
+  | 'int'
+  | 'smallint'
+  | 'tinyint'
+  | 'decimal'
+  | 'float'
+  | 'double'
+  | 'varchar'
+  | 'char'
+  | 'text'
+  | 'longtext'
+  | 'date'
+  | 'datetime'
+  | 'timestamp'
+  | 'time'
+  | 'boolean'
+  | 'json'
+  | 'blob'
+  | 'binary'
+  | 'enum'
+  | 'set';
 
 // 列定义接口
 export interface ColumnDefinition {
@@ -70,9 +85,18 @@ export interface TableDefinition {
 
 // 表修改操作接口
 export interface TableModification {
-  type: 'add_column' | 'drop_column' | 'modify_column' | 'rename_column' | 
-        'add_index' | 'drop_index' | 'add_foreign_key' | 'drop_foreign_key' |
-        'rename_table' | 'change_engine' | 'change_charset';
+  type:
+    | 'add_column'
+    | 'drop_column'
+    | 'modify_column'
+    | 'rename_column'
+    | 'add_index'
+    | 'drop_index'
+    | 'add_foreign_key'
+    | 'drop_foreign_key'
+    | 'rename_table'
+    | 'change_engine'
+    | 'change_charset';
   data: any;
 }
 
@@ -242,13 +266,13 @@ export class TableBuilder {
   index(columns: string | string[], name?: string): this {
     const columnArray = Array.isArray(columns) ? columns : [columns];
     const indexName = name || `idx_${this.tableName}_${columnArray.join('_')}`;
-    
+
     this.indexes.push({
       name: indexName,
       columns: columnArray,
-      type: 'index'
+      type: 'index',
     });
-    
+
     return this;
   }
 
@@ -258,13 +282,13 @@ export class TableBuilder {
   unique(columns: string | string[], name?: string): this {
     const columnArray = Array.isArray(columns) ? columns : [columns];
     const indexName = name || `uk_${this.tableName}_${columnArray.join('_')}`;
-    
+
     this.indexes.push({
       name: indexName,
       columns: columnArray,
-      type: 'unique'
+      type: 'unique',
     });
-    
+
     return this;
   }
 
@@ -274,13 +298,13 @@ export class TableBuilder {
   fulltext(columns: string | string[], name?: string): this {
     const columnArray = Array.isArray(columns) ? columns : [columns];
     const indexName = name || `ft_${this.tableName}_${columnArray.join('_')}`;
-    
+
     this.indexes.push({
       name: indexName,
       columns: columnArray,
-      type: 'fulltext'
+      type: 'fulltext',
     });
-    
+
     return this;
   }
 
@@ -290,7 +314,7 @@ export class TableBuilder {
   foreign(columns: string | string[], name?: string): ForeignKeyBuilder {
     const columnArray = Array.isArray(columns) ? columns : [columns];
     const keyName = name || `fk_${this.tableName}_${columnArray.join('_')}`;
-    
+
     return new ForeignKeyBuilder(this, keyName, columnArray);
   }
 
@@ -341,7 +365,7 @@ export class TableBuilder {
     if (this.isModifying) {
       this.modifications.push({
         type: 'drop_column',
-        data: { name }
+        data: { name },
       });
     }
     return this;
@@ -354,7 +378,7 @@ export class TableBuilder {
     if (this.isModifying) {
       this.modifications.push({
         type: 'rename_column',
-        data: { from, to }
+        data: { from, to },
       });
     }
     return this;
@@ -367,7 +391,7 @@ export class TableBuilder {
     if (this.isModifying) {
       this.modifications.push({
         type: 'drop_index',
-        data: { name }
+        data: { name },
       });
     }
     return this;
@@ -380,7 +404,7 @@ export class TableBuilder {
     if (this.isModifying) {
       this.modifications.push({
         type: 'drop_foreign_key',
-        data: { name }
+        data: { name },
       });
     }
     return this;
@@ -393,7 +417,7 @@ export class TableBuilder {
     if (this.isModifying) {
       this.modifications.push({
         type: 'add_column',
-        data: column
+        data: column,
       });
     } else {
       this.columns.push(column);
@@ -407,7 +431,7 @@ export class TableBuilder {
     if (this.isModifying) {
       this.modifications.push({
         type: 'modify_column',
-        data: column
+        data: column,
       });
     }
   }
@@ -419,7 +443,7 @@ export class TableBuilder {
     if (this.isModifying) {
       this.modifications.push({
         type: 'add_foreign_key',
-        data: foreignKey
+        data: foreignKey,
       });
     } else {
       this.foreignKeys.push(foreignKey);
@@ -435,7 +459,7 @@ export class TableBuilder {
       columns: this.columns,
       indexes: this.indexes,
       foreignKeys: this.foreignKeys,
-      ...this.tableOptions
+      ...this.tableOptions,
     };
   }
 
@@ -459,7 +483,7 @@ export class ColumnBuilder {
     this.column = {
       name,
       type,
-      nullable: true
+      nullable: true,
     };
   }
 
@@ -601,7 +625,7 @@ export class ForeignKeyBuilder {
       name,
       columns,
       referencedTable: '',
-      referencedColumns: []
+      referencedColumns: [],
     };
   }
 
@@ -674,10 +698,10 @@ export class SchemaBuilder {
   async createTable(tableName: string, callback: (table: TableBuilder) => void): Promise<void> {
     const tableBuilder = new TableBuilder(tableName);
     callback(tableBuilder);
-    
+
     const tableDefinition = tableBuilder.getTableDefinition();
     const sql = this.generateCreateTableSQL(tableDefinition);
-    
+
     const queryBuilder = await this.getQueryBuilder();
     await queryBuilder.raw(sql);
   }
@@ -688,9 +712,9 @@ export class SchemaBuilder {
   async alterTable(tableName: string, callback: (table: TableBuilder) => void): Promise<void> {
     const tableBuilder = new TableBuilder(tableName, true);
     callback(tableBuilder);
-    
+
     const modifications = tableBuilder.getModifications();
-    
+
     for (const modification of modifications) {
       const sql = this.generateAlterTableSQL(tableName, modification);
       const queryBuilder = await this.getQueryBuilder();
@@ -726,7 +750,7 @@ export class SchemaBuilder {
       WHERE table_schema = DATABASE() 
       AND table_name = ?
     `;
-    
+
     const queryBuilder = await this.getQueryBuilder();
     const result = await queryBuilder.raw(sql, [tableName]);
     return result[0].count > 0;
@@ -743,7 +767,7 @@ export class SchemaBuilder {
       AND table_name = ? 
       AND column_name = ?
     `;
-    
+
     const queryBuilder = await this.getQueryBuilder();
     const result = await queryBuilder.raw(sql, [tableName, columnName]);
     return result[0].count > 0;
@@ -754,40 +778,40 @@ export class SchemaBuilder {
    */
   private generateCreateTableSQL(table: TableDefinition): string {
     let sql = `CREATE ${table.temporary ? 'TEMPORARY ' : ''}TABLE \`${table.name}\` (\n`;
-    
+
     // 添加列定义
     const columnDefinitions = table.columns.map(col => this.generateColumnSQL(col));
     sql += columnDefinitions.join(',\n');
-    
+
     // 添加主键
     const primaryColumns = table.columns.filter(col => col.primary).map(col => col.name);
     if (primaryColumns.length > 0) {
       sql += `,\n  PRIMARY KEY (\`${primaryColumns.join('\`, \`')}\`)`;
     }
-    
+
     // 添加唯一键
     table.columns.forEach(col => {
       if (col.unique && !col.primary) {
         sql += `,\n  UNIQUE KEY \`uk_${table.name}_${col.name}\` (\`${col.name}\`)`;
       }
     });
-    
+
     // 添加索引
     if (table.indexes) {
       table.indexes.forEach(index => {
         sql += `,\n  ${this.generateIndexSQL(index)}`;
       });
     }
-    
+
     // 添加外键
     if (table.foreignKeys) {
       table.foreignKeys.forEach(fk => {
         sql += `,\n  ${this.generateForeignKeySQL(fk)}`;
       });
     }
-    
+
     sql += '\n)';
-    
+
     // 添加表选项
     if (table.engine) {
       sql += ` ENGINE=${table.engine}`;
@@ -801,7 +825,7 @@ export class SchemaBuilder {
     if (table.comment) {
       sql += ` COMMENT='${table.comment.replace(/'/g, "''")}'`;
     }
-    
+
     return sql;
   }
 
@@ -810,27 +834,30 @@ export class SchemaBuilder {
    */
   private generateColumnSQL(column: ColumnDefinition): string {
     let sql = `  \`${column.name}\` ${this.getColumnTypeSQL(column)}`;
-    
+
     if (!column.nullable) {
       sql += ' NOT NULL';
     }
-    
+
     if (column.autoIncrement) {
       sql += ' AUTO_INCREMENT';
     }
-    
+
     if (column.default !== undefined) {
-      if (typeof column.default === 'string' && column.default.toUpperCase().includes('CURRENT_TIMESTAMP')) {
+      if (
+        typeof column.default === 'string' &&
+        column.default.toUpperCase().includes('CURRENT_TIMESTAMP')
+      ) {
         sql += ` DEFAULT ${column.default}`;
       } else {
         sql += ` DEFAULT '${column.default}'`;
       }
     }
-    
+
     if (column.comment) {
       sql += ` COMMENT '${column.comment.replace(/'/g, "''")}'`;
     }
-    
+
     return sql;
   }
 
@@ -869,16 +896,16 @@ export class SchemaBuilder {
   private generateForeignKeySQL(fk: ForeignKeyDefinition): string {
     const columns = fk.columns.map(col => `\`${col}\``).join(', ');
     const refColumns = fk.referencedColumns.map(col => `\`${col}\``).join(', ');
-    
+
     let sql = `CONSTRAINT \`${fk.name}\` FOREIGN KEY (${columns}) REFERENCES \`${fk.referencedTable}\` (${refColumns})`;
-    
+
     if (fk.onUpdate) {
       sql += ` ON UPDATE ${fk.onUpdate.toUpperCase()}`;
     }
     if (fk.onDelete) {
       sql += ` ON DELETE ${fk.onDelete.toUpperCase()}`;
     }
-    
+
     return sql;
   }
 
@@ -887,7 +914,7 @@ export class SchemaBuilder {
    */
   private generateAlterTableSQL(tableName: string, modification: TableModification): string {
     const baseSQL = `ALTER TABLE \`${tableName}\``;
-    
+
     switch (modification.type) {
       case 'add_column':
         const column = modification.data as ColumnDefinition;
@@ -898,31 +925,31 @@ export class SchemaBuilder {
           addSQL += ' FIRST';
         }
         return addSQL;
-        
+
       case 'drop_column':
         return `${baseSQL} DROP COLUMN \`${modification.data.name}\``;
-        
+
       case 'modify_column':
         const modColumn = modification.data as ColumnDefinition;
         return `${baseSQL} MODIFY COLUMN ${this.generateColumnSQL(modColumn).trim()}`;
-        
+
       case 'rename_column':
         return `${baseSQL} RENAME COLUMN \`${modification.data.from}\` TO \`${modification.data.to}\``;
-        
+
       case 'add_index':
         const index = modification.data as IndexDefinition;
         return `${baseSQL} ADD ${this.generateIndexSQL(index)}`;
-        
+
       case 'drop_index':
         return `${baseSQL} DROP INDEX \`${modification.data.name}\``;
-        
+
       case 'add_foreign_key':
         const fk = modification.data as ForeignKeyDefinition;
         return `${baseSQL} ADD ${this.generateForeignKeySQL(fk)}`;
-        
+
       case 'drop_foreign_key':
         return `${baseSQL} DROP FOREIGN KEY \`${modification.data.name}\``;
-        
+
       default:
         throw new Error(`Unsupported modification type: ${modification.type}`);
     }

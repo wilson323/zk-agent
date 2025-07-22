@@ -7,7 +7,11 @@
  * @goals 最大高可用、最低延迟、最优资源使用
  */
 
-import { Logger } from '@/lib/utils/logger';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
+
+const logger = getLogger();
 import { performanceMonitor } from '@/lib/middleware/performance-monitor';
 import { enhancedDatabaseManager } from '@/lib/database/enhanced-database-manager';
 import { unifiedAIAdapter, AIProvider } from '@/lib/ai/unified-ai-adapter';
@@ -63,7 +67,7 @@ export class HighAvailabilityManager {
   private loadBalancingStrategy = LoadBalancingStrategy.HEALTH_BASED;
   private resourceCache: Map<string, any> = new Map();
   private healthCheckInterval: NodeJS.Timeout | null = null;
-  
+
   // 配置
   private readonly config = {
     failover: {
@@ -73,14 +77,14 @@ export class HighAvailabilityManager {
       circuitBreakerThreshold: 5,
       healthCheckInterval: 30000, // 30秒
     } as FailoverConfig,
-    
+
     cache: {
       enabled: true,
       ttl: 300000, // 5分钟
       maxSize: 1000,
       evictionPolicy: 'lru' as const,
     } as CacheStrategy,
-    
+
     resources: {
       maxCpuUsage: 80,
       maxMemoryUsage: 85,
@@ -165,7 +169,7 @@ export class HighAvailabilityManager {
    * 执行健康检查
    */
   private async performHealthChecks(): Promise<void> {
-    const checks = Array.from(this.services.keys()).map(async (serviceName) => {
+    const checks = Array.from(this.services.keys()).map(async serviceName => {
       try {
         const health = await this.checkServiceHealth(serviceName);
         this.updateServiceHealth(serviceName, health);
@@ -174,7 +178,7 @@ export class HighAvailabilityManager {
           service: serviceName,
           error: error.message,
         });
-        
+
         this.updateServiceHealth(serviceName, {
           name: serviceName,
           status: 'unhealthy',
@@ -198,16 +202,16 @@ export class HighAvailabilityManager {
     switch (serviceName) {
       case 'database':
         return await this.checkDatabaseHealth();
-      
+
       case 'ai-fastgpt':
         return await this.checkAIServiceHealth(AIProvider.FASTGPT);
-      
+
       case 'ai-qianwen':
         return await this.checkAIServiceHealth(AIProvider.QIANWEN);
-      
+
       case 'ai-siliconflow':
         return await this.checkAIServiceHealth(AIProvider.SILICONFLOW);
-      
+
       default:
         throw new Error(`Unknown service: ${serviceName}`);
     }
@@ -218,7 +222,7 @@ export class HighAvailabilityManager {
    */
   private async checkDatabaseHealth(): Promise<ServiceHealth> {
     const health = await enhancedDatabaseManager.healthCheck();
-    
+
     return {
       name: 'database',
       status: health.connected ? 'healthy' : 'unhealthy',
@@ -326,12 +330,10 @@ export class HighAvailabilityManager {
    * AI服务故障转移
    */
   private async enableAIFailover(failedService: string): Promise<void> {
-    const healthyAIServices = Array.from(this.services.entries())
-      .filter(([name, health]) => 
-        name.startsWith('ai-') && 
-        name !== failedService && 
-        health.status === 'healthy'
-      );
+    const healthyAIServices = Array.from(this.services.entries()).filter(
+      ([name, health]) =>
+        name.startsWith('ai-') && name !== failedService && health.status === 'healthy'
+    );
 
     if (healthyAIServices.length > 0) {
       this.logger.info('AI failover enabled', {
@@ -356,8 +358,8 @@ export class HighAvailabilityManager {
       .filter(service => service.health.status === 'healthy')
       .sort((a, b) => {
         // 基于延迟和错误率排序
-        const scoreA = a.health.latency + (a.health.errorRate * 10);
-        const scoreB = b.health.latency + (b.health.errorRate * 10);
+        const scoreA = a.health.latency + a.health.errorRate * 10;
+        const scoreB = b.health.latency + b.health.errorRate * 10;
         return scoreA - scoreB;
       });
 
@@ -384,7 +386,7 @@ export class HighAvailabilityManager {
   private async getResourceUsage(): Promise<ResourceUsage> {
     const memoryUsage = process.memoryUsage();
     const cpuUsage = process.cpuUsage();
-    
+
     // 模拟资源使用情况（实际应该从系统获取）
     return {
       cpu: Math.random() * 100,
@@ -424,10 +426,10 @@ export class HighAvailabilityManager {
   private async optimizeCPU(): Promise<void> {
     // 清理缓存
     this.clearExpiredCache();
-    
+
     // 降低非关键任务优先级
     // 这里可以实现具体的CPU优化策略
-    
+
     this.logger.info('CPU optimization completed');
   }
 
@@ -453,7 +455,7 @@ export class HighAvailabilityManager {
   private async optimizeConnections(): Promise<void> {
     // 这里可以实现连接池优化
     // 例如关闭空闲连接、调整连接池大小等
-    
+
     this.logger.info('Connection optimization completed');
   }
 
@@ -549,13 +551,15 @@ export class HighAvailabilityManager {
    */
   getServiceHealth(serviceName?: string): ServiceHealth | Map<string, ServiceHealth> {
     if (serviceName) {
-      return this.services.get(serviceName) || {
-        name: serviceName,
-        status: 'unhealthy',
-        latency: 0,
-        errorRate: 100,
-        lastCheck: 0,
-      };
+      return (
+        this.services.get(serviceName) || {
+          name: serviceName,
+          status: 'unhealthy',
+          latency: 0,
+          errorRate: 100,
+          lastCheck: 0,
+        }
+      );
     }
     return this.services;
   }
@@ -573,5 +577,7 @@ export class HighAvailabilityManager {
 export const highAvailabilityManager = HighAvailabilityManager.getInstance();
 
 // 导出便捷方法
-export const getOptimalAIProvider = highAvailabilityManager.getOptimalAIProvider.bind(highAvailabilityManager);
-export const getSystemStatus = highAvailabilityManager.getSystemStatus.bind(highAvailabilityManager); 
+export const getOptimalAIProvider =
+  highAvailabilityManager.getOptimalAIProvider.bind(highAvailabilityManager);
+export const getSystemStatus =
+  highAvailabilityManager.getSystemStatus.bind(highAvailabilityManager);

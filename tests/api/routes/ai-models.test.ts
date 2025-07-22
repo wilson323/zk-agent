@@ -17,18 +17,18 @@ jest.mock('../../../lib/services/ai-model-manager', () => ({
   updateModel: jest.fn(),
   deleteModel: jest.fn(),
   validateModelConfig: jest.fn(),
-  testModelConnection: jest.fn()
+  testModelConnection: jest.fn(),
 }));
 
 jest.mock('../../../lib/auth/session', () => ({
   validateSession: jest.fn(),
-  checkAdminPermissions: jest.fn()
+  checkAdminPermissions: jest.fn(),
 }));
 
 jest.mock('../../../lib/storage/model-registry', () => ({
   registerModel: jest.fn(),
   unregisterModel: jest.fn(),
-  getModelMetadata: jest.fn()
+  getModelMetadata: jest.fn(),
 }));
 
 describe('AI Models API Error Handling', () => {
@@ -99,9 +99,9 @@ describe('AI Models API Error Handling', () => {
         config: {
           apiKey: 'test-key',
           model: 'gpt-3.5-turbo',
-          maxTokens: 4096
+          maxTokens: 4096,
         },
-        description: 'Test model'
+        description: 'Test model',
       };
     });
 
@@ -110,7 +110,7 @@ describe('AI Models API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/ai-models', {
         method: 'POST',
         body: JSON.stringify(invalidData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -129,7 +129,7 @@ describe('AI Models API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/ai-models', {
         method: 'POST',
         body: JSON.stringify(validModelData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -141,12 +141,14 @@ describe('AI Models API Error Handling', () => {
 
     it('should handle model connection test failure', async () => {
       const { testModelConnection } = require('../../../lib/services/ai-model-manager');
-      testModelConnection.mockRejectedValue(new Error('Connection test failed: Invalid credentials'));
+      testModelConnection.mockRejectedValue(
+        new Error('Connection test failed: Invalid credentials')
+      );
 
       const request = new NextRequest('http://localhost:3000/api/ai-models', {
         method: 'POST',
         body: JSON.stringify(validModelData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -163,7 +165,7 @@ describe('AI Models API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/ai-models', {
         method: 'POST',
         body: JSON.stringify(validModelData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -180,7 +182,7 @@ describe('AI Models API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/ai-models', {
         method: 'POST',
         body: JSON.stringify(validModelData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -197,7 +199,7 @@ describe('AI Models API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/ai-models', {
         method: 'POST',
         body: JSON.stringify(validModelData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -211,7 +213,7 @@ describe('AI Models API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/ai-models', {
         method: 'POST',
         body: '{invalid json}',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -231,7 +233,7 @@ describe('AI Models API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/ai-models/nonexistent-id', {
         method: 'PUT',
         body: JSON.stringify({ name: 'updated-name' }),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await PUT(request);
@@ -246,7 +248,7 @@ describe('AI Models API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/ai-models/invalid-id-format', {
         method: 'PUT',
         body: JSON.stringify({ name: 'updated-name' }),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await PUT(request);
@@ -263,7 +265,7 @@ describe('AI Models API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/ai-models/model-123', {
         method: 'PUT',
         body: JSON.stringify({ name: 'updated-name' }),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await PUT(request);
@@ -275,12 +277,14 @@ describe('AI Models API Error Handling', () => {
 
     it('should handle configuration validation failure', async () => {
       const { validateModelConfig } = require('../../../lib/services/ai-model-manager');
-      validateModelConfig.mockRejectedValue(new Error('Invalid configuration: missing required parameter'));
+      validateModelConfig.mockRejectedValue(
+        new Error('Invalid configuration: missing required parameter')
+      );
 
       const request = new NextRequest('http://localhost:3000/api/ai-models/model-123', {
         method: 'PUT',
         body: JSON.stringify({ config: { invalidParam: 'value' } }),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await PUT(request);
@@ -297,7 +301,7 @@ describe('AI Models API Error Handling', () => {
       getModel.mockResolvedValue(null);
 
       const request = new NextRequest('http://localhost:3000/api/ai-models/nonexistent-id', {
-        method: 'DELETE'
+        method: 'DELETE',
       });
 
       const response = await DELETE(request);
@@ -312,7 +316,7 @@ describe('AI Models API Error Handling', () => {
       deleteModel.mockRejectedValue(new Error('Cannot delete model: has active dependencies'));
 
       const request = new NextRequest('http://localhost:3000/api/ai-models/model-123', {
-        method: 'DELETE'
+        method: 'DELETE',
       });
 
       const response = await DELETE(request);
@@ -327,7 +331,7 @@ describe('AI Models API Error Handling', () => {
       unregisterModel.mockRejectedValue(new Error('Failed to unregister from registry'));
 
       const request = new NextRequest('http://localhost:3000/api/ai-models/model-123', {
-        method: 'DELETE'
+        method: 'DELETE',
       });
 
       const response = await DELETE(request);
@@ -342,7 +346,7 @@ describe('AI Models API Error Handling', () => {
       deleteModel.mockRejectedValue(new Error('Failed to delete associated resources'));
 
       const request = new NextRequest('http://localhost:3000/api/ai-models/model-123', {
-        method: 'DELETE'
+        method: 'DELETE',
       });
 
       const response = await DELETE(request);
@@ -364,9 +368,9 @@ describe('AI Models API Error Handling', () => {
           name: 'openai-model',
           type: 'chat',
           provider: 'openai',
-          config: { apiKey: 'invalid-key' }
+          config: { apiKey: 'invalid-key' },
         }),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -386,9 +390,9 @@ describe('AI Models API Error Handling', () => {
           name: 'azure-model',
           type: 'chat',
           provider: 'azure-openai',
-          config: { endpoint: 'invalid-url' }
+          config: { endpoint: 'invalid-url' },
         }),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -408,9 +412,9 @@ describe('AI Models API Error Handling', () => {
           name: 'claude-model',
           type: 'chat',
           provider: 'anthropic',
-          config: { apiKey: 'test-key' }
+          config: { apiKey: 'test-key' },
         }),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -424,12 +428,14 @@ describe('AI Models API Error Handling', () => {
   describe('Rate Limiting and Throttling', () => {
     it('should handle rate limit exceeded for model operations', async () => {
       // Simulate multiple rapid requests
-      const requests = Array.from({ length: 10 }, () => 
-        new NextRequest('http://localhost:3000/api/ai-models', {
-          method: 'POST',
-          body: JSON.stringify({ name: 'test-model', type: 'chat', provider: 'openai' }),
-          headers: { 'Content-Type': 'application/json' }
-        })
+      const requests = Array.from(
+        { length: 10 },
+        () =>
+          new NextRequest('http://localhost:3000/api/ai-models', {
+            method: 'POST',
+            body: JSON.stringify({ name: 'test-model', type: 'chat', provider: 'openai' }),
+            headers: { 'Content-Type': 'application/json' },
+          })
       );
 
       const responses = await Promise.all(requests.map(req => POST(req)));
@@ -445,7 +451,7 @@ describe('AI Models API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/ai-models', {
         method: 'POST',
         body: JSON.stringify({ name: 'test-model', type: 'chat', provider: 'openai' }),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -463,7 +469,7 @@ describe('AI Models API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/ai-models', {
         method: 'POST',
         body: JSON.stringify({ name: 'test-model', type: 'chat', provider: 'openai' }),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -480,7 +486,7 @@ describe('AI Models API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/ai-models/model-123', {
         method: 'PUT',
         body: JSON.stringify({ name: 'updated-name' }),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await PUT(request);
@@ -499,7 +505,7 @@ describe('AI Models API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/ai-models', {
         method: 'POST',
         body: JSON.stringify({ name: 'test-model', type: 'chat', provider: 'openai' }),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       await POST(request);
@@ -515,7 +521,7 @@ describe('AI Models API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/ai-models', {
         method: 'POST',
         body: JSON.stringify({ name: 'test-model', type: 'chat', provider: 'openai' }),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -534,7 +540,7 @@ describe('AI Models API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/ai-models', {
         method: 'POST',
         body: JSON.stringify({ name: 'test-model', type: 'chat', provider: 'openai' }),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       await POST(request);
@@ -550,7 +556,7 @@ describe('AI Models API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/ai-models', {
         method: 'POST',
         body: JSON.stringify({ name: 'test-model', type: 'chat', provider: 'openai' }),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);

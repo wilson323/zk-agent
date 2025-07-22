@@ -1,220 +1,233 @@
-// @ts-nocheck
-import { type Observable, Subject, BehaviorSubject } from "rxjs"
-import { logger } from '@/lib/utils/logger';
+import { type Observable, Subject, BehaviorSubject } from 'rxjs';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
 
 import type {
   AgUIEvent,
-  RunInput,
-  RunConfig,
+  RunAgentInput,
   Message,
   Tool,
   AgentDefinition,
+  EventType,
   RunStartedEvent,
   RunFinishedEvent,
   RunErrorEvent,
   TextMessageStartEvent,
   TextMessageContentEvent,
+  TextMessageChunkEvent,
   TextMessageEndEvent,
   ToolCallStartEvent,
   ToolCallArgsEvent,
   ToolCallResultEvent,
   ToolCallEndEvent,
+  StateDeltaEvent,
   StateSnapshotEvent,
-} from "./types"
+} from './types';
 
 /**
  * AG-UI协议标准运行时
  * 严格遵循AG-UI协议规范实现
  */
 export class AgUIRuntime {
-  private eventSubject = new Subject<AgUIEvent>()
-  private stateSubject = new BehaviorSubject<Record<string, any>>({})
-  private messagesSubject = new BehaviorSubject<Message[]>([])
+  private eventSubject = new Subject<AgUIEvent>();
+  private stateSubject = new BehaviorSubject<Record<string, any>>({});
+  private messagesSubject = new BehaviorSubject<Message[]>([]);
 
-  private currentState: Record<string, any> = {}
-  private currentMessages: Message[] = []
-  private tools: Tool[] = []
-  private agent: AgentDefinition | null = null
+  private currentState: Record<string, any> = {};
+  private currentMessages: Message[] = [];
+  private tools: Tool[] = [];
+  private agent: AgentDefinition | null = null;
 
   constructor(
     private config: {
-      threadId: string
-      debug?: boolean
-      apiEndpoint?: string
-    },
-  ) {}
+      threadId: string;
+      debug?: boolean;
+      apiEndpoint?: string;
+    }
+  ) { }
 
   /**
    * 设置智能体定义
    */
   setAgent(agent: AgentDefinition): void {
-    this.agent = agent
-    this.tools = agent.tools || []
-    this.updateState({ agentId: agent.id, ...agent.variables })
+    this.agent = agent;
+    this.tools = agent.tools || [];
+    this.updateState({ agentId: agent.id, ...agent.variables });
   }
 
   /**
    * 执行运行
    */
-  async run(input: RunInput, config?: RunConfig): Promise<void> {
-    const { threadId, runId, messages, tools, state } = input
+  async run(input: RunAgentInput): Promise<void> {
+    const { threadId, runId, messages, tools, state, config } = input;
 
     // 发送运行开始事件
     this.emitEvent({
-      type: "run-started",
+      type: EventType.RUN_STARTED,
       threadId,
       runId,
       timestamp: Date.now(),
-    } as RunStartedEvent)
+    } as RunStartedEvent);
 
     try {
       // 更新状态和消息
-      this.updateState(state)
-      this.updateMessages(messages)
-      this.tools = tools
+      if (state) {
+        this.updateState(state);
+      }
+      if (messages) {
+        this.updateMessages(messages);
+      }
+      if (tools) {
+        this.tools = tools;
+      }
 
       // 处理最后一条用户消息
-      const lastMessage = messages[messages.length - 1]
-      if (lastMessage && lastMessage.role === "user") {
-        await this.processUserMessage(lastMessage, config)
+      const lastMessage = messages?.[messages.length - 1];
+      if (lastMessage && lastMessage.role === 'user') {
+        await this.processUserMessage(lastMessage, config);
       }
 
       // 发送运行完成事件
       this.emitEvent({
-        type: "run-finished",
+        type: EventType.RUN_FINISHED,
         threadId,
         runId,
         timestamp: Date.now(),
-      } as RunFinishedEvent)
+      } as RunFinishedEvent);
     } catch (error) {
       // 发送错误事件
       this.emitEvent({
-        type: "run-error",
+        type: EventType.RUN_ERROR,
         threadId,
         runId,
         error: {
-          message: error instanceof Error ? error.message : "Unknown error",
+          message: error instanceof Error ? error.message : 'Unknown error',
           details: error,
         },
         timestamp: Date.now(),
-      } as RunErrorEvent)
+      } as RunErrorEvent);
     }
   }
 
   /**
    * 处理用户消息
    */
-  private async processUserMessage(message: Message, config?: RunConfig): Promise<void> {
-    const messageId = `assistant-${Date.now()}`
+  private async processUserMessage(message: Message, config?: any): Promise<void> {
+    const messageId = `assistant-${Date.now()}`;
 
     // 发送消息开始事件
     this.emitEvent({
-      type: "text-message-start",
+      type: EventType.TEXT_MESSAGE_START,
       messageId,
-      role: "assistant",
+      role: 'assistant',
       timestamp: Date.now(),
-    } as TextMessageStartEvent)
+    } as TextMessageStartEvent);
 
     try {
       // 准备请求数据
       const requestData = {
         appId: this.currentState.appId,
         chatId: this.currentState.chatId,
-        messages: this.currentMessages.map((msg) => ({
+        messages: this.currentMessages.map(msg => ({
           role: msg.role,
-          content: typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content),
+          content: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content),
         })),
         variables: this.currentState.variables || {},
         stream: true,
         ...config,
-      }
+      };
 
       // 调用FastGPT API
-      const response = await fetch(this.config.apiEndpoint || "/api/fastgpt/chat", {
-        method: "POST",
+      const response = await fetch(this.config.apiEndpoint || '/api/fastgpt/chat', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify(requestData),
-      })
+      });
 
       if (!response.ok) {
-        throw new Error(`API request failed: ${response.statusText}`)
+        throw new Error(`API request failed: ${response.statusText}`);
       }
 
       // 处理流式响应
-      await this.handleStreamResponse(response.body!, messageId)
+      await this.handleStreamResponse(response.body!, messageId);
     } catch (error) {
-      logger.error("Error processing user message:", error)
+      logger.error('Error processing user message:', error);
 
       // 发送错误内容
       this.emitEvent({
-        type: "text-message-content",
+        type: 'text-message-content',
         messageId,
-        delta: "抱歉，处理您的请求时遇到了错误。",
+        delta: '抱歉，处理您的请求时遇到了错误。',
         timestamp: Date.now(),
-      } as TextMessageContentEvent)
+      } as TextMessageContentEvent);
     }
 
     // 发送消息结束事件
     this.emitEvent({
-      type: "text-message-end",
+      type: 'text-message-end',
       messageId,
       timestamp: Date.now(),
-    } as TextMessageEndEvent)
+    } as TextMessageEndEvent);
   }
 
   /**
    * 处理流式响应
    */
   private async handleStreamResponse(stream: ReadableStream, messageId: string): Promise<void> {
-    const reader = stream.getReader()
-    const decoder = new TextDecoder()
-    let buffer = ""
-    let fullContent = ""
+    const reader = stream.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let fullContent = '';
 
     try {
       while (true) {
-        const { done, value } = await reader.read()
+        const { done, value } = await reader.read();
 
-        if (done) {break}
+        if (done) {
+          break;
+        }
 
-        const chunk = decoder.decode(value, { stream: true })
-        buffer += chunk
+        const chunk = decoder.decode(value, { stream: true });
+        buffer += chunk;
 
         // 处理完整的行
-        const lines = buffer.split("\n")
-        buffer = lines.pop() || ""
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
 
         for (const line of lines) {
-          if (line.startsWith("data: ")) {
-            const data = line.substring(6).trim()
+          if (line.startsWith('data: ')) {
+            const data = line.substring(6).trim();
 
-            if (data === "[DONE]") {continue}
+            if (data === '[DONE]') {
+              continue;
+            }
 
             try {
-              const parsed = JSON.parse(data)
+              const parsed = JSON.parse(data);
 
               // 处理文本内容
               if (parsed.choices?.[0]?.delta?.content) {
-                const delta = parsed.choices[0].delta.content
-                fullContent += delta
+                const delta = parsed.choices[0].delta.content;
+                fullContent += delta;
 
                 this.emitEvent({
-                  type: "text-message-content",
+                  type: EventType.TEXT_MESSAGE_CHUNK,
                   messageId,
                   delta,
                   timestamp: Date.now(),
-                } as TextMessageContentEvent)
+                } as TextMessageChunkEvent);
               }
 
               // 处理工具调用
               if (parsed.choices?.[0]?.delta?.tool_calls) {
-                await this.handleToolCalls(parsed.choices[0].delta.tool_calls, messageId)
+                await this.handleToolCalls(parsed.choices[0].delta.tool_calls, messageId);
               }
             } catch (e) {
               if (this.config.debug) {
-                logger.error("Error parsing SSE data:", e)
+                logger.error('Error parsing SSE data:', e);
               }
             }
           }
@@ -225,15 +238,15 @@ export class AgUIRuntime {
       if (fullContent) {
         const assistantMessage: Message = {
           id: messageId,
-          role: "assistant",
+          role: 'assistant',
           content: fullContent,
           timestamp: Date.now(),
-        }
+        };
 
-        this.updateMessages([...this.currentMessages, assistantMessage])
+        this.updateMessages([...this.currentMessages, assistantMessage]);
       }
     } finally {
-      reader.releaseLock()
+      reader.releaseLock();
     }
   }
 
@@ -242,59 +255,60 @@ export class AgUIRuntime {
    */
   private async handleToolCalls(toolCalls: any[], parentMessageId: string): Promise<void> {
     for (const toolCall of toolCalls) {
-      const toolCallId = toolCall.id || `tool-${Date.now()}-${Math.random()}`
-      const toolName = toolCall.function?.name || "unknown"
+      const toolCallId = toolCall.id || `tool-${Date.now()}-${Math.random()}`;
+      const toolName = toolCall.function?.name || 'unknown';
 
       // 发送工具调用开始事件
       this.emitEvent({
-        type: "tool-call-start",
+        type: EventType.TOOL_CALL_START,
         toolCallId,
         toolName,
         parentMessageId,
         timestamp: Date.now(),
-      } as ToolCallStartEvent)
+      } as ToolCallStartEvent);
 
       // 发送工具调用参数事件
       if (toolCall.function?.arguments) {
         this.emitEvent({
-          type: "tool-call-args",
+          type: EventType.TOOL_CALL_ARGS,
           toolCallId,
-          argsJson: toolCall.function.arguments,
+          args: toolCall.function.arguments,
           timestamp: Date.now(),
-        } as ToolCallArgsEvent)
+        } as ToolCallArgsEvent);
       }
 
       // 执行工具
       try {
-        const result = await this.executeTool(toolName, toolCall.function?.arguments || "{}")
+        const result = await this.executeTool(toolName, toolCall.function?.arguments || '{}');
 
         // 发送工具调用结果事件
         this.emitEvent({
-          type: "tool-call-result",
+          type: EventType.TOOL_CALL_RESULT,
           toolCallId,
           result,
+          success: true,
           timestamp: Date.now(),
-        } as ToolCallResultEvent)
+        } as ToolCallResultEvent);
       } catch (error) {
-        logger.error("Tool execution error:", error)
+        logger.error('Tool execution error:', error);
 
         // 发送错误结果
         this.emitEvent({
-          type: "tool-call-result",
+          type: EventType.TOOL_CALL_RESULT,
           toolCallId,
-          result: {
-            error: error instanceof Error ? error.message : "Tool execution failed",
-          },
+          result: null,
+          success: false,
+          error: error instanceof Error ? error.message : 'Tool execution failed',
           timestamp: Date.now(),
-        } as ToolCallResultEvent)
+        } as ToolCallResultEvent);
       }
 
       // 发送工具调用结束事件
       this.emitEvent({
-        type: "tool-call-end",
+        type: EventType.TOOL_CALL_END,
         toolCallId,
         timestamp: Date.now(),
-      } as ToolCallEndEvent)
+      } as ToolCallEndEvent);
     }
   }
 
@@ -302,31 +316,31 @@ export class AgUIRuntime {
    * 执行工具
    */
   private async executeTool(toolName: string, argsJson: string): Promise<any> {
-    const tool = this.tools.find((t) => t.function.name === toolName)
+    const tool = this.tools.find(t => t.function.name === toolName);
 
     if (!tool) {
-      throw new Error(`Tool not found: ${toolName}`)
+      throw new Error(`Tool not found: ${toolName}`);
     }
 
-    let args: any = {}
+    let args: any = {};
     try {
-      args = JSON.parse(argsJson)
+      args = JSON.parse(argsJson);
     } catch (e) {
-      logger.error("Error parsing tool arguments:", e)
+      logger.error('Error parsing tool arguments:', e);
     }
 
     // 根据工具名称执行相应逻辑
     switch (toolName) {
-      case "get_weather":
-        return this.getWeather(args)
-      case "search_web":
-        return this.searchWeb(args)
-      case "analyze_cad":
-        return this.analyzeCAD(args)
-      case "generate_poster":
-        return this.generatePoster(args)
+      case 'get_weather':
+        return this.getWeather(args);
+      case 'search_web':
+        return this.searchWeb(args);
+      case 'analyze_cad':
+        return this.analyzeCAD(args);
+      case 'generate_poster':
+        return this.generatePoster(args);
       default:
-        throw new Error(`Unknown tool: ${toolName}`)
+        throw new Error(`Unknown tool: ${toolName}`);
     }
   }
 
@@ -337,10 +351,10 @@ export class AgUIRuntime {
     // 模拟天气查询
     return {
       location: args.location,
-      temperature: "22°C",
-      condition: "晴天",
-      humidity: "65%",
-    }
+      temperature: '22°C',
+      condition: '晴天',
+      humidity: '65%',
+    };
   }
 
   private async searchWeb(args: any): Promise<any> {
@@ -349,23 +363,23 @@ export class AgUIRuntime {
       query: args.query,
       results: [
         {
-          title: "搜索结果1",
-          url: "https://example.com/1",
-          snippet: "这是搜索结果的摘要...",
+          title: '搜索结果1',
+          url: 'https://example.com/1',
+          snippet: '这是搜索结果的摘要...',
         },
       ],
-    }
+    };
   }
 
   private async analyzeCAD(args: any): Promise<any> {
     // CAD分析工具
     return {
       fileId: args.fileId,
-      analysis: "CAD文件分析结果...",
+      analysis: 'CAD文件分析结果...',
       structures: [],
       devices: [],
       risks: [],
-    }
+    };
   }
 
   private async generatePoster(args: any): Promise<any> {
@@ -373,31 +387,44 @@ export class AgUIRuntime {
     return {
       description: args.description,
       style: args.style,
-      imageUrl: "/generated-poster.jpg",
-    }
+      imageUrl: '/generated-poster.jpg',
+    };
   }
 
   /**
    * 更新状态
    */
   private updateState(newState: Record<string, any>): void {
-    this.currentState = { ...this.currentState, ...newState }
-    this.stateSubject.next(this.currentState)
+    const oldState = { ...this.currentState };
+    this.currentState = { ...this.currentState, ...newState };
+    this.stateSubject.next(this.currentState);
 
-    // 发送状态快照事件
+    // 发送状态增量事件
     this.emitEvent({
-      type: "state-snapshot",
-      state: this.currentState,
+      type: EventType.STATE_DELTA,
+      delta: newState,
       timestamp: Date.now(),
-    } as StateSnapshotEvent)
+    } as StateDeltaEvent);
+  }
+
+  /**
+   * 发送完整状态快照
+   */
+  sendStateSnapshot(): void {
+    this.emitEvent({
+      type: EventType.STATE_SNAPSHOT,
+      state: this.currentState,
+      messages: this.currentMessages,
+      timestamp: Date.now(),
+    } as StateSnapshotEvent);
   }
 
   /**
    * 更新消息
    */
   private updateMessages(messages: Message[]): void {
-    this.currentMessages = messages
-    this.messagesSubject.next(this.currentMessages)
+    this.currentMessages = messages;
+    this.messagesSubject.next(this.currentMessages);
   }
 
   /**
@@ -405,52 +432,52 @@ export class AgUIRuntime {
    */
   private emitEvent(event: AgUIEvent): void {
     if (this.config.debug) {
-      console.debug("AG-UI Event:", event)
+      console.debug('AG-UI Event:', event);
     }
-    this.eventSubject.next(event)
+    this.eventSubject.next(event);
   }
 
   /**
    * 获取事件流
    */
   getEventStream(): Observable<AgUIEvent> {
-    return this.eventSubject.asObservable()
+    return this.eventSubject.asObservable();
   }
 
   /**
    * 获取状态流
    */
   getStateStream(): Observable<Record<string, any>> {
-    return this.stateSubject.asObservable()
+    return this.stateSubject.asObservable();
   }
 
   /**
    * 获取消息流
    */
   getMessagesStream(): Observable<Message[]> {
-    return this.messagesSubject.asObservable()
+    return this.messagesSubject.asObservable();
   }
 
   /**
    * 获取当前状态
    */
   getState(): Record<string, any> {
-    return { ...this.currentState }
+    return { ...this.currentState };
   }
 
   /**
    * 获取当前消息
    */
   getMessages(): Message[] {
-    return [...this.currentMessages]
+    return [...this.currentMessages];
   }
 
   /**
    * 清理资源
    */
   dispose(): void {
-    this.eventSubject.complete()
-    this.stateSubject.complete()
-    this.messagesSubject.complete()
+    this.eventSubject.complete();
+    this.stateSubject.complete();
+    this.messagesSubject.complete();
   }
 }

@@ -7,7 +7,11 @@
  * @performance 缓存命中率≥90%，内存使用优化，智能清理
  */
 
-import { Logger } from '@/lib/utils/logger';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
+
+const logger = getLogger();
 
 // 导入统一的缓存类型定义
 import {
@@ -17,7 +21,7 @@ import {
   CacheConfig,
   CacheStats as CacheMetrics,
   CacheEvent,
-  ICacheManager
+  ICacheManager,
 } from '../shared/cache-types';
 
 // 保持向后兼容的类型别名
@@ -38,9 +42,9 @@ export class EnhancedCacheManager {
   private compressionWorker: Worker | null = null;
 
   private readonly config: CacheConfig = {
-    maxSize: 100 * 1024 * 1024,      // 100MB
-    maxItems: 10000,                  // 10K items
-    defaultTTL: 300000,               // 5分钟
+    maxSize: 100 * 1024 * 1024, // 100MB
+    maxItems: 10000, // 10K items
+    defaultTTL: 300000, // 5分钟
     evictionPolicy: EvictionPolicy.ADAPTIVE,
     compressionEnabled: true,
     persistenceEnabled: false,
@@ -102,7 +106,8 @@ export class EnhancedCacheManager {
       let serializedValue = JSON.stringify(value);
       let size = Buffer.byteLength(serializedValue, 'utf8');
 
-      if (compress && size > 1024) { // 只压缩大于1KB的数据
+      if (compress && size > 1024) {
+        // 只压缩大于1KB的数据
         serializedValue = await this.compressData(serializedValue);
         size = Buffer.byteLength(serializedValue, 'utf8');
       }
@@ -133,7 +138,6 @@ export class EnhancedCacheManager {
         priority,
         compressed: compress && size < Buffer.byteLength(JSON.stringify(value), 'utf8'),
       });
-
     } catch (error) {
       this.logger.error('Failed to set cache item', {
         key,
@@ -179,7 +183,6 @@ export class EnhancedCacheManager {
       this.emitEvent('hit', key);
 
       return result;
-
     } catch (error) {
       this.logger.error('Failed to get cache item', {
         key,
@@ -208,7 +211,7 @@ export class EnhancedCacheManager {
    */
   deleteByTags(tags: string[]): number {
     let deletedCount = 0;
-    
+
     for (const [key, item] of this.cache.entries()) {
       if (item.tags.some(tag => tags.includes(tag))) {
         this.cache.delete(key);
@@ -234,7 +237,7 @@ export class EnhancedCacheManager {
     this.cache.clear();
     this.initializeMetrics();
     this.emitEvent('clear', 'all');
-    
+
     this.logger.info('Cache cleared', { itemCount });
   }
 
@@ -243,14 +246,16 @@ export class EnhancedCacheManager {
    */
   has(key: string): boolean {
     const item = this.cache.get(key);
-    if (!item) {return false;}
-    
+    if (!item) {
+      return false;
+    }
+
     // 检查过期
     if (Date.now() > item.expiry) {
       this.cache.delete(key);
       return false;
     }
-    
+
     return true;
   }
 
@@ -281,7 +286,9 @@ export class EnhancedCacheManager {
    */
   getItemInfo(key: string): Partial<CacheItem> | null {
     const item = this.cache.get(key);
-    if (!item) {return null;}
+    if (!item) {
+      return null;
+    }
 
     return {
       key: item.key,
@@ -372,19 +379,19 @@ export class EnhancedCacheManager {
     switch (this.config.evictionPolicy) {
       case EvictionPolicy.LRU:
         return items.sort((a, b) => a[1].lastAccessed - b[1].lastAccessed);
-      
+
       case EvictionPolicy.LFU:
         return items.sort((a, b) => a[1].hits - b[1].hits);
-      
+
       case EvictionPolicy.TTL:
         return items.sort((a, b) => a[1].expiry - b[1].expiry);
-      
+
       case EvictionPolicy.PRIORITY:
         return items.sort((a, b) => a[1].priority - b[1].priority);
-      
+
       case EvictionPolicy.ADAPTIVE:
         return this.adaptiveSort(items);
-      
+
       default:
         return items;
     }
@@ -395,15 +402,15 @@ export class EnhancedCacheManager {
    */
   private adaptiveSort(items: [string, CacheItem][]): [string, CacheItem][] {
     const now = Date.now();
-    
+
     return items.sort((a, b) => {
       const itemA = a[1];
       const itemB = b[1];
-      
+
       // 综合评分：优先级 + 命中率 + 新鲜度
       const scoreA = this.calculateAdaptiveScore(itemA, now);
       const scoreB = this.calculateAdaptiveScore(itemB, now);
-      
+
       return scoreA - scoreB; // 分数低的先清理
     });
   }
@@ -427,9 +434,11 @@ export class EnhancedCacheManager {
     const age = now - (item.expiry - this.config.defaultTTL);
     const freshnessScore = Math.max(0, 1 - age / this.config.defaultTTL);
 
-    return priorityScore * priorityWeight + 
-           hitRateScore * hitRateWeight + 
-           freshnessScore * freshnessWeight;
+    return (
+      priorityScore * priorityWeight +
+      hitRateScore * hitRateWeight +
+      freshnessScore * freshnessWeight
+    );
   }
 
   /**
@@ -447,7 +456,9 @@ export class EnhancedCacheManager {
    * 更新指标
    */
   private updateMetrics(operation: string, key: string, sizeChange: number = 0): void {
-    if (!this.config.metricsEnabled) {return;}
+    if (!this.config.metricsEnabled) {
+      return;
+    }
 
     switch (operation) {
       case 'hit':
@@ -528,7 +539,7 @@ export class EnhancedCacheManager {
     if (usagePercent > 80) {
       const targetReduction = this.metrics.totalSize * 0.2; // 减少20%
       this.evictItems(targetReduction);
-      
+
       this.logger.warn('High memory usage detected, cache optimized', {
         heapUsedMB: Math.round(heapUsedMB),
         heapTotalMB: Math.round(heapTotalMB),
@@ -542,7 +553,9 @@ export class EnhancedCacheManager {
    * 初始化压缩
    */
   private initializeCompression(): void {
-    if (!this.config.compressionEnabled) {return;}
+    if (!this.config.compressionEnabled) {
+      return;
+    }
 
     // 这里可以初始化压缩工作线程
     // 为了简化，我们使用同步压缩
@@ -553,7 +566,9 @@ export class EnhancedCacheManager {
    * 压缩数据
    */
   private async compressData(data: string): Promise<string> {
-    if (!this.config.compressionEnabled) {return data;}
+    if (!this.config.compressionEnabled) {
+      return data;
+    }
 
     try {
       // 简单的压缩实现（实际应该使用更好的压缩算法）
@@ -571,7 +586,9 @@ export class EnhancedCacheManager {
    * 解压缩数据
    */
   private async decompressData(data: string): Promise<string> {
-    if (!this.isCompressed(data)) {return data;}
+    if (!this.isCompressed(data)) {
+      return data;
+    }
 
     try {
       const compressed = data.replace('__COMPRESSED__', '');
@@ -613,7 +630,7 @@ export class EnhancedCacheManager {
   getStats(): any {
     const metrics = this.getMetrics();
     const topKeys = this.getTopKeys(10);
-    
+
     return {
       metrics,
       topKeys,
