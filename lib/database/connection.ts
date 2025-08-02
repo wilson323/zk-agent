@@ -281,7 +281,7 @@ async function checkOptimizationStatus(): Promise<{
     return {
       enabled: true,
       componentsActive: Object.values(optimizationStatus).filter(Boolean).length,
-      lastOptimization: optimizationStatus.lastOptimization,
+      lastOptimization: null,
       recommendations: recommendations.slice(0, 5), // 限制返回前5个建议
     };
   } catch (error) {
@@ -365,10 +365,6 @@ async function checkMigrationStatus(): Promise<{
 }
 
 /**
- * 关闭数据库连接
- * @returns {Promise<void>}
- */
-/**
  * 获取数据库性能概览
  * @returns {Promise<DatabasePerformanceOverview>} 数据库性能概览
  */
@@ -425,8 +421,4 @@ export default prisma;
 // 导出类型
 export type { DatabaseStatus, DatabaseHealthCheck, DatabasePerformanceOverview };
 
-// 导出数据库连接函数
-export { getDatabaseConnection, closeDatabaseConnection };
-
-// 导出数据库健康检查函数
-export { checkDatabaseHealth, getDatabasePerformance, getDatabaseStatus } from './health-check';
+// 注意：数据库健康检查函数需要在 health-check.ts 文件中实现后再导出

@@ -11,8 +11,6 @@ import { getLogger } from '@/lib/utils/logger';
 
 const logger = getLogger();
 
-const logger = getLogger();
-
 // 连接池配置接口
 export interface ConnectionPoolConfig {
   maxConnections: number;
@@ -281,7 +279,7 @@ export class EnhancedDatabaseConnection extends EventEmitter {
         await this.validateConnection();
         this.emit('healthCheck', true);
       } catch (error) {
-        logger.warn('Health check failed:', error);
+        logger.warn('Health check failed', { error });
         this.emit('healthCheck', false);
         this.handleConnectionError(error as Error);
       }

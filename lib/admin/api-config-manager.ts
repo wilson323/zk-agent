@@ -1,7 +1,7 @@
 import { DEFAULT_API_CONFIG } from '@/config/fastgpt';
 import { getLogger } from '@/lib/utils/logger';
+import { secureStorage } from '@/lib/utils/secure-storage';
 
-const logger = getLogger();
 
 const logger = getLogger();
 
@@ -18,7 +18,7 @@ interface ApiTestResult {
 
 export const loadApiConfig = (): ApiConfig => {
   try {
-    const localConfig = localStorage.getItem('ai_chat_api_config');
+    const localConfig = secureStorage.getItem('ai_chat_api_config');
     if (localConfig) {
       try {
         const config = JSON.parse(localConfig);
@@ -40,7 +40,7 @@ export const loadApiConfig = (): ApiConfig => {
 
 export const saveApiConfig = async (config: ApiConfig): Promise<void> => {
   try {
-    localStorage.setItem('ai_chat_api_config', JSON.stringify(config));
+    secureStorage.setItem('ai_chat_api_config', JSON.stringify(config));
   } catch (error) {
     logger.error('保存API配置失败:', error);
     throw error;

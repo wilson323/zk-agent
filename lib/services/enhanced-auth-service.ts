@@ -68,7 +68,6 @@ export class EnhancedAuthService implements IAuthService {
     }
 
     // 更新登录统计
-    const prisma = enhancedDb.getClient();
     await prisma.user.update({
       where: { id: user.id },
       data: {

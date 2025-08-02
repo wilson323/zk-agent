@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file fastgpt\chat\route.ts
  * @description FastGPT chat API route with streaming support
  * @author ZK-Agent Team
@@ -81,7 +81,6 @@ export const POST = createApiRoute(
                 controller.enqueue(value);
               }
             } catch (error) {
-              console.error('Stream reading error:', error);
               controller.close();
             }
           },
@@ -112,7 +111,6 @@ export const POST = createApiRoute(
       const data = await response.json();
       return ApiResponseWrapper.success(data);
     } catch (error) {
-      console.error('FastGPT chat error:', error);
       return ApiResponseWrapper.error(
         ErrorCode.INTERNAL_SERVER_ERROR,
         'Internal server error',

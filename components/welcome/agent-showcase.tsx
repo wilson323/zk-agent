@@ -9,8 +9,14 @@
 'use client';
 
 import React, { memo, useCallback } from 'react';
+import Link from 'next/link';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { FEATURED_AGENTS } from '@/lib/welcome/constants';
 import type { AgentData } from '@/types/agent';
+import { ExternalLink, Users, Star, ArrowRight, Sparkles } from 'lucide-react';
 
 // 智能体卡片组件
 const AgentCard = memo<{ agent: AgentData }>(({ agent }) => {
@@ -92,18 +98,14 @@ const AgentCard = memo<{ agent: AgentData }>(({ agent }) => {
             <span className='text-sm font-medium'>{formatUsers(agent.users)} 用户</span>
           </div>
 
-          <Button
-            asChild
-            variant='ghost'
-            size='sm'
-            className='text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors duration-200'
+          <Link 
+            href={agent.href} 
             onClick={handleCardClick}
+            className='flex items-center space-x-1 group/button text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors duration-200 px-3 py-1.5 rounded-md text-sm font-medium'
           >
-            <Link href={agent.href} className='flex items-center space-x-1 group/button'>
-              <span className='font-medium'>体验</span>
-              <ArrowRight className='h-3 w-3 transition-transform group-hover/button:translate-x-1' />
-            </Link>
-          </Button>
+            <span className='font-medium'>体验</span>
+            <ArrowRight className='h-3 w-3 transition-transform group-hover/button:translate-x-1' />
+          </Link>
         </div>
       </CardContent>
 
@@ -121,25 +123,21 @@ const AgentShowcase = memo(() => {
     <>
       {/* 智能体网格 */}
       <div className='grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3'>
-        {featuredAgents.map(agent => (
+        {FEATURED_AGENTS.map(agent => (
           <AgentCard key={agent.id} agent={agent} />
         ))}
       </div>
 
       {/* 查看更多按钮 */}
       <div className='text-center mt-12'>
-        <Button
-          asChild
-          size='lg'
-          variant='outline'
-          className='h-12 px-8 border-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors duration-200'
-        >
-          <Link href='/agents' className='flex items-center space-x-2 group'>
-            <Sparkles className='h-4 w-4 group-hover:scale-110 transition-transform duration-200' />
-            <span>查看所有智能体</span>
-            <ArrowRight className='h-4 w-4 group-hover:translate-x-1 transition-transform duration-200' />
-          </Link>
-        </Button>
+        <Link 
+           href='/agents' 
+           className='flex items-center space-x-2 group h-12 px-8 border-2 rounded-md border-gray-200 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors duration-200 font-medium'
+         >
+           <Sparkles className='h-4 w-4 group-hover:scale-110 transition-transform duration-200' />
+           <span>查看所有智能体</span>
+           <ArrowRight className='h-4 w-4 group-hover:translate-x-1 transition-transform duration-200' />
+         </Link>
       </div>
     </>
   );

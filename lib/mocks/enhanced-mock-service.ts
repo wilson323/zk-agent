@@ -125,7 +125,7 @@ interface MockMetrics {
 
 export class EnhancedMockService {
   private static instance: EnhancedMockService;
-  private logger = new Logger('EnhancedMockService');
+  private logger = getLogger();
   private mockEnabled =
     process.env.NODE_ENV === 'development' || process.env.ENABLE_MOCKS === 'true';
 

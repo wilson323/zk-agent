@@ -69,23 +69,7 @@ export function generateId(prefix: string = ''): string {
   return prefix + timestamp + random;
 }
 
-/**
- * 按指定键分组
- * 将数组按指定键的值进行分组
- * @param array - 要分组的数组
- * @param key - 分组键
- * @returns 分组后的对象
- */
-export function groupBy<T>(array: T[], key: keyof T): Record<string, T[]> {
-  return array.reduce((result, item) => {
-    const groupKey = String(item[key]);
-    if (!result[groupKey]) {
-      result[groupKey] = [];
-    }
-    result[groupKey].push(item);
-    return result;
-  }, {} as Record<string, T[]>);
-}
+// groupBy函数已在array-utils.ts中定义并通过export * from './array-utils'导出
 
 function hashString(str: string): number {
   let hash = 0;
@@ -495,7 +479,7 @@ export function deepClone<T>(obj: T): T {
 export function pickObject<T, K extends keyof T>(obj: T, keys: K[]): Pick<T, K> {
   const result = {} as Pick<T, K>;
   keys.forEach(key => {
-    if (key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
       result[key] = obj[key];
     }
   });
@@ -688,3 +672,6 @@ export * from './device-utils';
 export * from './api-utils';
 export * from './array-utils'; // Add array-utils export
 export { default as logger, getLogger } from './logger';
+
+// 明确导出关键函数以解决导入问题
+export { groupBy } from './array-utils';

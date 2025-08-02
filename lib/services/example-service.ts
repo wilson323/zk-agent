@@ -10,8 +10,6 @@ import { getLogger } from '@/lib/utils/logger';
 
 const logger = getLogger();
 
-const logger = getLogger();
-
 /**
  * 示例服务接口
  */

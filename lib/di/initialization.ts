@@ -13,8 +13,6 @@ import { getLogger } from '@/lib/utils/logger';
 
 const logger = getLogger();
 
-const logger = getLogger();
-
 /**
  * 依赖注入初始化状态
  */

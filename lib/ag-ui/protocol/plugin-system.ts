@@ -1,5 +1,5 @@
 // @ts-nocheck
-import type { AgUIPlugin, ProtocolExtension, AgUIEvent } from './complete-types';
+import type { AgUIPlugin, ProtocolExtension, AgUIEvent } from './types';
 import { getLogger } from '@/lib/utils/logger';
 
 const logger = getLogger();

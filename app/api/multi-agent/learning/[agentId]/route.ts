@@ -19,17 +19,18 @@ const learningEngine = new AutonomousLearningEngine({
 /**
  * 获取智能体学习历史
  */
-export async function GET(request: NextRequest, { params }: { params: { agentId: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ agentId: string }> }) {
   try {
-    const history = learningEngine.getLearningHistory(params.agentId);
-    const statistics = learningEngine.getLearningStatistics(params.agentId);
+    const { agentId } = await params;
+    const history = learningEngine.getLearningHistory(agentId);
+    const statistics = learningEngine.getLearningStatistics(agentId);
 
     return NextResponse.json({
       success: true,
       data: {
         history,
         statistics,
-        agentId: params.agentId,
+        agentId: agentId,
       },
       timestamp: new Date().toISOString(),
     });
@@ -49,13 +50,14 @@ export async function GET(request: NextRequest, { params }: { params: { agentId:
 /**
  * 触发智能体自主学习
  */
-export async function POST(request: NextRequest, { params }: { params: { agentId: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ agentId: string }> }) {
   try {
+    const { agentId } = await params;
     // 这里应该获取实际的智能体对象
     // 暂时创建一个模拟对象
     const mockAgent = {
-      id: params.agentId,
-      name: `Agent ${params.agentId}`,
+      id: agentId,
+      name: `Agent ${agentId}`,
       type: 'research',
       capabilities: [],
       specialization: 'research',
@@ -75,7 +77,7 @@ export async function POST(request: NextRequest, { params }: { params: { agentId
         knowledgeRetention: 0.8,
       },
       learningModel: {
-        id: `${params.agentId}-model`,
+        id: `${agentId}-model`,
         type: 'reinforcement',
         algorithm: 'Q-Learning',
         parameters: { learningRate: 0.1, discountFactor: 0.9 },
@@ -128,7 +130,7 @@ export async function POST(request: NextRequest, { params }: { params: { agentId
       success: true,
       message: 'Autonomous learning triggered successfully',
       data: {
-        agentId: params.agentId,
+        agentId: agentId,
         learningStatus: 'initiated',
       },
       timestamp: new Date().toISOString(),

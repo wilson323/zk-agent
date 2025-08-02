@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { errorMonitor } from '@/lib/monitoring/error-monitor';
 import { rootCauseAnalyzer } from '@/lib/monitoring/root-cause-analyzer';
 import { globalErrorHandler } from '@/lib/middleware/global-error-handler';
@@ -45,7 +45,6 @@ export async function GET(request: NextRequest) {
       data: analysis,
     });
   } catch (error) {
-    console.error('Root cause analysis API error:', error);
     globalErrorHandler.handleError(error as Error, {
       method: 'GET',
       url: request.url,
@@ -99,7 +98,6 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Root cause analysis trigger error:', error);
     globalErrorHandler.handleError(error as Error, {
       method: 'POST',
       url: request.url,
@@ -185,7 +183,6 @@ export async function PUT(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Batch root cause analysis error:', error);
     globalErrorHandler.handleError(error as Error, {
       method: 'PUT',
       url: request.url,

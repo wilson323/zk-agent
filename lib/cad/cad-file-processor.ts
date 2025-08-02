@@ -25,8 +25,6 @@ import { getLogger } from '@/lib/utils/logger';
 
 const logger = getLogger();
 
-const logger = getLogger();
-
 // 📝 命名规范：接口名使用PascalCase，属性使用camelCase
 export interface CADFileMetadata {
   format: string;

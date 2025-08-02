@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { AutonomousLearningEngine } from '@/lib/multi-agent/learning-engine';
 
 // 创建学习引擎实例
@@ -29,7 +29,6 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('Failed to get learning engine status:', error);
     return NextResponse.json(
       {
         success: false,
@@ -203,7 +202,6 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('Learning process failed:', error);
     return NextResponse.json(
       {
         success: false,

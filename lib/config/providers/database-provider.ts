@@ -47,7 +47,7 @@ export class DatabaseConfigProvider implements ConfigProvider {
     this.db = options.db;
     this.tableName = options.tableName || 'app_config';
     this.environment = options.environment || process.env.NODE_ENV || 'development';
-    this.logger = new Logger('DatabaseConfigProvider');
+    // Logger initialized as class property
   }
 
   /**

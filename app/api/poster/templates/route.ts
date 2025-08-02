@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file poster\templates\route.ts
  * @description Migrated API route with global error handling
  * @author ZK-Agent Team
@@ -8,7 +8,7 @@
 import { NextRequest } from 'next/server';
 import { createApiRoute, RouteConfigs } from '@/lib/middleware/api-route-wrapper';
 import { ApiResponseWrapper } from '@/lib/utils/api-helper';
-import { PosterConfigDB } from '@/lib/database/poster-config-db';
+import { PosterConfigDB } from '@/lib/database/poster-config';
 
 export const GET = createApiRoute(
   RouteConfigs.publicGet(),
@@ -57,7 +57,6 @@ export const GET = createApiRoute(
         },
       });
     } catch (error) {
-      console.error('Error fetching templates:', error);
       return ApiResponseWrapper.error('Internal server error', { status: 500 });
     }
   }
@@ -81,7 +80,6 @@ export const POST = createApiRoute(
         message: 'Template usage updated',
       });
     } catch (error) {
-      console.error('Error updating template usage:', error);
       return ApiResponseWrapper.error('Internal server error', { status: 500 });
     }
   }

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { multiAgentCoordinator } from '@/lib/multi-agent/coordinator';
 
 /**
@@ -14,7 +14,6 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('Failed to get system status:', error);
     return NextResponse.json(
       {
         success: false,
@@ -42,7 +41,6 @@ export async function PUT(request: NextRequest) {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('Failed to update system configuration:', error);
     return NextResponse.json(
       {
         success: false,

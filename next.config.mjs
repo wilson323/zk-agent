@@ -7,6 +7,9 @@ const withBundleAnalyzer =
     : config => config;
 
 const nextConfig = {
+  // 开发环境跨域配置
+  allowedDevOrigins: ['26.26.26.1', 'localhost', '127.0.0.1'],
+
   // 构建优化 (swcMinify在Next.js 13+中默认启用)
   compress: true,
 

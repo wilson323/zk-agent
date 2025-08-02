@@ -258,7 +258,7 @@ function isBusinessError(error: any): boolean {
  * 错误日志记录
  */
 async function logError(error: any, requestId: string, processingTime: number): Promise<void> {
-  const logger = new Logger('UnifiedErrorHandler');
+  const logger = getLogger();
 
   const logData = {
     requestId,

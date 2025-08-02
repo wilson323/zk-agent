@@ -27,7 +27,6 @@ export const DELETE = createApiRoute(
 
     // 在实际应用中，这里应该从数据库中删除错误日志
     // 这里只是模拟成功响应
-    console.log(`删除错误日志 ${logId}`);
 
     return ApiResponseWrapper.success({
       success: true,

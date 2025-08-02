@@ -2,8 +2,6 @@ import { getLogger } from '@/lib/utils/logger';
 
 const logger = getLogger();
 
-const logger = getLogger();
-
 // @ts-nocheck
 /**
  * 增强分享管理器

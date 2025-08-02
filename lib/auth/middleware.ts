@@ -13,8 +13,6 @@ import { getLogger } from '@/lib/utils/logger';
 
 const logger = getLogger();
 
-const logger = getLogger();
-
 // 认证结果接口
 export interface AuthResult {
   success: boolean;

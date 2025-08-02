@@ -28,7 +28,7 @@ import { PerformanceOptimizationCoordinator } from './performance-optimization-c
 
 export class EnhancedDatabaseManager {
   private static instance: EnhancedDatabaseManager;
-  private logger = new Logger('EnhancedDatabaseManager');
+  private logger = getLogger();
 
   private constructor() {
     this.logger.info('EnhancedDatabaseManager initialized as a proxy.');

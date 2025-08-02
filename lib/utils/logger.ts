@@ -315,5 +315,3 @@ export const getLogger = (): Logger => defaultLogger;
 
 // 默认导出
 export default defaultLogger;
-
-export { getLogger };

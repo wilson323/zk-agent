@@ -129,7 +129,7 @@ interface OptimizationSuggestion {
  * - 查询执行计划分析
  */
 export class QueryOptimizer extends EventEmitter {
-  private logger: Logger;
+  private logger = getLogger();
   private queryStats: Map<string, QueryStats> = new Map();
   private slowQueries: SlowQuery[] = [];
   private optimizationSuggestions: OptimizationSuggestion[] = [];
@@ -140,7 +140,6 @@ export class QueryOptimizer extends EventEmitter {
 
   constructor(cacheConfig?: Partial<QueryCacheConfig>) {
     super();
-    this.logger = new Logger('QueryOptimizer');
     this.cacheConfig = {
       enabled: true,
       maxSize: 1000,
@@ -157,6 +156,11 @@ export class QueryOptimizer extends EventEmitter {
       cacheConfig: this.cacheConfig,
       slowQueryThreshold: this.slowQueryThreshold,
     });
+
+    // 内存清理：限制慢查询数量
+    if (this.slowQueries.length > 200) {
+      this.slowQueries = this.slowQueries.slice(-100);
+    }
   }
 
   /**
@@ -592,6 +596,14 @@ export class QueryOptimizer extends EventEmitter {
    * 清理过期缓存
    */
   private cleanupExpiredCache(): void {
+    // 内存清理：缓存条目限制
+    if (this.queryCache.size > 500) {
+      const entries = Array.from(this.queryCache.entries())
+        .sort(([,a],[,b]) => b.timestamp - a.timestamp)
+        .slice(200);
+      this.queryCache.clear();
+      entries.forEach(([k,v]) => this.queryCache.set(k,v));
+    }
     const now = Date.now();
     let cleanedCount = 0;
 

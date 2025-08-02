@@ -9,13 +9,9 @@
 import { getLogger } from '@/lib/utils/logger';
 
 const logger = getLogger();
-
-const logger = getLogger();
 import { enhancedCacheManager } from '@/lib/cache/enhanced-cache-manager';
 import { securityAuditSystem, SecurityEventType, SecuritySeverity } from './security-audit-system';
 import { getErrorMessage } from '@/lib/utils/error-handler';
-
-const logger = new Logger('CodeReviewSystem');
 
 // Security Rule Categories
 export enum SecurityRuleCategory {

@@ -23,11 +23,10 @@ export class UnifiedConfigManager extends EventEmitter implements ConfigManager 
   private config: AppConfig;
   private providers: ConfigProvider[] = [];
   private watchers: Map<string, () => void> = new Map();
-  private logger: Logger;
+  private logger = getLogger();
 
   constructor(initialConfig?: Partial<AppConfig>) {
     super();
-    this.logger = new Logger('ConfigManager');
     this.config = this.mergeConfigs(defaultConfig, initialConfig || {});
     this.validateConfig();
   }
@@ -289,21 +288,128 @@ export class UnifiedConfigManager extends EventEmitter implements ConfigManager 
     const env = config.environment || process.env.NODE_ENV || 'development';
     const envConfigs: EnvironmentConfig = {
       development: {
-        logging: { level: 'debug', enableFileLogging: false },
-        cache: { persistToDisk: false },
-        security: { enableEncryption: false },
-        performance: { enableProfiling: true },
+        logging: { 
+          level: 'debug', 
+          enableFileLogging: false,
+          enableConsoleLogging: true,
+          maxFileSize: 10485760,
+          maxFiles: 5,
+          enableErrorTracking: true,
+          enableStructuredLogging: true
+        },
+        cache: { 
+          enabled: true,
+          ttl: 3600,
+          maxSize: 1000,
+          compression: false,
+          persistToDisk: false 
+        },
+        security: { 
+          enableEncryption: false,
+          enableAuditLog: true,
+          maxLoginAttempts: 5,
+          sessionTimeout: 3600,
+          enableCSRF: true,
+          enableRateLimit: true,
+          rateLimit: {
+            windowMs: 900000,
+            max: 100
+          }
+        },
+        performance: { 
+          enableMetrics: true,
+          enableProfiling: true,
+          maxMemoryUsage: 512,
+          maxCpuUsage: 80,
+          enableGarbageCollection: true,
+          monitoring: {
+            enabled: true,
+            interval: 60000,
+            alertThreshold: 80,
+            retentionPeriod: 86400,
+            aggregationInterval: 300
+          }
+        },
       },
       production: {
-        logging: { level: 'warn', enableFileLogging: true },
-        cache: { persistToDisk: true },
-        security: { enableEncryption: true },
-        performance: { enableProfiling: false },
+        logging: { 
+          level: 'warn', 
+          enableFileLogging: true,
+          enableConsoleLogging: false,
+          maxFileSize: 52428800,
+          maxFiles: 10,
+          enableErrorTracking: true,
+          enableStructuredLogging: true
+        },
+        cache: { 
+          enabled: true,
+          ttl: 7200,
+          maxSize: 5000,
+          compression: true,
+          persistToDisk: true 
+        },
+        security: { 
+          enableEncryption: true,
+          enableAuditLog: true,
+          maxLoginAttempts: 3,
+          sessionTimeout: 1800,
+          enableCSRF: true,
+          enableRateLimit: true,
+          rateLimit: {
+            windowMs: 900000,
+            max: 50
+          }
+        },
+        performance: { 
+          enableMetrics: true,
+          enableProfiling: false,
+          maxMemoryUsage: 1024,
+          maxCpuUsage: 70,
+          enableGarbageCollection: true,
+          monitoring: {
+            enabled: true,
+            interval: 30000,
+            alertThreshold: 70,
+            retentionPeriod: 604800,
+            aggregationInterval: 300
+          }
+        },
       },
       test: {
-        logging: { level: 'error', enableFileLogging: false },
-        cache: { enabled: false },
-        database: { connectionPool: { max: 5 } },
+        logging: { 
+          level: 'error', 
+          enableFileLogging: false,
+          enableConsoleLogging: true,
+          maxFileSize: 1048576,
+          maxFiles: 1,
+          enableErrorTracking: false,
+          enableStructuredLogging: false
+        },
+        cache: { 
+          enabled: false,
+          ttl: 300,
+          maxSize: 100,
+          compression: false,
+          persistToDisk: false
+        },
+        database: { 
+          connectionPool: { 
+            min: 1,
+            max: 5,
+            idleTimeoutMillis: 10000,
+            connectionTimeoutMillis: 5000
+          },
+          enableSSL: false,
+          enableBackup: false,
+          backupInterval: 0,
+          retryConfig: {
+            maxAttempts: 3,
+            baseDelay: 1000,
+            maxDelay: 5000,
+            backoffMultiplier: 2,
+            enableJitter: false
+          }
+        },
       },
     };
 

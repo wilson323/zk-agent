@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file likes\route.ts
  * @description Migrated API route with global error handling
  * @author ZK-Agent Team
@@ -63,7 +63,6 @@ export const GET = createApiRoute(
         stats,
       });
     } catch (error) {
-      console.error('获取点赞信息失败:', error);
       return ApiResponseWrapper.error(
         ErrorCode.INTERNAL_SERVER_ERROR,
         'Internal server error',
@@ -133,7 +132,6 @@ export const POST = createApiRoute(
         stats,
       });
     } catch (error) {
-      console.error('点赞操作失败:', error);
       return ApiResponseWrapper.error(
         ErrorCode.INTERNAL_SERVER_ERROR,
         'Internal server error',

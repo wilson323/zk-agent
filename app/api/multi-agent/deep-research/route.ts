@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { DeepResearchService } from '@/lib/multi-agent/deep-research';
 
 // 创建深度研究服务实例
@@ -82,7 +82,6 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('Deep research failed:', error);
     return NextResponse.json(
       {
         success: false,
@@ -110,7 +109,6 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('Failed to get deep research status:', error);
     return NextResponse.json(
       {
         success: false,

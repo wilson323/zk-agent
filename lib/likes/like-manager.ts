@@ -1,4 +1,6 @@
 import { getLogger } from '@/lib/utils/logger';
+import { secureStorage } from '@/lib/utils/secure-storage';
+
 
 const logger = getLogger();
 
@@ -390,7 +392,7 @@ export class LikeManager {
    */
   private async loadUserLikes(userId: string): Promise<string[]> {
     try {
-      const likesData = localStorage.getItem(`user_likes_${userId}`);
+      const likesData = secureStorage.getItem(`user_likes_${userId}`);
       return likesData ? JSON.parse(likesData) : [];
     } catch (error) {
       logger.error('加载用户点赞失败:', error);
@@ -403,7 +405,7 @@ export class LikeManager {
    */
   private async loadLikeStats(itemId: string, itemType: string): Promise<LikeStats> {
     try {
-      const statsData = localStorage.getItem(`like_stats_${itemType}_${itemId}`);
+      const statsData = secureStorage.getItem(`like_stats_${itemType}_${itemId}`);
 
       if (statsData) {
         return JSON.parse(statsData);
@@ -445,7 +447,7 @@ export class LikeManager {
     };
 
     // 缓存统计数据
-    localStorage.setItem(`like_stats_${itemType}_${itemId}`, JSON.stringify(stats));
+    secureStorage.setItem(`like_stats_${itemType}_${itemId}`, JSON.stringify(stats));
 
     return stats;
   }
@@ -456,8 +458,8 @@ export class LikeManager {
   private async loadAllLikes(): Promise<LikeRecord[]> {
     const likes: LikeRecord[] = [];
 
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
+    for (let i = 0; i < secureStorage.getAllKeys().length; i++) {
+      const key = secureStorage.getAllKeys()[i];
       if (key && key.startsWith('like_record_')) {
         try {
           const likeData = localStorage.getItem(key);
@@ -481,8 +483,8 @@ export class LikeManager {
   private async loadAllLikeStats(itemType?: string): Promise<LikeStats[]> {
     const stats: LikeStats[] = [];
 
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
+    for (let i = 0; i < secureStorage.getAllKeys().length; i++) {
+      const key = secureStorage.getAllKeys()[i];
       if (key && key.startsWith('like_stats_')) {
         if (!itemType || key.includes(`like_stats_${itemType}_`)) {
           try {
@@ -549,13 +551,13 @@ export class LikeManager {
   private async saveLikeBatch(likes: LikeRecord[]): Promise<void> {
     for (const like of likes) {
       // 保存点赞记录
-      localStorage.setItem(`like_record_${like.id}`, JSON.stringify(like));
+      secureStorage.setItem(`like_record_${like.id}`, JSON.stringify(like));
 
       // 更新用户点赞列表
       const userLikes = await this.loadUserLikes(like.userId);
       if (!userLikes.includes(like.itemId)) {
         userLikes.push(like.itemId);
-        localStorage.setItem(`user_likes_${like.userId}`, JSON.stringify(userLikes));
+        secureStorage.setItem(`user_likes_${like.userId}`, JSON.stringify(userLikes));
       }
     }
   }
@@ -567,14 +569,14 @@ export class LikeManager {
     // 更新用户点赞列表
     const userLikes = await this.loadUserLikes(userId);
     const updatedLikes = userLikes.filter(id => id !== itemId);
-    localStorage.setItem(`user_likes_${userId}`, JSON.stringify(updatedLikes));
+    secureStorage.setItem(`user_likes_${userId}`, JSON.stringify(updatedLikes));
 
     // 查找并删除对应的点赞记录
     const allLikes = await this.loadAllLikes();
     const likeToRemove = allLikes.find(like => like.itemId === itemId && like.userId === userId);
 
     if (likeToRemove) {
-      localStorage.removeItem(`like_record_${likeToRemove.id}`);
+      secureStorage.removeItem(`like_record_${likeToRemove.id}`);
     }
   }
 
@@ -582,7 +584,7 @@ export class LikeManager {
    * 移除点赞记录
    */
   private async removeLikeRecord(likeId: string): Promise<void> {
-    localStorage.removeItem(`like_record_${likeId}`);
+    secureStorage.removeItem(`like_record_${likeId}`);
   }
 }
 

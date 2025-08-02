@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file cad\history\route.ts
  * @description Migrated API route with global error handling
  * @author ZK-Agent Team
@@ -186,7 +186,6 @@ export const GET = createApiRoute(
         hasMore: filteredHistory.length > limit,
       });
     } catch (error) {
-      console.error('获取历史记录失败:', error);
       return ApiResponseWrapper.error(
         ErrorCode.INTERNAL_SERVER_ERROR,
         '获取历史记录失败',
@@ -210,13 +209,10 @@ export const DELETE = createApiRoute(
 
       // 模拟删除分析结果
       // 在实际实现中，这里会删除数据库中的记录和相关文件
-      console.log(`删除用户 ${userId} 的分析结果 ${analysisId}`);
-
       return ApiResponseWrapper.success({
         message: '删除成功',
       });
     } catch (error) {
-      console.error('删除分析结果失败:', error);
       return ApiResponseWrapper.error(ErrorCode.INTERNAL_SERVER_ERROR, '删除失败', null, 500);
     }
   }

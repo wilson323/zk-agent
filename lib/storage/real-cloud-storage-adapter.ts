@@ -14,7 +14,7 @@ const logger = getLogger();
 const logger = getLogger();
 import { enhancedCacheManager } from '@/lib/cache/enhanced-cache-manager';
 
-const logger = new Logger('RealCloudStorageAdapter');
+const logger = getLogger();
 
 // 导入统一的云存储提供商枚举
 import { CloudProvider } from '@/lib/types/enums';

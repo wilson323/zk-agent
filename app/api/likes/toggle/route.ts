@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file likes\toggle\route.ts
  * @description Like toggle API route
  * @author ZK-Agent Team
@@ -67,7 +67,6 @@ export const POST = createApiRoute(
         likeCount,
       });
     } catch (error) {
-      console.error('Like toggle error:', error);
       return ApiResponseWrapper.error('Internal server error', 500);
     }
   }

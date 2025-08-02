@@ -1,4 +1,6 @@
 import { getLogger } from '@/lib/utils/logger';
+import { secureStorage } from '@/lib/utils/secure-storage';
+
 
 const logger = getLogger();
 
@@ -376,12 +378,12 @@ export class ShareManager {
   private async saveShareLink(shareLink: ShareLink): Promise<void> {
     // 模拟数据库操作
     const shareData: any = JSON.stringify(shareLink);
-    localStorage.setItem(`share_${shareLink.shareId}`, shareData);
+    secureStorage.setItem(`share_${shareLink.shareId}`, shareData);
 
     // 更新分享列表
     const userShares: any = this.getUserSharesList(shareLink.contentId);
     userShares.push(shareLink.shareId);
-    localStorage.setItem(`user_shares_${shareLink.contentId}`, JSON.stringify(userShares));
+    secureStorage.setItem(`user_shares_${shareLink.contentId}`, JSON.stringify(userShares));
   }
 
   /**
@@ -389,7 +391,7 @@ export class ShareManager {
    */
   private async loadShareLink(shareId: string): Promise<ShareLink | null> {
     try {
-      const shareData: any = localStorage.getItem(`share_${shareId}`);
+      const shareData: any = secureStorage.getItem(`share_${shareId}`);
       if (!shareData) return null;
 
       const shareLink: any = JSON.parse(shareData) as ShareLink;
@@ -420,13 +422,13 @@ export class ShareManager {
 
       switch (contentType) {
         case 'conversation':
-          contentData = localStorage.getItem(`conversation_${contentId}`);
+          contentData = secureStorage.getItem(`conversation_${contentId}`);
           break;
         case 'cad_analysis':
-          contentData = localStorage.getItem(`cad_analysis_${contentId}`);
+          contentData = secureStorage.getItem(`cad_analysis_${contentId}`);
           break;
         case 'poster_design':
-          contentData = localStorage.getItem(`poster_design_${contentId}`);
+          contentData = secureStorage.getItem(`poster_design_${contentId}`);
           break;
       }
 
@@ -462,7 +464,7 @@ export class ShareManager {
    */
   private getUserSharesList(userId: string): string[] {
     try {
-      const sharesData: any = localStorage.getItem(`user_shares_${userId}`);
+      const sharesData: any = secureStorage.getItem(`user_shares_${userId}`);
       return sharesData ? JSON.parse(sharesData) : [];
     } catch (error) {
       return [];
@@ -505,7 +507,7 @@ export class ShareManager {
    * 删除分享链接
    */
   private async removeShareLink(shareId: string): Promise<void> {
-    localStorage.removeItem(`share_${shareId}`);
+    secureStorage.removeItem(`share_${shareId}`);
   }
 
   /**
@@ -558,8 +560,8 @@ export class ShareManager {
   private getAllShares(): ShareLink[] {
     const shares: ShareLink[] = [];
 
-    for (let i: any = 0; i < localStorage.length; i++) {
-      const key: any = localStorage.key(i);
+    for (let i: any = 0; i < secureStorage.getAllKeys().length; i++) {
+      const key: any = secureStorage.getAllKeys()[i];
       if (key && key.startsWith('share_')) {
         try {
           const shareData: any = localStorage.getItem(key);

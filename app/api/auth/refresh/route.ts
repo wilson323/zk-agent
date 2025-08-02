@@ -15,8 +15,6 @@ import { getLogger } from '@/lib/utils/logger';
 
 const logger = getLogger();
 
-const logger = getLogger();
-
 const refreshSchema = z.object({
   refreshToken: z.string().min(10, '刷新令牌无效或格式不正确'),
 });

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { register } from 'prom-client';
 import { databaseMonitor } from '@/lib/database/monitoring';
 import { aiModelManager } from '@/lib/ai-models/model-manager';
@@ -21,7 +21,6 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error generating Prometheus metrics:', error);
     return new NextResponse('Error generating metrics', { status: 500 });
   }
 }

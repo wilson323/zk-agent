@@ -1,3 +1,5 @@
+import { secureStorage } from '@/lib/utils/secure-storage';
+
 // @ts-nocheck
 'use client';
 
@@ -26,7 +28,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     setIsClient(true);
     // 检查管理员是否登录
-    const token = localStorage.getItem('adminToken');
+    const token = secureStorage.getItem('adminToken');
     if (!token) {
       toast({
         title: '需要认证',

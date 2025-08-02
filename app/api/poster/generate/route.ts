@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file poster\generate\route.ts
  * @description Migrated API route with global error handling
  * @author ZK-Agent Team
@@ -65,7 +65,6 @@ export const POST = createApiRoute(
 
       return ApiResponseWrapper.success(result);
     } catch (error) {
-      console.error('Error generating poster:', error);
       return ApiResponseWrapper.error(
         ErrorCode.INTERNAL_SERVER_ERROR,
         'Internal server error',

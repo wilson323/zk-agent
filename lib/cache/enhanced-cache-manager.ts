@@ -11,8 +11,6 @@ import { getLogger } from '@/lib/utils/logger';
 
 const logger = getLogger();
 
-const logger = getLogger();
-
 // 导入统一的缓存类型定义
 import {
   CacheItem,
@@ -35,7 +33,7 @@ type LegacyCacheEvent = CacheEvent;
 export class EnhancedCacheManager {
   private static instance: EnhancedCacheManager;
   private cache: Map<string, CacheItem> = new Map();
-  private logger = new Logger('EnhancedCacheManager');
+  private logger = getLogger();
   private metrics: CacheMetrics;
   private events: CacheEvent[] = [];
   private cleanupInterval: NodeJS.Timeout | null = null;

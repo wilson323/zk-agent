@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file poster\config\route.ts
  * @description Migrated API route with global error handling
  * @author ZK-Agent Team
@@ -117,7 +117,6 @@ export const GET = createApiRoute(
           );
       }
     } catch (error) {
-      console.error('Error getting poster config:', error);
       return ApiResponseWrapper.error('Failed to get poster config', 500);
     }
   }

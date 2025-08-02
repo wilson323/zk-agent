@@ -144,7 +144,7 @@ interface ConnectionAttempt {
  * - 威胁检测和响应
  */
 export class DatabaseSecurityManager extends EventEmitter {
-  private logger: Logger;
+  private logger = getLogger();
   private config: SecurityConfig;
   private auditLogs: AuditLogEntry[] = [];
   private accessControlRules: Map<string, AccessControlRule> = new Map();
@@ -155,7 +155,6 @@ export class DatabaseSecurityManager extends EventEmitter {
 
   constructor(config: Partial<SecurityConfig> = {}) {
     super();
-    this.logger = new Logger('DatabaseSecurityManager');
 
     this.config = {
       enableParameterFiltering: true,

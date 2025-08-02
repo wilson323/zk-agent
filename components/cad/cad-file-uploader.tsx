@@ -1,10 +1,7 @@
 // @ts-nocheck
 'use client';
 
-import type React from 'react';
-
-import type React from 'react';
-import { useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { FileUp, Check, AlertCircle, Loader2, Settings, Layers } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';

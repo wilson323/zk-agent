@@ -15,11 +15,10 @@ import { IMonitoringService as IMonitoringServiceLegacy } from './monitoring-int
 import { getMonitoringService, isMonitoringInitialized } from './monitoring-registry';
 
 class PerformanceMonitorEnhancer extends EventEmitter {
-  private logger: Logger;
+  private logger = getLogger();
 
   constructor(private monitor: IMonitoringService) {
     super();
-    this.logger = new Logger('PerformanceMonitorEnhancer');
     this.setupEventListeners();
   }
 

@@ -13,14 +13,14 @@ import {
   SecuritySeverity,
 } from '@/lib/security/security-audit-system';
 import { getErrorMessage } from '@/lib/utils/error-handler';
-import logger from '@/lib/utils/logger';
+import { getLogger } from '@/lib/utils/logger';
 
-const logger = new Logger('SecurityRuleAPI');
+const logger = getLogger();
 
 // GET /api/admin/security/rules/[ruleId] - Get specific security rule
-export async function GET(request: NextRequest, { params }: { params: { ruleId: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ ruleId: string }> }) {
   try {
-    const { ruleId } = params;
+    const { ruleId } = await params;
     const rules = codeReviewSystem.getSecurityRules();
     const rule = rules.find(r => r.id === ruleId);
 
@@ -58,7 +58,7 @@ export async function GET(request: NextRequest, { params }: { params: { ruleId: 
 // PATCH /api/admin/security/rules/[ruleId] - Update security rule
 export async function PATCH(request: NextRequest, { params }: { params: { ruleId: string } }) {
   try {
-    const { ruleId } = params;
+    const { ruleId } = await params;
     const body = await request.json();
 
     // Get client IP for audit logging
@@ -120,9 +120,9 @@ export async function PATCH(request: NextRequest, { params }: { params: { ruleId
 }
 
 // DELETE /api/admin/security/rules/[ruleId] - Delete security rule
-export async function DELETE(request: NextRequest, { params }: { params: { ruleId: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ ruleId: string }> }) {
   try {
-    const { ruleId } = params;
+    const { ruleId } = await params;
 
     // Get client IP for audit logging
     const clientIP =

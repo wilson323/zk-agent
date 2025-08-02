@@ -284,6 +284,14 @@ export const RouteConfigs = {
     timeout: 30000,
   }),
 
+  // POST路由 - 无需认证
+  publicPost: (validation?: { body?: z.ZodSchema; query?: z.ZodSchema }): ApiRouteConfig => ({
+    method: 'POST',
+    requireAuth: false,
+    validation,
+    timeout: 60000,
+  }),
+
   // POST路由 - 需要认证和速率限制
   protectedPost: (validation?: { body?: z.ZodSchema; query?: z.ZodSchema }): ApiRouteConfig => ({
     method: 'POST',

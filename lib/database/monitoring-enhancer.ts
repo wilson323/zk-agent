@@ -232,7 +232,7 @@ export class DatabaseMonitoringEnhancer extends EventEmitter {
 
   constructor(config: Partial<AdvancedMonitoringConfig> = {}) {
     super();
-    this.logger = new Logger('DatabaseMonitoringEnhancer');
+    // Logger initialized as class property
 
     this.config = {
       enablePredictiveAnalysis: true,

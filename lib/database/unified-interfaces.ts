@@ -243,6 +243,9 @@ export interface IMonitoringService extends EventEmitter {
   addAlert(alert: Alert): void;
   getAlerts(level?: AlertLevel): Alert[];
   clearAlerts(level?: AlertLevel): void;
+  // 添加缺失的方法
+  getStatus(): MonitoringStatus;
+  getOptimizationRecommendations(): OptimizationStatus;
 }
 
 // 监控事件类型

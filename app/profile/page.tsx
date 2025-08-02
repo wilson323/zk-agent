@@ -1,3 +1,5 @@
+import { secureStorage } from '@/lib/utils/secure-storage';
+
 // @ts-nocheck
 'use client';
 
@@ -96,7 +98,7 @@ export default function ProfilePage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+          Authorization: `Bearer ${secureStorage.getItem('accessToken')}`,
         },
         body: JSON.stringify({
           currentPassword: passwordData.currentPassword,

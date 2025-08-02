@@ -12,8 +12,6 @@ import { getLogger } from '@/lib/utils/logger';
 
 const logger = getLogger();
 
-const logger = getLogger();
-
 // 错误上下文接口
 export interface ErrorContext {
   userId?: string;

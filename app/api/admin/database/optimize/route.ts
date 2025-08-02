@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file 数据库优化触发API路由
  * @description 提供手动触发数据库优化的API接口
  * @author ZK-Agent Team
@@ -6,9 +6,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { triggerDatabaseOptimization } from '@/lib/database/connection';
-import { databaseMonitor } from '@/lib/database/index';
-import { isDatabaseInitialized } from '@/lib/database/initialization';
+import { triggerDatabaseOptimization } from '@/lib/database/optimization';
+import { databaseMonitor } from '@/lib/database/monitoring';
+import { databaseInitializer } from '@/lib/database/initialization';
 
 /**
  * POST /api/admin/database/optimize
@@ -17,7 +17,7 @@ import { isDatabaseInitialized } from '@/lib/database/initialization';
 export async function POST(request: NextRequest) {
   try {
     // 检查数据库是否已初始化
-    if (!isDatabaseInitialized()) {
+    if (!databaseInitializer.isInitialized()) {
       return NextResponse.json(
         {
           success: false,
@@ -49,8 +49,6 @@ export async function POST(request: NextRequest) {
       // 如果没有请求体或解析失败，使用默认选项
     }
 
-    console.log('开始手动触发数据库优化...', optimizationOptions);
-
     // 记录优化开始时间
     const startTime = Date.now();
 
@@ -62,8 +60,6 @@ export async function POST(request: NextRequest) {
 
     // 获取优化后的状态
     const optimizationStatus = databaseMonitor.getOptimizationStatus();
-
-    console.log(`数据库优化完成，耗时: ${duration}ms`);
 
     return NextResponse.json({
       success: true,
@@ -78,8 +74,6 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('数据库优化失败:', error);
-
     return NextResponse.json(
       {
         success: false,
@@ -119,7 +113,6 @@ export async function GET(request: NextRequest) {
       canOptimize: databaseMonitor.getMonitoringStatus().isMonitoring,
     });
   } catch (error) {
-    console.error('获取优化信息失败:', error);
     return NextResponse.json(
       { error: '获取优化信息失败', details: error instanceof Error ? error.message : '未知错误' },
       { status: 500 }

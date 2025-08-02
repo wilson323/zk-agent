@@ -9,8 +9,6 @@ import { getLogger } from '@/lib/utils/logger';
 
 const logger = getLogger();
 
-const logger = getLogger();
-
 /**
  * 监控服务注册表
  * 使用单例模式管理监控服务实例

@@ -16,8 +16,6 @@ import { getLogger } from '@/lib/utils/logger';
 
 const logger = getLogger();
 
-const logger = getLogger();
-
 // 错误统计信息
 interface ErrorStats {
   total: number;

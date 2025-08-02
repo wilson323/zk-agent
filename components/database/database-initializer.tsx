@@ -1,8 +1,84 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { InitializationStatus, databaseInitializer } from '@/lib/database/initialization';
 import { InitializationStatusDisplay } from './initialization-status-display';
+
+/**
+ * 数据库初始化状态枚举
+ */
+export enum InitializationStatus {
+  PENDING = 'pending',
+  INITIALIZING = 'initializing',
+  COMPLETED = 'completed',
+  FAILED = 'failed',
+}
+
+/**
+ * 数据库初始化 API 响应接口
+ */
+interface DatabaseInitializationResponse {
+  status: InitializationStatus;
+  isInitialized: boolean;
+  healthDetails?: {
+    status: string;
+    connection?: any;
+    queries?: any;
+    optimization?: any;
+    error?: string;
+  };
+  timestamp: string;
+  requestId: string;
+}
+
+/**
+ * 调用数据库初始化状态 API
+ * @returns {Promise<DatabaseInitializationResponse>} API 响应
+ */
+async function fetchDatabaseStatus(): Promise<DatabaseInitializationResponse> {
+  const response = await fetch('/api/db/initialization', {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  const result = await response.json();
+  if (!result.success) {
+    throw new Error(result.message || 'API request failed');
+  }
+
+  return result.data;
+}
+
+/**
+ * 触发数据库初始化 API
+ * @param {boolean} force - 是否强制重新初始化
+ * @returns {Promise<any>} API 响应
+ */
+async function triggerDatabaseInitialization(force: boolean = false): Promise<any> {
+  const response = await fetch('/api/db/initialization', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ force }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  const result = await response.json();
+  if (!result.success) {
+    throw new Error(result.message || 'API request failed');
+  }
+
+  return result.data;
+}
 
 /**
  * 数据库初始化组件属性
@@ -46,63 +122,82 @@ export function DatabaseInitializer({
 
   useEffect(() => {
     let mounted = true;
+    let pollInterval: NodeJS.Timeout;
 
-    // 状态变化监听器
-    const handleStatusChange = (newStatus: InitializationStatus) => {
-      if (!mounted) return;
-      setStatus(newStatus);
-
-      if (newStatus === InitializationStatus.COMPLETED && onInitialized) {
-        onInitialized();
-      }
-    };
-
-    // 进度更新监听器
-    const handleProgress = (step: string, percentage: number) => {
-      if (!mounted) return;
-      setProgress({ step, percentage });
-    };
-
-    // 错误处理监听器
-    const handleError = (err: Error) => {
-      if (!mounted) return;
-      setError(err);
-      if (onError) {
-        onError(err);
-      }
-    };
-
-    // 初始化完成监听器
-    const handleCompleted = () => {
-      if (!mounted) return;
-      console.log('数据库系统初始化完成');
-    };
-
-    // 注册事件监听器
-    databaseInitializer.on('status-change', handleStatusChange);
-    databaseInitializer.on('progress', handleProgress);
-    databaseInitializer.on('error', handleError);
-    databaseInitializer.on('completed', handleCompleted);
-
-    // 启动初始化
-    const initializeDatabase = async () => {
+    /**
+     * 检查数据库初始化状态
+     */
+    const checkInitializationStatus = async () => {
       try {
-        // 检查是否已经初始化
-        if (databaseInitializer.isInitialized()) {
-          if (mounted && onInitialized) {
-            onInitialized();
-          }
-          return;
+        const response = await fetchDatabaseStatus();
+        
+        if (!mounted) return;
+
+        // 更新状态
+        setStatus(response.status);
+        setError(null);
+
+        // 根据状态更新进度
+        switch (response.status) {
+          case InitializationStatus.PENDING:
+            setProgress({ step: '准备初始化...', percentage: 0 });
+            break;
+          case InitializationStatus.INITIALIZING:
+            setProgress({ step: '正在初始化数据库...', percentage: 50 });
+            break;
+          case InitializationStatus.COMPLETED:
+            setProgress({ step: '初始化完成', percentage: 100 });
+            if (onInitialized) {
+              onInitialized();
+            }
+            break;
+          case InitializationStatus.FAILED:
+            setProgress({ step: '初始化失败', percentage: 0 });
+            const error = new Error(response.healthDetails?.error || 'Database initialization failed');
+            setError(error);
+            if (onError) {
+              onError(error);
+            }
+            break;
         }
 
-        // 开始初始化
-        await databaseInitializer.initialize();
+        // 如果还在初始化中，继续轮询
+        if (response.status === InitializationStatus.INITIALIZING) {
+          pollInterval = setTimeout(checkInitializationStatus, 2000);
+        }
       } catch (err) {
-        console.error('数据库初始化失败:', err);
+        console.error('检查数据库初始化状态失败:', err);
         if (mounted) {
-          setError(err as Error);
+          const error = err as Error;
+          setError(error);
+          setStatus(InitializationStatus.FAILED);
+          setProgress({ step: '状态检查失败', percentage: 0 });
           if (onError) {
-            onError(err as Error);
+            onError(error);
+          }
+        }
+      }
+    };
+
+    /**
+     * 启动数据库初始化
+     */
+    const initializeDatabase = async () => {
+      try {
+        setProgress({ step: '启动初始化...', percentage: 10 });
+        await triggerDatabaseInitialization();
+        
+        // 启动状态轮询
+        pollInterval = setTimeout(checkInitializationStatus, 1000);
+      } catch (err) {
+        console.error('启动数据库初始化失败:', err);
+        if (mounted) {
+          const error = err as Error;
+          setError(error);
+          setStatus(InitializationStatus.FAILED);
+          setProgress({ step: '启动失败', percentage: 0 });
+          if (onError) {
+            onError(error);
           }
         }
       }
@@ -111,7 +206,16 @@ export function DatabaseInitializer({
     // 延迟启动初始化，确保应用完全加载
     const initTimer = setTimeout(() => {
       if (mounted) {
-        initializeDatabase();
+        // 首先检查当前状态
+        checkInitializationStatus().then(() => {
+          // 如果状态是 PENDING，则启动初始化
+          if (mounted) {
+            const currentStatus = status;
+            if (currentStatus === InitializationStatus.PENDING) {
+              initializeDatabase();
+            }
+          }
+        });
       }
     }, 100);
 
@@ -119,14 +223,11 @@ export function DatabaseInitializer({
     return () => {
       mounted = false;
       clearTimeout(initTimer);
-
-      // 移除事件监听器
-      databaseInitializer.off('status-change', handleStatusChange);
-      databaseInitializer.off('progress', handleProgress);
-      databaseInitializer.off('error', handleError);
-      databaseInitializer.off('completed', handleCompleted);
+      if (pollInterval) {
+        clearTimeout(pollInterval);
+      }
     };
-  }, [onInitialized, onError]);
+  }, [onInitialized, onError, status]);
 
   // 如果不显示状态，返回null
   if (!showStatus) {
@@ -145,19 +246,42 @@ export function DatabaseInitializer({
  * @returns 初始化状态信息
  */
 export function useDatabaseInitialization() {
-  const [status, setStatus] = useState<InitializationStatus>(databaseInitializer.getStatus());
-  const [isInitialized, setIsInitialized] = useState(databaseInitializer.isInitialized());
+  const [status, setStatus] = useState<InitializationStatus>(InitializationStatus.PENDING);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    const handleStatusChange = (newStatus: InitializationStatus) => {
-      setStatus(newStatus);
-      setIsInitialized(newStatus === InitializationStatus.COMPLETED);
+    let mounted = true;
+    let pollInterval: NodeJS.Timeout;
+
+    const checkStatus = async () => {
+      try {
+        const response = await fetchDatabaseStatus();
+        if (mounted) {
+          setStatus(response.status);
+          setIsInitialized(response.isInitialized);
+          
+          // 如果还在初始化中，继续轮询
+          if (response.status === InitializationStatus.INITIALIZING) {
+            pollInterval = setTimeout(checkStatus, 2000);
+          }
+        }
+      } catch (err) {
+        console.error('获取数据库状态失败:', err);
+        if (mounted) {
+          setStatus(InitializationStatus.FAILED);
+          setIsInitialized(false);
+        }
+      }
     };
 
-    databaseInitializer.on('status-change', handleStatusChange);
+    // 初始检查
+    checkStatus();
 
     return () => {
-      databaseInitializer.off('status-change', handleStatusChange);
+      mounted = false;
+      if (pollInterval) {
+        clearTimeout(pollInterval);
+      }
     };
   }, []);
 

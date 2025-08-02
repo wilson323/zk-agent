@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file db\health\route.ts
  * @description Migrated API route with global error handling
  * @author ZK-Agent Team
@@ -40,7 +40,6 @@ export const GET = createApiRoute(
         );
       }
     } catch (error) {
-      console.error('数据库健康检查失败:', error);
       return ApiResponseWrapper.error(
         ErrorCode.INTERNAL_SERVER_ERROR,
         'Database health check failed',

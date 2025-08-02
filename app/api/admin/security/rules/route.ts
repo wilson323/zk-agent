@@ -17,10 +17,6 @@ import { getLogger } from '@/lib/utils/logger';
 
 const logger = getLogger();
 
-const logger = getLogger();
-
-const logger = new Logger('SecurityRulesAPI');
-
 // GET /api/admin/security/rules - Get security rules
 export async function GET(request: NextRequest) {
   try {

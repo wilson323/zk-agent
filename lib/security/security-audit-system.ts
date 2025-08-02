@@ -8,14 +8,10 @@
  */
 
 import { getLogger } from '@/lib/utils/logger';
-
-const logger = getLogger();
-
-const logger = getLogger();
 import { enhancedCacheManager } from '@/lib/cache/enhanced-cache-manager';
 import { getErrorMessage, getErrorCode, isFileNotFoundError } from '@/lib/utils/error-handler';
 
-const logger = new Logger('SecurityAuditSystem');
+const logger = getLogger();
 
 // 安全事件类型
 export enum SecurityEventType {

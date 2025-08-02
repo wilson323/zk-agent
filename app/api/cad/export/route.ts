@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file cad\export\route.ts
  * @description Migrated API route with global error handling
  * @author ZK-Agent Team
@@ -49,7 +49,6 @@ export const POST = createApiRoute(
         message: '导出成功',
       });
     } catch (error) {
-      console.error('CAD导出失败:', error);
       return ApiResponseWrapper.error(ErrorCode.INTERNAL_SERVER_ERROR, 'CAD导出失败', null, 500);
     }
   }

@@ -84,6 +84,7 @@ export class DatabasePoolOptimizer extends EventEmitter {
   private maxHistorySize: number;
   private lastOptimization: Date | null = null;
   private cooldownMs: number;
+  private optimizationFrequency: number;
 
   constructor(
     intervalMs: number = 60000, // 1分钟检查一次
@@ -95,6 +96,7 @@ export class DatabasePoolOptimizer extends EventEmitter {
     this.intervalMs = intervalMs;
     this.maxHistorySize = maxHistorySize;
     this.cooldownMs = cooldownMs;
+    this.optimizationFrequency = intervalMs; // 使用相同的间隔时间
 
     // 初始化当前配置
     this.currentConfig = this.getDefaultConfiguration();
@@ -293,6 +295,41 @@ export class DatabasePoolOptimizer extends EventEmitter {
   private performOptimization(): void {
     // 优化逻辑实现
     console.log('Performing pool optimization');
+  }
+
+  /**
+   * 立即触发优化
+   * @param reason 触发原因
+   */
+  private triggerImmediateOptimization(reason: string): void {
+    try {
+      console.log(`Triggering immediate optimization: ${reason}`);
+      
+      // 如果当前正在优化，跳过
+      if (this.isOptimizing) {
+        console.log('Optimization already in progress, skipping immediate trigger');
+        return;
+      }
+
+      // 检查冷却期
+      if (this.lastOptimization && 
+          Date.now() - this.lastOptimization.getTime() < this.cooldownMs) {
+        console.log('Still in cooldown period, skipping immediate optimization');
+        return;
+      }
+
+      // 立即执行优化
+      this.performOptimization();
+      this.lastOptimization = new Date();
+
+      // 发出事件
+      this.emit('immediateOptimization', {
+        reason,
+        timestamp: new Date()
+      });
+    } catch (error) {
+      console.error('Failed to trigger immediate optimization:', error);
+    }
   }
 
   /**

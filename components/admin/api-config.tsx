@@ -1,3 +1,5 @@
+import { secureStorage } from '@/lib/utils/secure-storage';
+
 // @ts-nocheck
 'use client';
 
@@ -167,9 +169,7 @@ export function ApiConfig() {
                     setApiKey('');
                     setUseProxy(true); // 重置为默认开启代理
                     // 重置时也保存到本地存储
-                    localStorage.setItem(
-                      'ai_chat_api_config',
-                      JSON.stringify({
+                    secureStorage.setItem('ai_chat_api_config', JSON.stringify({
                         baseUrl: DEFAULT_API_CONFIG.baseUrl,
                         apiKey: '',
                         useProxy: true, // 默认开启代理

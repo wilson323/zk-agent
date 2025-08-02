@@ -17,10 +17,6 @@ import { getLogger } from '@/lib/utils/logger';
 
 const logger = getLogger();
 
-const logger = getLogger();
-
-const logger = new Logger('SecurityScanAPI');
-
 // POST /api/admin/security/scan - Start security scan
 export async function POST(request: NextRequest) {
   try {

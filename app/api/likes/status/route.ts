@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file likes\status\route.ts
  * @description Like status check API route
  * @author ZK-Agent Team
@@ -47,7 +47,6 @@ export const GET = createApiRoute(
         count: likeCount,
       });
     } catch (error) {
-      console.error('Like status error:', error);
       return ApiResponseWrapper.error('Internal server error', 500);
     }
   }

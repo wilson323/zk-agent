@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file fastgpt\health\route.ts
  * @description FastGPT health check API route
  * @author ZK-Agent Team
@@ -62,7 +62,6 @@ export const GET = createApiRoute(
         );
       }
     } catch (error) {
-      console.error('FastGPT health check error:', error);
       return ApiResponseWrapper.error(
         ErrorCode.INTERNAL_SERVER_ERROR,
         'Health check failed',

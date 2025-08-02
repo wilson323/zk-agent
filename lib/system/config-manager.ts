@@ -1,5 +1,7 @@
 import type { SystemConfig } from '@/types/system-config';
 import { getLogger } from '@/lib/utils/logger';
+import { secureStorage } from '@/lib/utils/secure-storage';
+
 
 const logger = getLogger();
 
@@ -13,7 +15,7 @@ interface ConfigManagerResult<T> {
 
 export const loadSystemConfig = (): SystemConfig | null => {
   try {
-    const savedConfig = localStorage.getItem('system_config');
+    const savedConfig = secureStorage.getItem('system_config');
     if (savedConfig) {
       return JSON.parse(savedConfig);
     }
@@ -28,7 +30,7 @@ export const saveSystemConfig = async (
 ): Promise<ConfigManagerResult<boolean>> => {
   try {
     // 保存到本地存储
-    localStorage.setItem('system_config', JSON.stringify(config));
+    secureStorage.setItem('system_config', JSON.stringify(config));
 
     // 保存到服务器
     const response = await fetch('/api/system/config', {

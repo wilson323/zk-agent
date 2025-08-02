@@ -1,3 +1,5 @@
+import { secureStorage } from '@/lib/utils/secure-storage';
+
 /**
  * AI模型管理器
  * 负责模型的增删改查和调用
@@ -327,7 +329,7 @@ export class AIModelManager {
    */
   private async loadModelsFromStorage(): Promise<void> {
     try {
-      const modelsData = localStorage.getItem('ai_models_config');
+      const modelsData = secureStorage.getItem('ai_models_config');
       if (modelsData) {
         const models: AIModelConfig[] = JSON.parse(modelsData);
         for (const model of models) {
@@ -336,7 +338,7 @@ export class AIModelManager {
         }
       }
 
-      const metricsData = localStorage.getItem('ai_models_metrics');
+      const metricsData = secureStorage.getItem('ai_models_metrics');
       if (metricsData) {
         const metrics: ModelMetrics[] = JSON.parse(metricsData);
         for (const metric of metrics) {
@@ -354,7 +356,7 @@ export class AIModelManager {
   private async saveModelsToStorage(): Promise<void> {
     try {
       const models = Array.from(this.models.values());
-      localStorage.setItem('ai_models_config', JSON.stringify(models));
+      secureStorage.setItem('ai_models_config', JSON.stringify(models));
     } catch (error) {
       logger.error('Failed to save models to storage:', error);
     }
@@ -366,17 +368,12 @@ export class AIModelManager {
   private async saveMetricsToStorage(): Promise<void> {
     try {
       const metrics = Array.from(this.metrics.values());
-      localStorage.setItem('ai_models_metrics', JSON.stringify(metrics));
+      secureStorage.setItem('ai_models_metrics', JSON.stringify(metrics));
     } catch (error) {
       logger.error('Failed to save metrics to storage:', error);
     }
   }
 }
-
-import { AgUICoreAdapter } from '@/lib/ag-ui/core-adapter';
-import { getLogger } from '@/lib/utils/logger';
-
-const logger = getLogger();
 
 const logger = getLogger();
 

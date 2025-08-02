@@ -13,10 +13,6 @@ import { getLogger } from '@/lib/utils/logger';
 
 const logger = getLogger();
 
-const logger = getLogger();
-
-const logger = new Logger('PasswordSecurity');
-
 // 密码安全配置
 interface PasswordSecurityConfig {
   saltRounds: number;

@@ -22,8 +22,21 @@ import { IntelligentCacheManager } from './intelligent-cache-manager';
 import { CacheStrategyOptimizer } from './cache-strategy-optimizer';
 import { PerformanceMonitorEnhancer } from './performance-monitor-enhancer';
 import { getMonitoringService, isMonitoringInitialized } from './monitoring-registry';
-import { DatabaseMetrics, IMonitoringService } from './unified-interfaces';
+import { DatabaseMetrics, IMonitoringService, Alert } from './unified-interfaces';
 import { IMonitoringService as IMonitoringServiceLegacy } from './monitoring-interfaces';
+import { getLogger } from '@/lib/utils/logger';
+
+/**
+ * 异常检测结果接口
+ */
+interface AnomalyDetection {
+  type: 'performance' | 'connection' | 'query' | 'memory';
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  description: string;
+  metrics: DatabaseMetrics;
+  timestamp: Date;
+  recommendations?: string[];
+}
 
 /**
  * 优化组件状态
@@ -148,6 +161,7 @@ export class PerformanceOptimizationCoordinator extends EventEmitter {
   private optimizationHistory: OptimizationResult[] = [];
   private activeOptimizations: Set<string> = new Set();
   private config: CoordinatorConfig;
+  private logger = getLogger();
 
   constructor() {
     super();
@@ -181,7 +195,7 @@ export class PerformanceOptimizationCoordinator extends EventEmitter {
     this.components.set('queryOptimizer', new QueryPerformanceOptimizer());
     this.components.set('cacheManager', new IntelligentCacheManager());
     this.components.set('cacheOptimizer', new CacheStrategyOptimizer());
-    this.components.set('performanceMonitor', new PerformanceMonitorEnhancer());
+    this.components.set('performanceMonitor', new PerformanceMonitorEnhancer(getMonitoringService()));
 
     // 初始化组件状态
     for (const [name, component] of Array.from(this.components)) {
@@ -270,11 +284,11 @@ export class PerformanceOptimizationCoordinator extends EventEmitter {
     // 监听性能监控器事件
     const performanceMonitor = this.components.get('performanceMonitor');
     if (performanceMonitor) {
-      performanceMonitor.on('anomaly-detected', anomaly => {
+      performanceMonitor.on('anomaly-detected', (anomaly: AnomalyDetection) => {
         this.handleAnomalyDetected(anomaly);
       });
 
-      performanceMonitor.on('critical-alert', alert => {
+      performanceMonitor.on('critical-alert', (alert: Alert) => {
         this.handleCriticalAlert(alert);
       });
     }
@@ -292,7 +306,7 @@ export class PerformanceOptimizationCoordinator extends EventEmitter {
     // 监听组件事件
     for (const [name, component] of this.components) {
       if (component.on) {
-        component.on('error', error => {
+        component.on('error', (error: Error) => {
           this.handleComponentError(name, error);
         });
 
@@ -375,27 +389,87 @@ export class PerformanceOptimizationCoordinator extends EventEmitter {
    *
    * @param anomaly - 异常信息
    */
-  private async handleAnomalyDetected(anomaly: any): Promise<void> {
-    if (enabledComponents.length === 0) {
-      return { status: 'error', score: 0, components };
+  private async handleAnomalyDetected(anomaly: AnomalyDetection): Promise<void> {
+    this.logger.warn(`检测到异常: ${anomaly.description}`, {
+      type: anomaly.type,
+      severity: anomaly.severity,
+      timestamp: anomaly.timestamp
+    });
+
+    // 根据异常类型触发相应的优化策略
+    switch (anomaly.type) {
+      case 'performance':
+        await this.handlePerformanceDegradation(anomaly);
+        break;
+      case 'connection':
+        await this.optimizeConnectionPool();
+        break;
+      case 'query':
+        await this.optimizeQueries();
+        break;
+      case 'memory':
+        await this.optimizeMemoryUsage();
+        break;
     }
+  }
 
-    const healthyCount = enabledComponents.filter(c => c.health === 'healthy').length;
-    const warningCount = enabledComponents.filter(c => c.health === 'warning').length;
-    const errorCount = enabledComponents.filter(c => c.health === 'error').length;
+  /**
+   * 处理性能下降
+   */
+  private async handlePerformanceDegradation(anomaly: AnomalyDetection): Promise<void> {
+    // 实现性能下降处理逻辑
+    this.logger.info('处理性能下降异常', { anomaly });
+  }
 
-    const score = (healthyCount + warningCount * 0.5) / enabledComponents.length;
+  /**
+   * 处理关键告警
+   */
+  private async handleCriticalAlert(alert: Alert): Promise<void> {
+    this.logger.error(`关键告警: ${alert.message}`, {
+      level: alert.level,
+      timestamp: alert.timestamp
+    });
 
-    let status: 'healthy' | 'warning' | 'error';
-    if (errorCount > 0) {
-      status = 'error';
-    } else if (warningCount > 0) {
-      status = 'warning';
-    } else {
-      status = 'healthy';
+    // 触发紧急优化措施
+    await this.emergencyOptimization();
+  }
+
+  /**
+   * 紧急优化
+   */
+  private async emergencyOptimization(): Promise<void> {
+    // 实现紧急优化逻辑
+    this.logger.info('执行紧急优化措施');
+  }
+
+  /**
+   * 优化连接池
+   */
+  private async optimizeConnectionPool(): Promise<void> {
+    const poolOptimizer = this.components.get('poolOptimizer');
+    if (poolOptimizer && typeof poolOptimizer.optimize === 'function') {
+      await poolOptimizer.optimize();
     }
+  }
 
-    return { status, score, components };
+  /**
+   * 优化查询性能
+   */
+  private async optimizeQueries(): Promise<void> {
+    const queryOptimizer = this.components.get('queryOptimizer');
+    if (queryOptimizer && typeof queryOptimizer.optimize === 'function') {
+      await queryOptimizer.optimize();
+    }
+  }
+
+  /**
+   * 优化内存使用
+   */
+  private async optimizeMemoryUsage(): Promise<void> {
+    const cacheManager = this.components.get('cacheManager');
+    if (cacheManager && typeof cacheManager.optimize === 'function') {
+      await cacheManager.optimize();
+    }
   }
 
   /**

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file auth\logout\route.ts
  * @description Migrated API route with global error handling
  * @author ZK-Agent Team
@@ -28,11 +28,9 @@ export const POST = createApiRoute(
           },
         })
         .catch((error: any) => {
-          console.error('Failed to log logout:', error);
-        });
+          });
     } else if (!enhancedDb) {
-      console.warn('Database connection not available for logout logging');
-    }
+      }
 
     return ApiResponseWrapper.success({
       success: true,

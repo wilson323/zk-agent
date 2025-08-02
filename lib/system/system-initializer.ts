@@ -27,7 +27,7 @@ import {
 
 export class SystemInitializer {
   private static instance: SystemInitializer;
-  private logger = new Logger('SystemInitializer');
+  private logger = getLogger();
   private initialized = false;
   private initializationPromise: Promise<void> | null = null;
 

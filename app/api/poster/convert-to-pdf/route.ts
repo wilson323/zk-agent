@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file poster\convert-to-pdf\route.ts
  * @description Migrated API route with global error handling
  * @author ZK-Agent Team
@@ -58,7 +58,6 @@ export const POST = createApiRoute(
         },
       });
     } catch (error) {
-      console.error('Error converting poster to PDF:', error);
       return ApiResponseWrapper.error('Internal server error', 500);
     }
   }

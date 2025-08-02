@@ -5,6 +5,7 @@
 
 import { DatabaseConnection } from './connection-manager';
 import { Logger } from '../../utils/logger';
+import { getLogger } from '@/lib/utils/logger';
 
 /**
  * 查询操作符
@@ -143,7 +144,7 @@ export class QueryBuilder<T = any> {
 
   constructor(connection: DatabaseConnection) {
     this.connection = connection;
-    this.logger = new Logger(`QueryBuilder:${connection.id}`);
+    // Logger initialized as class property
   }
 
   /**

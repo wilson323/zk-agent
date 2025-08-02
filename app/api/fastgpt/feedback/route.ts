@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file fastgpt\feedback\route.ts
  * @description FastGPT feedback API route
  * @author ZK-Agent Team
@@ -62,7 +62,6 @@ export const POST = createApiRoute(
       const result = await response.json();
       return ApiResponseWrapper.success(result);
     } catch (error) {
-      console.error('FastGPT feedback error:', error);
       return ApiResponseWrapper.error(
         ErrorCode.INTERNAL_SERVER_ERROR,
         'Internal server error',

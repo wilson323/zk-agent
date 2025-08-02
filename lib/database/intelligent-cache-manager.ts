@@ -24,8 +24,6 @@ import { getLogger } from '@/lib/utils/logger';
 
 const logger = getLogger();
 
-const logger = getLogger();
-
 // 条件导入Redis，仅在服务器环境中使用
 let Redis: any = null;
 if (typeof window === 'undefined') {
@@ -455,4 +453,4 @@ export const intelligentCacheManager = new IntelligentCacheManager();
 // 导出类型
 export type { CacheConfig, CacheItem, CacheStats, CacheEvent, PredictiveLoadConfig, CacheEntry };
 
-export { CacheLevel, CacheStrategyEnum };
+export { CacheStrategyEnum };

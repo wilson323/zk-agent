@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file metrics\record\route.ts
  * @description Migrated API route with global error handling
  * @author ZK-Agent Team
@@ -37,7 +37,6 @@ export const POST = createApiRoute(
         timestamp: new Date().toISOString(),
       });
     } catch (error) {
-      console.error('Error recording metrics:', error);
       return ApiResponseWrapper.error('Failed to record metrics', 500);
     }
   }

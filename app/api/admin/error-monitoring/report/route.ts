@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file admin\error-monitoring\report\route.ts
  * @description Migrated API route with global error handling
  * @author ZK-Agent Team
@@ -77,7 +77,6 @@ async function generateErrorMonitoringReport(timeRange?: string) {
       },
     };
   } catch (error) {
-    console.error('Error generating monitoring report:', error);
     throw error;
   }
 }
@@ -184,7 +183,6 @@ export const GET = createApiRoute(
 
       return ApiResponseWrapper.success(report.data);
     } catch (error) {
-      console.error('Error generating monitoring report:', error);
       return ApiResponseWrapper.error(
         ErrorCode.INTERNAL_SERVER_ERROR,
         'Failed to generate monitoring report',

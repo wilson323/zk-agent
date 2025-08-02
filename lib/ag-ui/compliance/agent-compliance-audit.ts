@@ -6,10 +6,8 @@ import {
 import { ConversationAgentAdapter } from '../agents/conversation-agent-adapter';
 import { CADAgentAdapter } from '../agents/cad-agent-adapter';
 import { PosterAgentAdapter } from '../agents/poster-agent-adapter';
-import type { AgUIEvent, Message } from '../protocol/complete-types';
+import type { AgUIEvent, Message } from '../protocol/types';
 import { getLogger } from '@/lib/utils/logger';
-
-const logger = getLogger();
 
 const logger = getLogger();
 

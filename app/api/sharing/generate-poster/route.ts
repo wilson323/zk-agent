@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file sharing\generate-poster\route.ts
  * @description Migrated API route with global error handling
  * @author ZK-Agent Team
@@ -56,8 +56,7 @@ export const POST = createApiRoute(
 
           ctx.drawImage(image, x, y, drawWidth, drawHeight);
         } catch (error) {
-          console.error('Failed to load image:', error);
-        }
+          }
       }
 
       // 添加标题
@@ -97,7 +96,6 @@ export const POST = createApiRoute(
         downloadUrl,
       });
     } catch (error) {
-      console.error('Error generating poster:', error);
       return ApiResponseWrapper.error('Internal server error', { status: 500 });
     }
   }

@@ -2,8 +2,6 @@ import { getLogger } from '@/lib/utils/logger';
 
 const logger = getLogger();
 
-const logger = getLogger();
-
 /**
  * 错误监控系统配置
  */

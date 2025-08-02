@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file cad\upload\route.ts
  * @description Migrated API route with global error handling
  * @author ZK-Agent Team
@@ -70,11 +70,9 @@ export const POST = createApiRoute(
           // 这里可以添加更多解析结果
         });
       } catch (error) {
-        console.error('文件上传失败:', error);
         return ApiResponseWrapper.error(ErrorCode.INTERNAL_SERVER_ERROR, '文件上传失败', null, 500);
       }
     } catch (error) {
-      console.error('处理请求失败:', error);
       return ApiResponseWrapper.error(ErrorCode.INTERNAL_SERVER_ERROR, '处理请求失败', null, 500);
     }
   }

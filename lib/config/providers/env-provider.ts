@@ -23,7 +23,7 @@ export class EnvironmentConfigProvider implements ConfigProvider {
 
   constructor(envPrefix: string = 'ZK_AGENT_') {
     this.envPrefix = envPrefix;
-    this.logger = new Logger('EnvironmentConfigProvider');
+    // Logger initialized as class property
     this.lastEnvSnapshot = this.getEnvSnapshot();
   }
 

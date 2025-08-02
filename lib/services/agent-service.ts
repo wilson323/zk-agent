@@ -44,8 +44,6 @@ import { getLogger } from '@/lib/utils/logger';
 
 const logger = getLogger();
 
-const logger = getLogger();
-
 // 📝 命名规范：服务类使用PascalCase，Service后缀明确表示业务逻辑层
 @injectable
 export class AgentService implements IAgentService {

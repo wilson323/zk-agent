@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file ag-ui\compliance\audit\route.ts
  * @description Migrated API route with global error handling
  * @author ZK-Agent Team
@@ -42,15 +42,11 @@ export const POST = createApiRoute(
       });
 
       // 记录审计日志
-      console.log(`Compliance audit completed for agent ${agentId}:`, {
-        score: result.overallScore,
-        // issues: result.issues?.length || 0,
-        timestamp: new Date().toISOString(),
+      .toISOString(),
       });
 
       return ApiResponseWrapper.success(result);
     } catch (error) {
-      console.error('Error performing compliance audit:', error);
       return ApiResponseWrapper.error(
         UnifiedErrorCode.INTERNAL_SERVER_ERROR,
         'Failed to perform compliance audit',

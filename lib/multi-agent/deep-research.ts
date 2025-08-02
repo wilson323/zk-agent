@@ -1583,6 +1583,3 @@ interface ServiceStatistics {
   successRate: number;
   lastUpdate: Date;
 }
-
-// 导出主要类
-export { DeepResearchService };

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file proxy\route.ts
  * @description Migrated API route with global error handling
  * @author ZK-Agent Team
@@ -42,7 +42,6 @@ export const GET = createApiRoute(
         },
       });
     } catch (error) {
-      console.error('Proxy GET request failed:', error);
       return ApiResponseWrapper.error('Proxy request failed', 500);
     }
   }
@@ -90,7 +89,6 @@ export const POST = createApiRoute(
         },
       });
     } catch (error) {
-      console.error('Proxy POST request failed:', error);
       return ApiResponseWrapper.error('Proxy request failed', 500);
     }
   }
@@ -138,7 +136,6 @@ export const PUT = createApiRoute(
         },
       });
     } catch (error) {
-      console.error('Proxy PUT request failed:', error);
       return ApiResponseWrapper.error('Proxy request failed', 500);
     }
   }
@@ -182,7 +179,6 @@ export const DELETE = createApiRoute(
         },
       });
     } catch (error) {
-      console.error('Proxy DELETE request failed:', error);
       return ApiResponseWrapper.error('Proxy request failed', 500);
     }
   }

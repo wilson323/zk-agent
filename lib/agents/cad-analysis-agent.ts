@@ -1,6 +1,6 @@
 import { getLogger } from '@/lib/utils/logger';
 
-const logger = getLogger();
+// 删除重复声明的logger变量
 
 const logger = getLogger();
 
@@ -218,13 +218,13 @@ export class CADAnalysisAgent {
       return await this.primaryParser.parse(file);
     } catch (error) {
       if (error instanceof CADParseError) {
-        logger.warn('主解析器失败，尝试备用解析器:', error.message);
+        logger.warn('主解析器失败，尝试备用解析器', { error: error.message });
 
         try {
           // 尝试备用解析器
           return await this.fallbackParser.parse(file);
         } catch (fallbackError) {
-          logger.warn('备用解析器也失败，生成基础信息:', fallbackError);
+          logger.warn('备用解析器也失败，生成基础信息', { error: fallbackError });
 
           // 提供基础信息
           return this.generateBasicInfo(file);
@@ -248,7 +248,7 @@ export class CADAnalysisAgent {
 
         if (attempt < this.maxRetries) {
           const delay = calculateBackoffDelay(attempt);
-          logger.warn(`CAD分析失败，${delay}ms后重试 (${attempt}/${this.maxRetries}):`, error);
+          logger.warn(`CAD分析失败，${delay}ms后重试 (${attempt}/${this.maxRetries})`, { error });
           await this.delay(delay);
         }
       }

@@ -17,7 +17,7 @@ app.get('/health', (_req, res) => {
 
 // 启动服务器
 app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+  // 服务器启动成功，端口: ${port}
 });
 
 export default app;

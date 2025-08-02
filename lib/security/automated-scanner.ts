@@ -9,16 +9,12 @@
 import { getLogger } from '@/lib/utils/logger';
 
 const logger = getLogger();
-
-const logger = getLogger();
 import { enhancedCacheManager } from '@/lib/cache/enhanced-cache-manager';
 import { codeReviewSystem, CodeReviewResult } from './code-review-system';
 import { securityAuditSystem, SecurityEventType, SecuritySeverity } from './security-audit-system';
 import { getErrorMessage } from '@/lib/utils/error-handler';
 import * as fs from 'fs/promises';
 import * as path from 'path';
-
-const logger = new Logger('AutomatedScanner');
 
 // Scan Configuration
 export interface ScanConfig {

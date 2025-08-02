@@ -89,7 +89,7 @@ interface StorageStats {
 
 export class EnhancedFileStorage {
   private static instance: EnhancedFileStorage;
-  private logger = new Logger('EnhancedFileStorage');
+  private logger = getLogger();
   private metadata: Map<string, FileMetadata> = new Map();
   private cleanupInterval: NodeJS.Timeout | null = null;
 

@@ -25,7 +25,6 @@ export const PATCH = createApiRoute(
 
     // 在实际应用中，这里应该更新数据库中的错误日志状态
     // 这里只是模拟成功响应
-    console.log(`标记错误日志 ${logId} 为已解决`);
 
     return ApiResponseWrapper.success({
       success: true,

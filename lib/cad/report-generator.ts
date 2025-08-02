@@ -4,8 +4,6 @@ import { getLogger } from '@/lib/utils/logger';
 
 const logger = getLogger();
 
-const logger = getLogger();
-
 export interface ReportConfig {
   format: 'pdf' | 'docx' | 'html';
   template?: string;

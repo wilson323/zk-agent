@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file fastgpt\api\v1\chat\completions\route.ts
  * @description Migrated API route with global error handling
  * @author ZK-Agent Team
@@ -72,7 +72,6 @@ export const POST = createApiRoute(
       const data = await response.json();
       return ApiResponseWrapper.success(data);
     } catch (error) {
-      console.error('FastGPT API error:', error);
       return ApiResponseWrapper.error(ErrorCode.INTERNAL_SERVER_ERROR, 'FastGPT API调用失败', null);
     }
   }

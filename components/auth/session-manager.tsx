@@ -1,3 +1,5 @@
+import { secureStorage } from '@/lib/utils/secure-storage';
+
 // @ts-nocheck
 'use client';
 
@@ -11,8 +13,8 @@ export function SessionManager() {
 
   // 检查token是否即将过期并自动刷新
   const checkAndRefreshToken = useCallback(async () => {
-    const token = localStorage.getItem('accessToken');
-    const tokenExpiry = localStorage.getItem('tokenExpiry');
+    const token = secureStorage.getItem('accessToken');
+    const tokenExpiry = secureStorage.getItem('tokenExpiry');
 
     if (!token || !user) {
       return;

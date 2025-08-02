@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file 数据库性能监控API路由
  * @description 提供数据库性能数据的API接口
  * @author ZK-Agent Team
@@ -8,12 +8,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
   getDatabasePerformanceOverview,
-  getDatabasePerformanceReport,
   checkDatabaseConnection,
   getDatabasePoolStatus,
 } from '@/lib/database/connection';
 import { databaseMonitor } from '@/lib/database/index';
-import { isDatabaseInitialized } from '@/lib/database/initialization';
+import { databaseInitializer } from '@/lib/database/initialization';
 
 /**
  * GET /api/admin/database/performance
@@ -22,7 +21,7 @@ import { isDatabaseInitialized } from '@/lib/database/initialization';
 export async function GET(request: NextRequest) {
   try {
     // 检查数据库是否已初始化
-    if (!isDatabaseInitialized()) {
+    if (!databaseInitializer.isInitialized()) {
       return NextResponse.json({ error: '数据库系统尚未初始化' }, { status: 503 });
     }
 
@@ -50,10 +49,10 @@ export async function GET(request: NextRequest) {
           uptime: Date.now() - (databaseMonitor as any).startTime || 0,
         },
         optimization: {
-          enabled: optimizationStatus.enabled,
-          componentsActive: Object.values(optimizationStatus.components).filter(Boolean).length,
-          totalComponents: Object.keys(optimizationStatus.components).length,
-          lastOptimization: optimizationStatus.lastOptimization,
+          enabled: Object.values(optimizationStatus).some(Boolean),
+          componentsActive: Object.values(optimizationStatus).filter(Boolean).length,
+          totalComponents: Object.keys(optimizationStatus).length,
+          lastOptimization: null,
         },
         health: overview.health,
       },
@@ -79,7 +78,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(responseData);
   } catch (error) {
-    console.error('获取数据库性能数据失败:', error);
     return NextResponse.json(
       { error: '获取性能数据失败', details: error instanceof Error ? error.message : '未知错误' },
       { status: 500 }
@@ -112,13 +110,11 @@ async function getPerformanceMetrics() {
           cacheHitRate: monitoringData.cacheHitRate || baseMetrics.cacheHitRate,
         };
       } catch (error) {
-        console.warn('获取监控数据失败，使用模拟数据:', error);
-      }
+        }
     }
 
     return baseMetrics;
   } catch (error) {
-    console.error('获取性能指标失败:', error);
     return {
       avgQueryTime: 0,
       slowQueries: 0,
@@ -197,7 +193,6 @@ async function getOptimizationRecommendations() {
 
     return recommendations;
   } catch (error) {
-    console.error('获取优化建议失败:', error);
     return [
       {
         type: 'maintenance',

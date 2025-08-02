@@ -3,8 +3,8 @@ import FastGPTApi from '@/lib/api/fastgpt';
 import { STORAGE_KEYS, isApiConfigured } from '@/lib/utils';
 import { generateAvatarColor } from '@/lib/utils/avatar-utils';
 import { getLogger } from '@/lib/utils/logger';
+import { secureStorage } from '@/lib/utils/secure-storage';
 
-const logger = getLogger();
 
 const logger = getLogger();
 
@@ -81,10 +81,10 @@ export const addAgent = async (
     agents.push(newAgent);
     localStorage.setItem(STORAGE_KEYS.AGENTS, JSON.stringify(agents));
 
-    const adminAgentsStr = localStorage.getItem('admin_agents');
+    const adminAgentsStr = secureStorage.getItem('admin_agents');
     const adminAgents = adminAgentsStr ? JSON.parse(adminAgentsStr) : [];
     adminAgents.push(newAgent);
-    localStorage.setItem('admin_agents', JSON.stringify(adminAgents));
+    secureStorage.setItem('admin_agents', JSON.stringify(adminAgents));
 
     return { success: true, data: newAgent };
   } catch (error: any) {
@@ -119,7 +119,7 @@ export const updateAgent = async (
 
       localStorage.setItem(STORAGE_KEYS.AGENTS, JSON.stringify(agents));
 
-      const adminAgentsStr = localStorage.getItem('admin_agents');
+      const adminAgentsStr = secureStorage.getItem('admin_agents');
       const adminAgents = adminAgentsStr ? JSON.parse(adminAgentsStr) : [];
       const adminIndex = adminAgents.findIndex((a: FastGPTApp) => a.id === updatedAgent.id);
 
@@ -139,7 +139,7 @@ export const updateAgent = async (
           updatedAt: new Date().toISOString(),
         });
       }
-      localStorage.setItem('admin_agents', JSON.stringify(adminAgents));
+      secureStorage.setItem('admin_agents', JSON.stringify(adminAgents));
 
       return { success: true, data: agents[index] };
     } else {
@@ -159,11 +159,11 @@ export const deleteAgent = async (id: string): Promise<AgentApiResult<boolean>> 
     const filteredAgents = agents.filter((agent: FastGPTApp) => agent.id !== id);
     localStorage.setItem(STORAGE_KEYS.AGENTS, JSON.stringify(filteredAgents));
 
-    const adminAgentsStr = localStorage.getItem('admin_agents');
+    const adminAgentsStr = secureStorage.getItem('admin_agents');
     if (adminAgentsStr) {
       const adminAgents = JSON.parse(adminAgentsStr);
       const filteredAdminAgents = adminAgents.filter((agent: FastGPTApp) => agent.id !== id);
-      localStorage.setItem('admin_agents', JSON.stringify(filteredAdminAgents));
+      secureStorage.setItem('admin_agents', JSON.stringify(filteredAdminAgents));
     }
 
     return { success: true, data: true };

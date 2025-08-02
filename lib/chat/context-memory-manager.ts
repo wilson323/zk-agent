@@ -1,3 +1,5 @@
+import { secureStorage } from '@/lib/utils/secure-storage';
+
 // @ts-nocheck
 /**
  * @file Context Memory Manager
@@ -10,8 +12,6 @@ import { AdvancedCacheManager } from '@/lib/cache/advanced-cache-manager';
 
 import { ChatMessage } from '../types/interfaces';
 import { getLogger } from '@/lib/utils/logger';
-
-const logger = getLogger();
 
 const logger = getLogger();
 
@@ -620,8 +620,8 @@ export class ContextMemoryManager {
     const sessions: ContextSession[] = [];
 
     try {
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
+      for (let i = 0; i < secureStorage.getAllKeys().length; i++) {
+        const key = secureStorage.getAllKeys()[i];
         if (key && key.startsWith('context_session_')) {
           const sessionId = key.replace('context_session_', '');
           const session = this.loadSessionFromStorage(sessionId);

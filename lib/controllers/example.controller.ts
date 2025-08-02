@@ -11,11 +11,6 @@ import { IExampleService, ExampleService } from '../services/example-service';
 import { getLogger } from '@/lib/utils/logger';
 
 const logger = getLogger();
-import { getLogger } from '@/lib/utils/logger';
-
-const logger = getLogger();
-
-const logger = getLogger();
 import { ErrorCode } from '@/types/core';
 import { ApiResponseWrapper } from '@/lib/middleware/api-route-wrapper';
 

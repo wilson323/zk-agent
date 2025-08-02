@@ -15,8 +15,6 @@ import { getLogger } from '@/lib/utils/logger';
 
 const logger = getLogger();
 
-const logger = getLogger();
-
 export class PosterConfigDB {
   /**
    * 获取所有海报风格

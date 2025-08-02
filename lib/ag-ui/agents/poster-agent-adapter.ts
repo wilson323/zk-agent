@@ -1,10 +1,8 @@
 // @ts-nocheck
 import { EnhancedAgUIRuntime } from '../protocol/enhanced-runtime';
 import { AgUIAgentManager } from '../protocol/agent-manager';
-import type { AgentDefinition, Message, RunInput } from '../protocol/complete-types';
+import type { AgentDefinition, Message, RunInput } from '../protocol/types';
 import { getLogger } from '@/lib/utils/logger';
-
-const logger = getLogger();
 
 const logger = getLogger();
 

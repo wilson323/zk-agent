@@ -15,8 +15,6 @@ import { getLogger } from '@/lib/utils/logger';
 
 const logger = getLogger();
 
-const logger = getLogger();
-
 // API响应包装器
 export class ApiResponseWrapper {
   static success<T>(data: T, pagination?: any): NextResponse<ApiResponse<T>> {

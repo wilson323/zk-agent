@@ -4,16 +4,17 @@ import { multiAgentCoordinator } from '@/lib/multi-agent/coordinator';
 /**
  * 获取特定任务信息
  */
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const task = multiAgentCoordinator.getTaskStatus(params.id);
+    const { id } = await params;
+    const task = multiAgentCoordinator.getTaskStatus(id);
 
     if (!task) {
       return NextResponse.json(
         {
           success: false,
           error: 'Task not found',
-          message: `Task with ID ${params.id} not found`,
+          message: `Task with ID ${id} not found`,
         },
         { status: 404 }
       );
@@ -40,17 +41,17 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 /**
  * 更新任务状态
  */
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const updates = await request.json();
-
-    const task = multiAgentCoordinator.getTaskStatus(params.id);
+      const { id } = await params;
+      const updates = await request.json();
+      const task = multiAgentCoordinator.getTaskStatus(id);
     if (!task) {
       return NextResponse.json(
         {
           success: false,
           error: 'Task not found',
-          message: `Task with ID ${params.id} not found`,
+          message: `Task with ID ${id} not found`,
         },
         { status: 404 }
       );
@@ -81,15 +82,16 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 /**
  * 取消任务
  */
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const task = multiAgentCoordinator.getTaskStatus(params.id);
+      const { id } = await params;
+      const task = multiAgentCoordinator.getTaskStatus(id);
     if (!task) {
       return NextResponse.json(
         {
           success: false,
           error: 'Task not found',
-          message: `Task with ID ${params.id} not found`,
+          message: `Task with ID ${id} not found`,
         },
         { status: 404 }
       );

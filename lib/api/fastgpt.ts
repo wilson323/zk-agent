@@ -13,8 +13,6 @@ import { getLogger } from '@/lib/utils/logger';
 
 const logger = getLogger();
 
-const logger = getLogger();
-
 // FastGPT API 响应类型
 export interface FastGPTResponse {
   id: string;

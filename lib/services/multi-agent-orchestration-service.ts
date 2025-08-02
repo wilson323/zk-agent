@@ -22,6 +22,15 @@ import {
 import { UnifiedAIAdapter } from '../ai/unified-ai-adapter';
 import { getEnhancedDb } from '../database/enhanced-database-manager';
 import { getLogger } from '@/lib/utils/logger';
+// 使用成熟的LangChain工作流服务替代自定义引擎
+import { 
+  LangChainWorkflowClient, 
+  langchainWorkflowClient,
+  createAndExecuteWorkflow,
+  waitForWorkflowCompletion,
+  type LangChainWorkflowConfig,
+  type WorkflowExecutionResult
+} from './langchain-workflow-client';
 
 const logger = getLogger();
 import { z } from 'zod';
@@ -65,6 +74,17 @@ const ExecuteWorkflowSchema = z.object({
   task: z.string().min(1).max(5000),
   context: z.record(z.any()).optional(),
   priority: z.enum(['low', 'normal', 'high']).default('normal'),
+});
+
+const ExecuteNaturalLanguageWorkflowSchema = z.object({
+  description: z.string().min(10).max(10000),
+  context: z.record(z.any()).optional(),
+  constraints: z.array(z.string()).optional(),
+  expectedOutput: z.string().optional(),
+  priority: z.enum(['low', 'medium', 'high', 'urgent']).default('medium'),
+  deadline: z.string().datetime().optional(),
+  autoCreateTeam: z.boolean().default(true),
+  preferredAgents: z.array(z.string()).optional(),
 });
 
 const QueryWorkflowsSchema = z.object({
@@ -119,10 +139,12 @@ export class MultiAgentOrchestrationService {
   private aiAdapter: UnifiedAIAdapter;
   private redis: Redis;
   private executionQueue: Map<string, Promise<WorkflowResult>> = new Map();
-  private logger: Logger;
+  private logger: typeof logger;
+  // 使用成熟的LangChain工作流客户端
+  private langchainClient: LangChainWorkflowClient;
 
   constructor() {
-    this.logger = new Logger();
+    this.logger = logger;
     this.aiAdapter = UnifiedAIAdapter.getInstance();
     this.redis = new Redis({
       host: process.env.REDIS_HOST || 'localhost',
@@ -133,6 +155,9 @@ export class MultiAgentOrchestrationService {
 
     this.orchestrator = new ZKWorkflowOrchestrator(this.aiAdapter, this.redis);
     this.agentFactory = new ZKAgentFactory(this.orchestrator);
+    
+    // 初始化LangChain工作流客户端
+     this.langchainClient = langchainWorkflowClient;
 
     this.setupEventListeners();
   }
@@ -443,6 +468,281 @@ export class MultiAgentOrchestrationService {
 
       throw error;
     } finally {
+      this.executionQueue.delete(executionId);
+    }
+  }
+
+  /**
+   * 执行自然语言工作流（使用LangChain后端服务）
+   */
+  async executeNaturalLanguageWorkflow(
+    userId: string,
+    workflowData: z.infer<typeof ExecuteNaturalLanguageWorkflowSchema>
+  ): Promise<string> {
+    try {
+      // 验证输入数据
+      const validatedData = ExecuteNaturalLanguageWorkflowSchema.parse(workflowData);
+
+      this.logger.info(`Starting LangChain workflow execution for user ${userId}`);
+      this.logger.info(`Workflow description: ${validatedData.description}`);
+
+      // 使用LangChain工作流客户端创建工作流
+      const workflowName = `User-${userId}-${Date.now()}`;
+      const workflowId = await this.langchainClient.createWorkflowFromDescription(
+        validatedData.description,
+        workflowName
+      );
+      
+      // 准备执行输入
+      const executionInputs = {
+        description: validatedData.description,
+        context: validatedData.context || {},
+        constraints: validatedData.constraints || [],
+        expected_output: validatedData.expectedOutput,
+        priority: validatedData.priority,
+        user_id: userId,
+      };
+
+      // 执行LangChain工作流
+      const executionResult = await this.langchainClient.executeWorkflow(
+        workflowId,
+        executionInputs,
+        {
+          deadline: validatedData.deadline,
+          auto_create_team: validatedData.autoCreateTeam,
+          preferred_agents: validatedData.preferredAgents,
+        }
+      );
+
+      // 创建本地执行记录
+      const enhancedDb = getEnhancedDb();
+      const prisma = enhancedDb?.getClient();
+      if (!prisma) throw new Error('Database not available');
+
+      const execution = await prisma.agentConfig.create({
+        data: {
+          agentId: executionResult.execution_id,
+          name: `LangChain Workflow: ${validatedData.description.substring(0, 50)}...`,
+          type: 'CONVERSATION',
+          description: 'LangChain workflow execution record',
+          status: 'ACTIVE',
+          config: {
+            userId,
+            workflowId,
+            langchainExecutionId: executionResult.execution_id,
+            originalDescription: validatedData.description,
+            executionInputs,
+            executionStatus: executionResult.status,
+            createdAt: new Date(),
+          },
+        },
+      });
+
+      this.logger.info(`LangChain workflow execution started: ${executionResult.execution_id}`);
+      return executionResult.execution_id;
+    } catch (error) {
+      this.logger.error('Failed to execute natural language workflow:', error);
+      throw new Error(`执行自然语言工作流失败: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * 获取LangChain工作流执行状态
+   */
+  async getLangChainWorkflowStatus(executionId: string): Promise<WorkflowExecutionResult | null> {
+    try {
+      return await this.langchainClient.getWorkflowStatus(executionId);
+    } catch (error) {
+      this.logger.error('Failed to get LangChain workflow status:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 列出用户的LangChain工作流
+   */
+  async listLangChainWorkflows(): Promise<Array<{
+    id: string;
+    name: string;
+    description: string;
+    type: string;
+    agents_count: number;
+  }>> {
+    try {
+      return await this.langchainClient.listWorkflows();
+    } catch (error) {
+      this.logger.error('Failed to list LangChain workflows:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 删除LangChain工作流
+   */
+  async deleteLangChainWorkflow(workflowId: string): Promise<boolean> {
+    try {
+      return await this.langchainClient.deleteWorkflow(workflowId);
+    } catch (error) {
+      this.logger.error('Failed to delete LangChain workflow:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 解析自然语言工作流描述（不执行）
+   */
+  async parseLangChainWorkflowDescription(description: string): Promise<LangChainWorkflowConfig> {
+    try {
+      return await this.langchainClient.parseWorkflowDescription(description);
+    } catch (error) {
+      this.logger.error('Failed to parse workflow description:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 根据解析的工作流创建智能体团队（保留用于传统工作流）
+   */
+  private async createTeamFromParsedWorkflow(
+    userId: string,
+    parsedWorkflow: any, // 改为any类型，因为ParsedWorkflow类型已不可用
+    preferredAgents?: string[]
+  ): Promise<AgentTeam> {
+    // 简化实现，直接创建基础团队
+    const agentSpecs = [{
+      name: 'Assistant',
+      role: 'General Assistant',
+      template: 'ProductManager',
+      systemPrompt: 'You are a helpful assistant.',
+      modelName: 'gpt-4o-mini',
+      tools: [],
+      enableMemory: true,
+      enableCache: true,
+    }];
+
+    const teamData = {
+      name: `自动生成团队 - ${parsedWorkflow.name}`,
+      description: parsedWorkflow.description,
+      projectType: this.inferProjectType(parsedWorkflow.tasks),
+      agents: agentSpecs,
+      workflowType: parsedWorkflow.executionPlan.type,
+      maxConcurrency: parsedWorkflow.executionPlan.maxConcurrency,
+      timeout: parsedWorkflow.executionPlan.timeout,
+    } as z.infer<typeof CreateAgentTeamSchema>;
+
+    return await this.createAgentTeam(userId, teamData);
+  }
+
+  /**
+   * 将智能体能力映射到模板
+   */
+  private mapCapabilityToTemplate(capabilities: string[]): string | undefined {
+    const capabilityMap: Record<string, string> = {
+      'product_management': 'ProductManager',
+      'system_architecture': 'SystemArchitect',
+      'full_stack_development': 'FullStackEngineer',
+      'zk_proof_development': 'ZKProofSpecialist',
+      'quality_assurance': 'QAEngineer',
+    };
+
+    for (const capability of capabilities) {
+      if (capabilityMap[capability]) {
+        return capabilityMap[capability];
+      }
+    }
+    return undefined;
+  }
+
+  /**
+   * 推断项目类型
+   */
+  private inferProjectType(tasks: any[]): 'software_development' | 'research' | 'analysis' | 'custom' {
+    const taskDescriptions = tasks.map(task => task.description.toLowerCase()).join(' ');
+    
+    if (taskDescriptions.includes('develop') || taskDescriptions.includes('code') || taskDescriptions.includes('implement')) {
+      return 'software_development';
+    } else if (taskDescriptions.includes('research') || taskDescriptions.includes('analyze') || taskDescriptions.includes('study')) {
+      return 'research';
+    } else if (taskDescriptions.includes('analyze') || taskDescriptions.includes('evaluate') || taskDescriptions.includes('assess')) {
+      return 'analysis';
+    }
+    return 'custom';
+  }
+
+  /**
+   * 等待LangChain工作流完成（便捷方法）
+   */
+  async waitForLangChainWorkflowCompletion(
+    executionId: string,
+    maxWaitTime: number = 300000, // 5分钟
+    pollInterval: number = 2000 // 2秒
+  ): Promise<WorkflowExecutionResult> {
+    try {
+      return await waitForWorkflowCompletion(executionId, maxWaitTime, pollInterval);
+    } catch (error) {
+      this.logger.error('Failed to wait for LangChain workflow completion:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 创建并执行LangChain工作流（便捷方法）
+   */
+  async createAndExecuteLangChainWorkflow(
+    description: string,
+    inputs: Record<string, any>,
+    name?: string
+  ): Promise<WorkflowExecutionResult> {
+    try {
+      return await createAndExecuteWorkflow(description, inputs, name);
+    } catch (error) {
+      this.logger.error('Failed to create and execute LangChain workflow:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 内部工作流执行逻辑（保留用于传统Swarms工作流）
+   */
+  private async executeWorkflowInternalLegacy(
+    executionId: string,
+    teamId: string,
+    task: string
+  ): Promise<WorkflowResult> {
+    try {
+      this.logger.info(`Executing legacy workflow: ${executionId}`);
+      
+      // 更新执行状态为运行中
+      await this.updateExecutionStatus(executionId, 'running', {
+        startedAt: new Date(),
+      });
+
+      // 执行传统Swarms工作流
+      const result = await this.orchestrator.executeWorkflow(
+        teamId,
+        task
+      );
+
+      // 更新执行状态为完成
+      await this.updateExecutionStatus(executionId, 'completed', {
+        completedAt: new Date(),
+        result,
+      });
+
+      this.logger.info(`Legacy workflow completed: ${executionId}`);
+      return result;
+    } catch (error) {
+      this.logger.error(`Legacy workflow execution failed: ${executionId}`, error);
+      
+      // 更新执行状态为失败
+      await this.updateExecutionStatus(executionId, 'failed', {
+        completedAt: new Date(),
+        error: error instanceof Error ? error.message : String(error),
+      });
+      
+      throw error;
+    } finally {
+      // 从执行队列中移除
       this.executionQueue.delete(executionId);
     }
   }
@@ -808,4 +1108,17 @@ export class MultiAgentOrchestrationService {
 
 // ==================== 导出 ====================
 
+export {
+  CreateAgentTeamSchema,
+  ExecuteWorkflowSchema,
+  ExecuteNaturalLanguageWorkflowSchema,
+  QueryWorkflowsSchema,
+};
+
 export default MultiAgentOrchestrationService;
+
+// 导出类型定义
+export type {
+  AgentTeam,
+  WorkflowExecution,
+};

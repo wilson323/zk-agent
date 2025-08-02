@@ -28,7 +28,7 @@ import { getLogger } from '@/lib/utils/logger';
 
 const logger = getLogger();
 
-const logger = new Logger('ConfigSystem');
+const logger = getLogger();
 
 /**
  * 初始化配置系统

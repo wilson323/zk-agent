@@ -56,10 +56,11 @@ function handleError(error: any, context: string) {
  * GET /api/multi-agent/teams/[id]
  * 获取智能体团队详情
  */
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const userId = await getAuthenticatedUser(request);
-    const teamId = params.id;
+      const { id } = await params;
+      const userId = await getAuthenticatedUser(request);
+      const teamId = id;
 
     if (!teamId) {
       return NextResponse.json({ error: '缺少团队ID参数' }, { status: 400 });
@@ -74,7 +75,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       message: '获取智能体团队详情成功',
     });
   } catch (error) {
-    return handleError(error, `GET /api/multi-agent/teams/${params.id}`);
+    return handleError(error, `GET /api/multi-agent/teams/${id}`);
   }
 }
 
@@ -82,10 +83,11 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
  * DELETE /api/multi-agent/teams/[id]
  * 删除智能体团队
  */
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const userId = await getAuthenticatedUser(request);
-    const teamId = params.id;
+      const { id } = await params;
+      const userId = await getAuthenticatedUser(request);
+      const teamId = id;
 
     if (!teamId) {
       return NextResponse.json({ error: '缺少团队ID参数' }, { status: 400 });
@@ -102,6 +104,6 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
       message: '智能体团队删除成功',
     });
   } catch (error) {
-    return handleError(error, `DELETE /api/multi-agent/teams/${params.id}`);
+    return handleError(error, `DELETE /api/multi-agent/teams/${id}`);
   }
 }

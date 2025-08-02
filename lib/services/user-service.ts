@@ -209,3 +209,29 @@ export const checkHealth = async (): Promise<HealthCheckResult> => {
     };
   }
 };
+
+/**
+ * Get user by email address
+ * @param email - User email
+ * @returns User object or null if not found
+ */
+export const getUserByEmail = async (email: string) => {
+  const db = getDb();
+  if (!db) {
+    throw new Error('Database not available');
+  }
+  
+  return await db.user.findUnique({
+    where: { email },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      password: true,
+      role: true,
+      status: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+};

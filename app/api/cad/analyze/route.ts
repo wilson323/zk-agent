@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file cad\analyze\route.ts
  * @description Migrated API route with global error handling
  * @author ZK-Agent Team
@@ -37,12 +37,8 @@ async function recordPerformanceMetrics(metrics: {
   success: boolean;
   error?: any;
 }) {
-  console.log(
-    `[Performance] ${metrics.requestId}: ${metrics.processingTime}ms, ${metrics.fileSize} bytes, success: ${metrics.success}`
-  );
   if (metrics.error) {
-    console.error(`[Performance Error] ${metrics.requestId}: ${metrics.error}`);
-  }
+    }
 }
 
 // 单文件处理函数
@@ -59,8 +55,7 @@ async function processSingleFile(file: File, config: any) {
   const fileBuffer = Buffer.from(await file.arrayBuffer());
   const analysisResult = await analyzer.analyze(fileBuffer, file.name, progress => {
     // 进度回调处理
-    console.log(`分析进度: ${progress.stage} - ${progress.progress}% - ${progress.message}`);
-  });
+    });
 
   return {
     fileInfo,
@@ -90,7 +85,6 @@ export const GET = createApiRoute(
           return ApiResponseWrapper.error(ErrorCode.VALIDATION_ERROR, 'Invalid action', null);
       }
     } catch (error) {
-      console.error('CAD analyze GET error:', error);
       return ApiResponseWrapper.error(
         ErrorCode.INTERNAL_SERVER_ERROR,
         '获取分析信息失败',
@@ -110,8 +104,6 @@ export const POST = createApiRoute(
     let fileBuffer: Buffer | null = null;
 
     try {
-      console.log(`[${currentRequestId}] CAD分析请求开始`);
-
       const formData = await req.formData();
       file = formData.get('file') as File;
       const configStr = formData.get('config') as string;
@@ -143,7 +135,6 @@ export const POST = createApiRoute(
       // 检查缓存
       const cachedResult = await cacheManager.get(cacheKey);
       if (cachedResult) {
-        console.log('返回缓存的分析结果');
         return ApiResponseWrapper.success(cachedResult);
       }
 
@@ -279,10 +270,7 @@ export const POST = createApiRoute(
           fileBuffer = Buffer.from(await file.arrayBuffer());
           const analysisResult = await analyzer.analyze(fileBuffer, file.name, progress => {
             // 进度回调处理
-            console.log(
-              `分析进度: ${progress.stage} - ${progress.progress}% - ${progress.message}`
-            );
-          });
+            });
 
           // 5. 生成报告
           if (config.generateReport) {
@@ -324,11 +312,9 @@ export const POST = createApiRoute(
             jitter: true,
           },
           onRetry: (error, attempt) => {
-            console.log(`CAD分析重试 ${attempt}: ${error.message}`);
-          },
+            },
           onFailure: (error, attempts) => {
-            console.error(`CAD分析失败，已重试${attempts}次: ${error.message}`);
-          },
+            },
         }
       );
 
@@ -339,8 +325,6 @@ export const POST = createApiRoute(
       });
 
       const processingTime = Date.now() - startTime;
-      console.log(`[${currentRequestId}] CAD分析完成，耗时: ${processingTime}ms`);
-
       // 记录性能指标
       await recordPerformanceMetrics({
         requestId: currentRequestId,
@@ -352,8 +336,6 @@ export const POST = createApiRoute(
       return ApiResponseWrapper.success(result);
     } catch (error: any) {
       const processingTime = Date.now() - startTime;
-      console.error(`[${currentRequestId}] CAD分析失败，耗时: ${processingTime}ms`, error);
-
       // 记录错误指标
       await recordPerformanceMetrics({
         requestId: currentRequestId,

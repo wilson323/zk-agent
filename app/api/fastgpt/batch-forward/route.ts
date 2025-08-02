@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file fastgpt\batch-forward\route.ts
  * @description Migrated API route with global error handling
  * @author ZK-Agent Team
@@ -45,7 +45,6 @@ export const POST = createApiRoute(
 
       return ApiResponseWrapper.success(data);
     } catch (error) {
-      console.error('FastGPT batch forward error:', error);
       return ApiResponseWrapper.error(
         ErrorCode.INTERNAL_SERVER_ERROR,
         'Internal server error',

@@ -71,7 +71,7 @@ export interface OptimizationStrategy {
  * - 实现多环境连接池配置
  */
 export class ConnectionPoolEnhancer extends EventEmitter {
-  private logger: Logger;
+  private logger = getLogger();
   private currentConfig: PoolConfig;
   private baselineConfig: PoolConfig;
   private optimizationStrategies: OptimizationStrategy[];
@@ -86,7 +86,6 @@ export class ConnectionPoolEnhancer extends EventEmitter {
 
   constructor(initialConfig: PoolConfig) {
     super();
-    this.logger = new Logger('ConnectionPoolEnhancer');
     this.currentConfig = { ...initialConfig };
     this.baselineConfig = { ...initialConfig };
     this.optimizationStrategies = this.initializeStrategies();

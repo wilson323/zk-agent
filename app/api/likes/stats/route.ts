@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file likes\stats\route.ts
  * @description Likes statistics API route
  * @author ZK-Agent Team
@@ -56,7 +56,6 @@ export const GET = createApiRoute(
         popularItems: formattedPopularItems,
       });
     } catch (error) {
-      console.error('Likes stats error:', error);
       return ApiResponseWrapper.error('Internal server error', 500);
     }
   }

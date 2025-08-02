@@ -1,6 +1,6 @@
 import { getLogger } from '@/lib/utils/logger';
+import { secureStorage } from '@/lib/utils/secure-storage';
 
-const logger = getLogger();
 
 const logger = getLogger();
 
@@ -550,15 +550,13 @@ export class VersionManager {
    */
   private async saveVersion(version: ContentVersion): Promise<void> {
     const versionData = JSON.stringify(version);
-    localStorage.setItem(`version_${version.id}`, versionData);
+    secureStorage.setItem(`version_${version.id}`, versionData);
 
     // 更新内容的版本列表
     const contentVersions = this.getContentVersionsList(version.contentId);
     if (!contentVersions.includes(version.id)) {
       contentVersions.push(version.id);
-      localStorage.setItem(
-        `content_versions_${version.contentId}`,
-        JSON.stringify(contentVersions)
+      secureStorage.setItem(`content_versions_${version.contentId}`, JSON.stringify(contentVersions)
       );
     }
   }
@@ -568,7 +566,7 @@ export class VersionManager {
    */
   private async loadVersion(versionId: string): Promise<ContentVersion | null> {
     try {
-      const versionData = localStorage.getItem(`version_${versionId}`);
+      const versionData = secureStorage.getItem(`version_${versionId}`);
       if (!versionData) {
         return null;
       }
@@ -610,7 +608,7 @@ export class VersionManager {
    */
   private getContentVersionsList(contentId: string): string[] {
     try {
-      const versionsData = localStorage.getItem(`content_versions_${contentId}`);
+      const versionsData = secureStorage.getItem(`content_versions_${contentId}`);
       return versionsData ? JSON.parse(versionsData) : [];
     } catch (error) {
       return [];
@@ -622,7 +620,7 @@ export class VersionManager {
    */
   private async loadBranches(contentId: string): Promise<VersionBranch[]> {
     try {
-      const branchesData = localStorage.getItem(`content_branches_${contentId}`);
+      const branchesData = secureStorage.getItem(`content_branches_${contentId}`);
       if (!branchesData) {
         return [];
       }
@@ -644,7 +642,7 @@ export class VersionManager {
   private async saveBranch(contentId: string, branch: VersionBranch): Promise<void> {
     const branches = await this.loadBranches(contentId);
     branches.push(branch);
-    localStorage.setItem(`content_branches_${contentId}`, JSON.stringify(branches));
+    secureStorage.setItem(`content_branches_${contentId}`, JSON.stringify(branches));
   }
 
   /**
@@ -653,8 +651,8 @@ export class VersionManager {
   private async loadAllVersions(userId?: string): Promise<ContentVersion[]> {
     const versions: ContentVersion[] = [];
 
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
+    for (let i = 0; i < secureStorage.getAllKeys().length; i++) {
+      const key = secureStorage.getAllKeys()[i];
       if (key && key.startsWith('version_')) {
         try {
           const versionData = localStorage.getItem(key);
@@ -679,7 +677,7 @@ export class VersionManager {
    * 删除版本
    */
   private async deleteVersion(versionId: string): Promise<void> {
-    localStorage.removeItem(`version_${versionId}`);
+    secureStorage.removeItem(`version_${versionId}`);
   }
 }
 

@@ -112,9 +112,45 @@ export interface BaseEvent {
 }
 
 /**
+ * 运行配置
+ */
+export interface RunConfig {
+  /** 温度参数 */
+  temperature?: number;
+  /** 最大令牌数 */
+  maxTokens?: number;
+  /** 顶部P采样 */
+  topP?: number;
+  /** 频率惩罚 */
+  frequencyPenalty?: number;
+  /** 存在惩罚 */
+  presencePenalty?: number;
+  /** 其他配置参数 */
+  [key: string]: any;
+}
+
+/**
  * 运行代理输入参数
  */
 export interface RunAgentInput {
+  /** 线程ID */
+  threadId: string;
+  /** 运行ID */
+  runId: string;
+  /** 消息列表 */
+  messages: Message[];
+  /** 可用工具 */
+  tools?: Tool[];
+  /** 运行状态 */
+  state?: Record<string, any>;
+  /** 运行配置 */
+  config?: RunConfig;
+}
+
+/**
+ * 运行输入参数（RunAgentInput的别名）
+ */
+export interface RunInput {
   /** 线程ID */
   threadId: string;
   /** 运行ID */
@@ -449,3 +485,45 @@ export type AgUIEvent =
   | MediaFrameEvent
   | UIComponentEvent
   | UserInputEvent;
+
+/**
+ * AG-UI插件接口
+ */
+export interface AgUIPlugin {
+  /** 插件ID */
+  id: string;
+  /** 插件名称 */
+  name: string;
+  /** 插件版本 */
+  version: string;
+  /** 插件描述 */
+  description?: string;
+  /** 插件初始化 */
+  initialize?(): Promise<void> | void;
+  /** 插件销毁 */
+  destroy?(): Promise<void> | void;
+  /** 事件处理器 */
+  onEvent?(event: AgUIEvent): Promise<void> | void;
+}
+
+/**
+ * 协议扩展接口
+ */
+export interface ProtocolExtension {
+  /** 扩展ID */
+  id: string;
+  /** 扩展名称 */
+  name: string;
+  /** 扩展版本 */
+  version: string;
+  /** 扩展描述 */
+  description?: string;
+  /** 支持的事件类型 */
+  supportedEvents?: EventType[];
+  /** 扩展初始化 */
+  initialize?(): Promise<void> | void;
+  /** 扩展销毁 */
+  destroy?(): Promise<void> | void;
+  /** 处理事件 */
+  handleEvent?(event: AgUIEvent): Promise<AgUIEvent | null> | AgUIEvent | null;
+}

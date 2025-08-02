@@ -11,8 +11,6 @@ import { getLogger } from '@/lib/utils/logger';
 
 const logger = getLogger();
 
-const logger = getLogger();
-
 // 导入统一的AI服务提供商枚举
 import { AIProvider } from '@/lib/types/enums';
 
@@ -120,7 +118,7 @@ class CircuitBreaker {
 // 统一AI适配器类
 export class UnifiedAIAdapter {
   private static instance: UnifiedAIAdapter;
-  private logger = new Logger('UnifiedAIAdapter');
+  private logger = getLogger();
   private circuitBreakers = new Map<AIProvider, CircuitBreaker>();
   private configs = new Map<AIProvider, AIServiceConfig>();
 

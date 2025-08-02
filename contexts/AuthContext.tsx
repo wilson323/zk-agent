@@ -1,3 +1,5 @@
+import { secureStorage } from '@/lib/utils/secure-storage';
+
 // @ts-nocheck
 'use client';
 
@@ -30,7 +32,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     const initAuth = async () => {
       try {
-        const token = localStorage.getItem('accessToken');
+        const token = secureStorage.getItem('accessToken');
         if (!token) {
           setIsLoading(false);
           return;
@@ -42,15 +44,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
           const refreshed = await refreshToken();
           if (!refreshed) {
             // 刷新失败，清除本地存储
-            localStorage.removeItem('accessToken');
-            localStorage.removeItem('refreshToken');
+            secureStorage.removeItem('accessToken');
+            secureStorage.removeItem('refreshToken');
             setIsLoading(false);
             return;
           }
         }
 
         // 使用有效的令牌获取用户信息
-        const currentToken = localStorage.getItem('accessToken');
+        const currentToken = secureStorage.getItem('accessToken');
         const response = await fetch('/api/auth/profile', {
           headers: {
             Authorization: `Bearer ${currentToken}`,
@@ -63,16 +65,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
             setUser(data.data);
           } else {
             // Token无效，清除本地存储
-            localStorage.removeItem('accessToken');
-            localStorage.removeItem('refreshToken');
+            secureStorage.removeItem('accessToken');
+            secureStorage.removeItem('refreshToken');
           }
         } else if (response.status === 401) {
           // 认证失败，尝试刷新令牌
           const refreshed = await refreshToken();
           if (!refreshed) {
             // 刷新失败，清除本地存储
-            localStorage.removeItem('accessToken');
-            localStorage.removeItem('refreshToken');
+            secureStorage.removeItem('accessToken');
+            secureStorage.removeItem('refreshToken');
           } else {
             // 刷新成功，重新获取用户信息
             await initAuth();
@@ -81,8 +83,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
       } catch (error) {
         console.error('初始化认证失败:', error);
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
+        secureStorage.removeItem('accessToken');
+        secureStorage.removeItem('refreshToken');
       } finally {
         setIsLoading(false);
       }
@@ -110,14 +112,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       if (data.success && data.user && data.tokens) {
         setUser(data.user);
-        localStorage.setItem('accessToken', data.tokens.accessToken);
-        localStorage.setItem('refreshToken', data.tokens.refreshToken);
+        secureStorage.setItem('accessToken', data.tokens.accessToken);
+        secureStorage.setItem('refreshToken', data.tokens.refreshToken);
 
         // 如果选择记住我，设置更长的过期时间
         if (rememberMe) {
           const expiryDate = new Date();
           expiryDate.setDate(expiryDate.getDate() + 30); // 30天
-          localStorage.setItem('tokenExpiry', expiryDate.toISOString());
+          secureStorage.setItem('tokenExpiry', expiryDate.toISOString());
         }
       }
 
@@ -148,8 +150,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       if (result.success && result.user && result.tokens) {
         setUser(result.user);
-        localStorage.setItem('accessToken', result.tokens.accessToken);
-        localStorage.setItem('refreshToken', result.tokens.refreshToken);
+        secureStorage.setItem('accessToken', result.tokens.accessToken);
+        secureStorage.setItem('refreshToken', result.tokens.refreshToken);
       }
 
       return result;
@@ -166,7 +168,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const logout = async (): Promise<void> => {
     try {
-      const token = localStorage.getItem('accessToken');
+      const token = secureStorage.getItem('accessToken');
       if (token) {
         await fetch('/api/auth/logout', {
           method: 'POST',
@@ -179,9 +181,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       console.error('登出失败:', error);
     } finally {
       setUser(null);
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('tokenExpiry');
+      secureStorage.removeItem('accessToken');
+      secureStorage.removeItem('refreshToken');
+      secureStorage.removeItem('tokenExpiry');
     }
   };
 
@@ -189,7 +191,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     data: Partial<User>
   ): Promise<{ success: boolean; error?: string }> => {
     try {
-      const token = localStorage.getItem('accessToken');
+      const token = secureStorage.getItem('accessToken');
       if (!token) {
         return { success: false, error: '未登录' };
       }
@@ -218,7 +220,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const refreshToken = async (): Promise<boolean> => {
     try {
-      const refreshTokenValue = localStorage.getItem('refreshToken');
+      const refreshTokenValue = secureStorage.getItem('refreshToken');
       if (!refreshTokenValue) {
         return false;
       }
@@ -234,8 +236,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const data = await response.json();
 
       if (data.success && data.tokens) {
-        localStorage.setItem('accessToken', data.tokens.accessToken);
-        localStorage.setItem('refreshToken', data.tokens.refreshToken);
+        secureStorage.setItem('accessToken', data.tokens.accessToken);
+        secureStorage.setItem('refreshToken', data.tokens.refreshToken);
         return true;
       }
 

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file ag-ui\chat\route.ts
  * @description Migrated API route with global error handling
  * @author ZK-Agent Team
@@ -168,8 +168,7 @@ export const POST = createApiRoute(
             // 同时写入原始数据，保持兼容性
             await writer.write(encoder.encode(`data: ${event.data}\n\n`));
           } catch (error) {
-            console.error('Error processing message:', error);
-          }
+            }
         },
         async onclose() {
           // 发送消息结束和运行结束事件
@@ -197,7 +196,6 @@ export const POST = createApiRoute(
           await writer.close();
         },
         onerror(error) {
-          console.error('EventSource error:', error);
           writer
             .write(
               encoder.encode(
@@ -212,7 +210,6 @@ export const POST = createApiRoute(
             .catch(console.error);
         },
       }).catch(async error => {
-        console.error('FastGPT API error:', error);
         await writer.write(
           encoder.encode(
             `data: ${JSON.stringify({

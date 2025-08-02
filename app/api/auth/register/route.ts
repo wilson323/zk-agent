@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file auth\register\route.ts
  * @description User registration API route
  * @author ZK-Agent Team
@@ -64,11 +64,7 @@ export const POST = createApiRoute(
       };
 
       // 模拟记录使用统计
-      console.log('User registered:', {
-        userId: newUser.id,
-        email,
-        inviteCode,
-        timestamp: new Date().toISOString(),
+      .toISOString(),
       });
 
       const response = {
@@ -79,7 +75,6 @@ export const POST = createApiRoute(
 
       return ApiResponseWrapper.success(response);
     } catch (error) {
-      console.error('Registration error:', error);
       return ApiResponseWrapper.error(
         ErrorCode.INTERNAL_SERVER_ERROR,
         'Internal server error',

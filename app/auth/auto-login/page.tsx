@@ -1,4 +1,6 @@
-// @ts-nocheck
+import { secureStorage } from '@/lib/utils/secure-storage';
+
+﻿// @ts-nocheck
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -27,13 +29,12 @@ export default function AutoLogin() {
       try {
         // 在实际应用中，这里应该是一个API调用
         // 这里我们使用localStorage模拟用户存储
-        const existingUsers = JSON.parse(localStorage.getItem('users') || '[]');
+        const existingUsers = JSON.parse(secureStorage.getItem('users') || '[]');
         const userExists = existingUsers.some((user: any) => user.id === userId);
 
         if (userExists) {
           // 用户存在，直接登录
-          // console.log("用户已存在，直接登录")
-        } else {
+          // } else {
           // 用户不存在，创建新用户
           const newUser = {
             id: userId,
@@ -42,14 +43,11 @@ export default function AutoLogin() {
           };
 
           existingUsers.push(newUser);
-          localStorage.setItem('users', JSON.stringify(existingUsers));
-          // console.log("已创建新用户")
-        }
+          secureStorage.setItem('users', JSON.stringify(existingUsers));
+          // }
 
         // 设置登录状态
-        localStorage.setItem(
-          'currentUser',
-          JSON.stringify({
+        secureStorage.setItem('currentUser', JSON.stringify({
             id: userId,
             loggedInAt: new Date().toISOString(),
           })
@@ -69,8 +67,7 @@ export default function AutoLogin() {
           router.push('/');
         }, 1500);
       } catch (error) {
-        // console.error("登录过程中出错:", error)
-        setStatus('error');
+        // setStatus('error');
         setMessage('登录过程中出错，请稍后再试');
 
         toast({

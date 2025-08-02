@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -131,7 +131,6 @@ export default function ErrorMonitoringPage() {
         toast.error('获取监控状态失败');
       }
     } catch (error) {
-      console.error('Failed to fetch status:', error);
       toast.error('获取监控状态失败');
     }
   };
@@ -147,8 +146,7 @@ export default function ErrorMonitoringPage() {
         toast.error('获取监控报告失败');
       }
     } catch (error) {
-      // console.log("Error fetching error report:", error);
-      toast.error('获取监控报告失败');
+      // toast.error('获取监控报告失败');
     }
   };
 
@@ -172,7 +170,6 @@ export default function ErrorMonitoringPage() {
         toast.error('操作失败');
       }
     } catch (error) {
-      console.error('Failed to control monitoring:', error);
       toast.error('操作失败');
     } finally {
       setActionLoading(false);
@@ -200,7 +197,6 @@ export default function ErrorMonitoringPage() {
         toast.error('下载报告失败');
       }
     } catch (error) {
-      console.error('Failed to download report:', error);
       toast.error('下载报告失败');
     }
   };
@@ -227,8 +223,7 @@ export default function ErrorMonitoringPage() {
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '获取根因分析失败';
-      // console.error('获取根因分析失败:', error);
-      setError(errorMessage);
+      // setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -265,8 +260,7 @@ export default function ErrorMonitoringPage() {
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '触发根因分析失败';
-      // console.error('触发根因分析失败:', error);
-      setError(errorMessage);
+      // setError(errorMessage);
     } finally {
       setAnalysisLoading(prev => {
         const newSet = new Set(prev);
@@ -309,8 +303,7 @@ export default function ErrorMonitoringPage() {
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : '批量根因分析失败';
-      // console.error('批量根因分析失败:', error);
-      setError(errorMessage);
+      // setError(errorMessage);
     } finally {
       setLoading(false);
     }

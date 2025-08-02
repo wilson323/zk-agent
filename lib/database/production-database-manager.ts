@@ -107,7 +107,7 @@ interface TransactionOptions {
  */
 export class ProductionDatabaseManager extends EventEmitter {
   private static instance: ProductionDatabaseManager | null = null;
-  private readonly logger = new Logger('ProductionDatabaseManager');
+  private readonly logger = getLogger();
   private prisma: PrismaClient | null = null;
   private readonly queryMetrics = new Map<string, QueryMetrics>();
   private readonly connectionStartTime = Date.now();

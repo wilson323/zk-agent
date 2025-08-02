@@ -89,7 +89,7 @@ export abstract class BaseConnection extends EventEmitter implements DatabaseCon
     super();
     this.id = id;
     this.config = config;
-    this.logger = new Logger(`DB:${config.type}:${id}`);
+    // Logger initialized as class property
   }
 
   abstract connect(): Promise<void>;
@@ -381,7 +381,7 @@ export class ConnectionFactory {
  */
 export class DatabaseConnectionManager extends EventEmitter {
   private connections = new Map<string, DatabaseConnection>();
-  private logger = new Logger('DatabaseConnectionManager');
+  private logger = getLogger();
   private healthCheckInterval?: NodeJS.Timeout;
 
   constructor() {
@@ -543,7 +543,7 @@ export async function initializeDatabaseConnections(): Promise<void> {
     try {
       await connectionManager.addConnection(id, config as DatabaseConnectionConfig);
     } catch (error) {
-      const logger = new Logger('DatabaseInit');
+      const logger = getLogger();
       logger.error(`Failed to initialize connection '${id}'`, { error });
       throw error;
     }

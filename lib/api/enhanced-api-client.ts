@@ -1,3 +1,5 @@
+import { secureStorage } from '@/lib/utils/secure-storage';
+
 /**
  * @file enhanced-api-client.ts
  * @description 增强版API客户端，集成JWT安全机制和请求/响应拦截器
@@ -91,7 +93,7 @@ export class EnhancedApiClient implements ApiClient {
 
     // 添加认证令牌
     if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('accessToken');
+      const token = secureStorage.getItem('accessToken');
 
       if (token) {
         // 检查令牌是否即将过期
@@ -201,7 +203,7 @@ export class EnhancedApiClient implements ApiClient {
     this.isRefreshing = true;
 
     try {
-      const refreshToken = localStorage.getItem('refreshToken');
+      const refreshToken = secureStorage.getItem('refreshToken');
       if (!refreshToken) {
         throw new Error('刷新令牌不存在');
       }
@@ -213,8 +215,8 @@ export class EnhancedApiClient implements ApiClient {
       }
 
       // 更新本地存储的令牌
-      localStorage.setItem('accessToken', tokenPair.accessToken);
-      localStorage.setItem('refreshToken', tokenPair.refreshToken);
+      secureStorage.setItem('accessToken', tokenPair.accessToken);
+      secureStorage.setItem('refreshToken', tokenPair.refreshToken);
 
       // 更新当前请求的令牌
       config.headers!['Authorization'] = `Bearer ${tokenPair.accessToken}`;
@@ -225,8 +227,8 @@ export class EnhancedApiClient implements ApiClient {
       return config;
     } catch (error) {
       // 刷新失败，清除令牌并重定向到登录页
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
+      secureStorage.removeItem('accessToken');
+      secureStorage.removeItem('refreshToken');
 
       if (typeof window !== 'undefined') {
         window.location.href = '/auth/login?expired=true';
@@ -245,7 +247,7 @@ export class EnhancedApiClient implements ApiClient {
     this.isRefreshing = true;
 
     try {
-      const refreshToken = localStorage.getItem('refreshToken');
+      const refreshToken = secureStorage.getItem('refreshToken');
       if (!refreshToken) {
         throw new Error('刷新令牌不存在');
       }
@@ -257,8 +259,8 @@ export class EnhancedApiClient implements ApiClient {
       }
 
       // 更新本地存储的令牌
-      localStorage.setItem('accessToken', tokenPair.accessToken);
-      localStorage.setItem('refreshToken', tokenPair.refreshToken);
+      secureStorage.setItem('accessToken', tokenPair.accessToken);
+      secureStorage.setItem('refreshToken', tokenPair.refreshToken);
 
       // 更新失败请求的令牌
       originalRequest.headers['Authorization'] = `Bearer ${tokenPair.accessToken}`;
@@ -270,8 +272,8 @@ export class EnhancedApiClient implements ApiClient {
       return this.axiosInstance(originalRequest);
     } catch (error) {
       // 刷新失败，清除令牌并重定向到登录页
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
+      secureStorage.removeItem('accessToken');
+      secureStorage.removeItem('refreshToken');
 
       if (typeof window !== 'undefined') {
         window.location.href = '/auth/login?expired=true';

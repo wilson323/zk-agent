@@ -56,10 +56,11 @@ function handleError(error: any, context: string) {
  * GET /api/multi-agent/executions/[id]
  * 获取工作流执行状态
  */
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const userId = await getAuthenticatedUser(request);
-    const executionId = params.id;
+      const { id } = await params;
+      const userId = await getAuthenticatedUser(request);
+      const executionId = id;
 
     if (!executionId) {
       return NextResponse.json({ error: '缺少执行ID参数' }, { status: 400 });
@@ -74,7 +75,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       message: '获取工作流执行状态成功',
     });
   } catch (error) {
-    return handleError(error, `GET /api/multi-agent/executions/${params.id}`);
+    return handleError(error, `GET /api/multi-agent/executions/${id}`);
   }
 }
 
@@ -82,10 +83,11 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
  * DELETE /api/multi-agent/executions/[id]
  * 取消工作流执行
  */
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const userId = await getAuthenticatedUser(request);
-    const executionId = params.id;
+      const { id } = await params;
+      const userId = await getAuthenticatedUser(request);
+      const executionId = id;
 
     if (!executionId) {
       return NextResponse.json({ error: '缺少执行ID参数' }, { status: 400 });
@@ -102,6 +104,6 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
       message: '工作流执行已取消',
     });
   } catch (error) {
-    return handleError(error, `DELETE /api/multi-agent/executions/${params.id}`);
+    return handleError(error, `DELETE /api/multi-agent/executions/${id}`);
   }
 }

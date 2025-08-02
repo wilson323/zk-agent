@@ -1,6 +1,6 @@
 // @ts-nocheck
-import type { AgentDefinition, Tool, Message, AgUIEvent } from './complete-types';
-import { AG_UI_PROTOCOL_VERSION } from './complete-types';
+import type { AgentDefinition, Tool, Message, AgUIEvent } from './types';
+import { AG_UI_PROTOCOL_VERSION } from './types';
 
 /**
  * AG-UI协议合规性检查器

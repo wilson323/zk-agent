@@ -23,8 +23,6 @@ import { getLogger } from '@/lib/utils/logger';
 
 const logger = getLogger();
 
-const logger = getLogger();
-
 /**
  * 优化策略枚举
  */

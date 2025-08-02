@@ -13,6 +13,17 @@ import {
   PerformanceThresholds,
   Alert
 } from './unified-interfaces';
+
+// 重新导出接口以保持向后兼容性
+export {
+  DatabaseMetrics,
+  HealthStatus,
+  IMonitoringService,
+  MonitoringStatus,
+  OptimizationStatus,
+  PerformanceThresholds,
+  Alert
+};
 import { AlertLevel } from '@/lib/types/enums';
 
 // 基础监控接口已迁移到 unified-interfaces.ts

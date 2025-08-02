@@ -10,8 +10,6 @@ import { getLogger } from '@/lib/utils/logger';
 
 const logger = getLogger();
 
-const logger = getLogger();
-
 // JWT配置
 const JWT_CONFIG = {
   accessTokenSecret: process.env.JWT_ACCESS_SECRET || 'ai-chat-access-secret-key',

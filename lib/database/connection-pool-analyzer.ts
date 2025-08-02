@@ -176,7 +176,7 @@ export class ConnectionPoolAnalyzer extends EventEmitter {
   private analysisInterval: NodeJS.Timeout | null = null;
   private maxHistorySize: number;
   private analysisIntervalMs: number;
-  private logger = new Logger('ConnectionPoolAnalyzer');
+  private logger = getLogger();
 
   constructor(
     maxHistorySize: number = 1000,

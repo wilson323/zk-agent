@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file admin\error-monitoring\status\route.ts
  * @description Migrated API route with global error handling
  * @author ZK-Agent Team
@@ -88,7 +88,6 @@ async function getErrorMonitoringStatus() {
       },
     };
   } catch (error) {
-    console.error('Failed to get error monitoring status:', error);
     throw new Error('Failed to retrieve monitoring status');
   }
 }
@@ -109,7 +108,6 @@ export const GET = createApiRoute(
         Expires: '0',
       });
     } catch (error) {
-      console.error('Error getting monitoring status:', error);
       return ApiResponseWrapper.error(
         ErrorCode.INTERNAL_SERVER_ERROR,
         'Failed to retrieve monitoring status',
@@ -167,7 +165,6 @@ export const POST = createApiRoute(
         );
       }
     } catch (error) {
-      console.error('Failed to control error monitoring:', error);
       return ApiResponseWrapper.error(
         ErrorCode.INTERNAL_SERVER_ERROR,
         'Failed to control monitoring system',

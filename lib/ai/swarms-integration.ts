@@ -18,9 +18,6 @@ import { getLogger } from '@/lib/utils/logger';
 
 const logger = getLogger();
 
-// 创建logger实例
-const logger = new Logger('SwarmIntegration');
-
 // ==================== 类型定义 ====================
 
 export interface AgentConfig {

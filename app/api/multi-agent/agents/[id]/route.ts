@@ -4,16 +4,17 @@ import { multiAgentCoordinator } from '@/lib/multi-agent/coordinator';
 /**
  * 获取特定智能体信息
  */
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const agent = multiAgentCoordinator.getAgentStatus(params.id);
+    const { id } = await params;
+    const agent = multiAgentCoordinator.getAgentStatus(id);
 
     if (!agent) {
       return NextResponse.json(
         {
           success: false,
           error: 'Agent not found',
-          message: `Agent with ID ${params.id} not found`,
+          message: `Agent with ID ${id} not found`,
         },
         { status: 404 }
       );
@@ -40,17 +41,17 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 /**
  * 更新智能体配置
  */
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const updates = await request.json();
-
-    const agent = multiAgentCoordinator.getAgentStatus(params.id);
+    const agent = multiAgentCoordinator.getAgentStatus(id);
     if (!agent) {
       return NextResponse.json(
         {
           success: false,
           error: 'Agent not found',
-          message: `Agent with ID ${params.id} not found`,
+          message: `Agent with ID ${id} not found`,
         },
         { status: 404 }
       );
@@ -81,9 +82,10 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 /**
  * 删除智能体
  */
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    await multiAgentCoordinator.unregisterAgent(params.id);
+    const { id } = await params;
+    await multiAgentCoordinator.unregisterAgent(id);
 
     return NextResponse.json({
       success: true,

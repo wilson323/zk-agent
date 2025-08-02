@@ -26,7 +26,7 @@ export class FileConfigProvider implements ConfigProvider {
 
   constructor(configPath?: string) {
     this.configPath = configPath || this.getDefaultConfigPath();
-    this.logger = new Logger('FileConfigProvider');
+    // Logger initialized as class property
   }
 
   /**

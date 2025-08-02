@@ -22,7 +22,7 @@ import {
 } from '@/lib/types/enums';
 // import { ERROR_CODES } from '@/config/constants';
 
-const logger = new Logger('PermissionSystem');
+const logger = getLogger();
 
 // 权限上下文接口
 interface PermissionContext {

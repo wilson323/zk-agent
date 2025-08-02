@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file v1\agents\route.ts
  * @description Migrated API route with global error handling
  * @author ZK-Agent Team
@@ -36,7 +36,6 @@ export const POST = createApiRoute(
 
       return ApiResponseWrapper.success(newAgent, 'Agent created successfully');
     } catch (error) {
-      console.error('Error creating agent:', error);
       return ApiResponseWrapper.error(
         UnifiedErrorCode.INTERNAL_SERVER_ERROR,
         'Failed to create agent',

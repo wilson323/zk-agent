@@ -95,7 +95,7 @@ export interface PaginationResult<T> {
 export abstract class BaseModel extends EventEmitter {
   protected static config: ModelConfig;
   protected static relations: Map<string, RelationConfig> = new Map();
-  protected static logger = new Logger('BaseModel');
+  protected static logger = getLogger();
 
   // 实例属性
   protected attributes: ModelAttributes = {};

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Multi-Agent Management Page
  * 多智能体系统管理页面
  *
@@ -173,7 +173,6 @@ export default function MultiAgentManagementPage() {
         setTemplates(templatesData.data.templates || {});
       }
     } catch (error) {
-      console.error('Failed to load data:', error);
       toast({
         title: '加载失败',
         description: '无法加载多智能体数据，请刷新页面重试',
@@ -223,7 +222,6 @@ export default function MultiAgentManagementPage() {
         throw new Error(error.error || '创建失败');
       }
     } catch (error) {
-      console.error('Failed to create team:', error);
       toast({
         title: '创建失败',
         description: error.message || '创建智能体团队时发生错误',
@@ -261,7 +259,6 @@ export default function MultiAgentManagementPage() {
         throw new Error(error.error || '执行失败');
       }
     } catch (error) {
-      console.error('Failed to execute workflow:', error);
       toast({
         title: '执行失败',
         description: error.message || '执行工作流时发生错误',
@@ -297,7 +294,6 @@ export default function MultiAgentManagementPage() {
         throw new Error(error.error || '创建失败');
       }
     } catch (error) {
-      console.error('Failed to create from template:', error);
       toast({
         title: '创建失败',
         description: error.message || '从模板创建团队时发生错误',

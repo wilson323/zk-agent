@@ -1,7 +1,8 @@
+import { secureStorage } from '@/lib/utils/secure-storage';
+
 // @ts-nocheck
 'use client';
 
-import type React from 'react';
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import type { FastGPTApp, ChatSession, User, ApiConfig } from '@/types/fastgpt';
 import { useToast } from '@/hooks/use-toast';
@@ -428,7 +429,7 @@ export const FastGPTProvider: React.FC<{ children: ReactNode }> = ({ children })
 
       // Try to load agents from admin configuration
       try {
-        const adminAgents = localStorage.getItem('admin_agents');
+        const adminAgents = secureStorage.getItem('admin_agents');
         if (adminAgents) {
           const parsedAdminAgents = JSON.parse(adminAgents);
           if (Array.isArray(parsedAdminAgents) && parsedAdminAgents.length > 0) {

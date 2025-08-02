@@ -10,8 +10,6 @@ import { getLogger } from '@/lib/utils/logger';
 
 const logger = getLogger();
 
-const logger = getLogger();
-
 // 路由处理器类型
 export type RouteHandler<T = any> = (
   request: NextRequest,

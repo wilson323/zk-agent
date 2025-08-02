@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { multiAgentCoordinator } from '@/lib/multi-agent/coordinator';
 
 /**
@@ -15,7 +15,6 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('Failed to get agents:', error);
     return NextResponse.json(
       {
         success: false,
@@ -124,7 +123,6 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('Failed to register agent:', error);
     return NextResponse.json(
       {
         success: false,

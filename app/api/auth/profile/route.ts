@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file auth\profile\route.ts
  * @description User profile API route
  * @author ZK-Agent Team
@@ -36,7 +36,6 @@ export const GET = createApiRoute(
 
       return ApiResponseWrapper.success(userProfile);
     } catch (error) {
-      console.error('Get profile error:', error);
       return ApiResponseWrapper.error(
         ErrorCode.INTERNAL_SERVER_ERROR,
         'Internal server error',
@@ -67,15 +66,12 @@ export const PUT = createApiRoute(
       };
 
       // 模拟记录使用统计
-      console.log('Profile updated:', {
-        userId: user.id,
-        updatedFields: Object.keys(validatedBody),
+      ,
         timestamp: new Date().toISOString(),
       });
 
       return ApiResponseWrapper.success(updatedUser);
     } catch (error) {
-      console.error('Update profile error:', error);
       return ApiResponseWrapper.error(
         ErrorCode.INTERNAL_SERVER_ERROR,
         'Internal server error',

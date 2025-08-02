@@ -94,7 +94,7 @@ export interface CachePerformanceMetrics {
  * - 多级缓存支持
  */
 export class CacheStrategyManager extends EventEmitter {
-  private logger: Logger;
+  private logger = getLogger();
   private config: CacheConfig;
   private cache: Map<string, CacheEntry> = new Map();
   private stats: CacheStats;
@@ -106,7 +106,6 @@ export class CacheStrategyManager extends EventEmitter {
 
   constructor(config: Partial<CacheConfig> = {}) {
     super();
-    this.logger = new Logger('CacheStrategyManager');
 
     this.config = {
       strategy: 'ADAPTIVE',

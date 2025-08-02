@@ -21,8 +21,6 @@ import { getLogger } from '@/lib/utils/logger';
 
 const logger = getLogger();
 
-const logger = getLogger();
-
 // 错误分类器
 class ErrorClassifier {
   static classifyError(error: any): {

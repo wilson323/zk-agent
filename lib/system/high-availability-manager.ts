@@ -10,11 +10,10 @@
 import { getLogger } from '@/lib/utils/logger';
 
 const logger = getLogger();
-
-const logger = getLogger();
 import { performanceMonitor } from '@/lib/middleware/performance-monitor';
 import { enhancedDatabaseManager } from '@/lib/database/enhanced-database-manager';
-import { unifiedAIAdapter, AIProvider } from '@/lib/ai/unified-ai-adapter';
+import { unifiedAIAdapter } from '@/lib/ai/unified-ai-adapter';
+import { AIProvider } from '@/lib/types/enums';
 
 // 服务健康状态
 interface ServiceHealth {
@@ -62,7 +61,7 @@ interface CacheStrategy {
 
 export class HighAvailabilityManager {
   private static instance: HighAvailabilityManager;
-  private logger = new Logger('HighAvailabilityManager');
+  private logger = getLogger();
   private services: Map<string, ServiceHealth> = new Map();
   private loadBalancingStrategy = LoadBalancingStrategy.HEALTH_BASED;
   private resourceCache: Map<string, any> = new Map();

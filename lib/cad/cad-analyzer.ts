@@ -29,8 +29,6 @@ import { getLogger } from '@/lib/utils/logger';
 
 const logger = getLogger();
 
-const logger = getLogger();
-
 // Node.js 全局变量声明
 declare global {
   var process:

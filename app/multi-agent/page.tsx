@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,8 +27,10 @@ import {
   CheckCircle,
   Clock,
   Activity,
+  GitBranch,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import LangGraphMultiAgent from '@/components/LangGraphMultiAgent';
 
 interface Agent {
   id: string;
@@ -247,8 +249,7 @@ export default function MultiAgentControlCenter() {
         );
       }, 1000);
     } catch (error) {
-      console.error('Failed to create task:', error);
-    } finally {
+      } finally {
       setIsLoading(false);
     }
   }, [newTaskTitle, newTaskDescription, agents]);
@@ -401,12 +402,16 @@ export default function MultiAgentControlCenter() {
 
         {/* 主要内容标签页 */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className='w-full'>
-          <TabsList className='grid w-full grid-cols-5 bg-white/50 backdrop-blur-sm'>
+          <TabsList className='grid w-full grid-cols-6 bg-white/50 backdrop-blur-sm'>
             <TabsTrigger value='overview'>概览</TabsTrigger>
             <TabsTrigger value='agents'>智能体</TabsTrigger>
             <TabsTrigger value='tasks'>任务管理</TabsTrigger>
             <TabsTrigger value='research'>深度研究</TabsTrigger>
             <TabsTrigger value='learning'>学习中心</TabsTrigger>
+            <TabsTrigger value='langgraph' className='flex items-center space-x-1'>
+              <GitBranch className='w-4 h-4' />
+              <span>LangGraph</span>
+            </TabsTrigger>
           </TabsList>
 
           {/* 概览标签页 */}
@@ -870,6 +875,11 @@ export default function MultiAgentControlCenter() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* LangGraph多智能体标签页 */}
+          <TabsContent value='langgraph'>
+            <LangGraphMultiAgent />
           </TabsContent>
         </Tabs>
       </div>

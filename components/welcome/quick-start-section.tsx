@@ -8,7 +8,12 @@
 
 'use client';
 
-import React, { memo } from 'react';
+import React, { memo, useCallback } from 'react';
+import { Sparkles, ArrowRight, MessageSquare, FileText, Palette } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 import { QUICK_START_ITEMS, QUICK_STATS_ITEMS } from '@/lib/welcome/constants';
 
 // 快速开始卡片组件
@@ -74,20 +79,14 @@ const QuickStartCard = memo<{
         </CardHeader>
 
         <CardContent className='relative pt-0'>
-          <Button
-            asChild
-            variant='ghost'
-            className='w-full justify-between p-0 h-auto text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300'
+          <Link
+            href={href}
             onClick={handleCardClick}
+            className='flex items-center justify-between py-3 px-4 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors duration-200 w-full text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium'
           >
-            <Link
-              href={href}
-              className='flex items-center justify-between py-3 px-4 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors duration-200'
-            >
-              <span className='font-medium'>立即体验</span>
-              <ArrowRight className='h-4 w-4 transition-transform group-hover:translate-x-1' />
-            </Link>
-          </Button>
+            <span className='font-medium'>立即体验</span>
+            <ArrowRight className='h-4 w-4 transition-transform group-hover:translate-x-1' />
+          </Link>
         </CardContent>
       </Card>
     );
@@ -147,7 +146,7 @@ const QuickStartSection = memo(() => {
 
         {/* 卡片网格 */}
         <div className='grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3'>
-          {quickStartItems.map((item, index) => (
+          {QUICK_START_ITEMS.map((item, index) => (
             <QuickStartCard key={index} {...item} />
           ))}
         </div>

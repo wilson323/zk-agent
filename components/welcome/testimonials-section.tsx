@@ -9,7 +9,12 @@
 'use client';
 
 import React, { memo, useState, useEffect, useCallback } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { TESTIMONIALS_DATA } from '@/lib/welcome/constants';
+import { Star, ChevronLeft, ChevronRight, Quote, Sparkles, ThumbsUp, MessageSquare, Users } from 'lucide-react';
 
 // 星级评分组件
 const StarRating = memo<{ rating: number; size?: 'sm' | 'md' | 'lg' }>(
@@ -215,19 +220,19 @@ const TestimonialsSection = memo(() => {
     }
 
     const interval = setInterval(() => {
-      setCurrentIndex(prev => (prev + 1) % testimonialsData.length);
+      setCurrentIndex(prev => (prev + 1) % TESTIMONIALS_DATA.length);
     }, 5000);
 
     return () => clearInterval(interval);
   }, [isAutoPlaying]);
 
   const handlePrevious = useCallback(() => {
-    setCurrentIndex(prev => (prev === 0 ? testimonialsData.length - 1 : prev - 1));
+    setCurrentIndex(prev => (prev === 0 ? TESTIMONIALS_DATA.length - 1 : prev - 1));
     setIsAutoPlaying(false);
   }, []);
 
   const handleNext = useCallback(() => {
-    setCurrentIndex(prev => (prev + 1) % testimonialsData.length);
+    setCurrentIndex(prev => (prev + 1) % TESTIMONIALS_DATA.length);
     setIsAutoPlaying(false);
   }, []);
 
@@ -240,9 +245,9 @@ const TestimonialsSection = memo(() => {
   const getVisibleTestimonials = () => {
     const visible = [];
     for (let i = 0; i < 3; i++) {
-      const index = (currentIndex + i) % testimonialsData.length;
+      const index = (currentIndex + i) % TESTIMONIALS_DATA.length;
       visible.push({
-        ...testimonialsData[index],
+        ...TESTIMONIALS_DATA[index],
         isActive: i === 1, // 中间的卡片为激活状态
       });
     }
@@ -266,7 +271,7 @@ const TestimonialsSection = memo(() => {
         {/* 轮播控制 */}
         <CarouselControls
           currentIndex={currentIndex}
-          totalItems={testimonialsData.length}
+          totalItems={TESTIMONIALS_DATA.length}
           onPrevious={handlePrevious}
           onNext={handleNext}
           onDotClick={handleDotClick}

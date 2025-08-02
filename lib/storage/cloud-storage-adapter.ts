@@ -9,7 +9,7 @@
 
 import { enhancedCacheManager } from '@/lib/cache/enhanced-cache-manager';
 
-const logger = new Logger('CloudStorageAdapter');
+const logger = getLogger();
 
 // 导入统一的云存储提供商枚举
 import { CloudProvider } from '@/lib/types/enums';
@@ -52,6 +52,7 @@ interface DownloadOptions {
 }
 
 import { FileInfo } from '../types/interfaces';
+import { getLogger } from '@/lib/utils/logger';
 
 // 上传结果接口
 interface UploadResult {

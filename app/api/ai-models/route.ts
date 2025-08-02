@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file ai-models\route.ts
  * @description Migrated API route with global error handling
  * @author ZK-Agent Team
@@ -49,7 +49,6 @@ export const GET = createApiRoute(
         total: models.length,
       });
     } catch (error) {
-      console.error('Error fetching AI models:', error);
       return ApiResponseWrapper.error(
         ErrorCode.INTERNAL_SERVER_ERROR,
         'Failed to get AI models',
@@ -73,8 +72,6 @@ export const POST = createApiRoute(
         message: 'Model added successfully',
       });
     } catch (error) {
-      console.error('Error adding AI model:', error);
-
       // 区分错误类型
       if (error instanceof z.ZodError) {
         return ApiResponseWrapper.error(

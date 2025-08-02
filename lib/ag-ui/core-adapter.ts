@@ -249,8 +249,6 @@ export class AgUICoreAdapter {
                       };
                     }
 
-                    const data = JSON.parse(jsonStr);
-
                     // 处理工具调用
                     if (data.choices && data.choices[0].delta && data.choices[0].delta.tool_calls) {
                       this.handleToolCall(data.choices[0].delta.tool_calls[0], runId);

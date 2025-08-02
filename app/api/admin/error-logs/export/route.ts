@@ -15,8 +15,6 @@ import { getLogger } from '@/lib/utils/logger';
 
 const logger = getLogger();
 
-const logger = new Logger('ExportErrorLogs');
-
 export const GET = createApiRoute(
   RouteConfigs.protectedGet(),
   async (req: NextRequest, { validatedQuery }) => {

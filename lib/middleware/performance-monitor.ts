@@ -12,8 +12,6 @@ import { getLogger } from '@/lib/utils/logger';
 
 const logger = getLogger();
 
-const logger = getLogger();
-
 interface PerformanceMetrics {
   requestId: string;
   method: string;
@@ -38,7 +36,7 @@ class PerformanceMonitor {
   private static instance: PerformanceMonitor;
   private metrics: Map<string, PerformanceMetrics> = new Map();
   private qpsCounter: QpsMetrics[] = [];
-  private logger = new Logger('PerformanceMonitor');
+  private logger = getLogger();
 
   // 性能阈值配置
   private readonly THRESHOLDS = {

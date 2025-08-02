@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file 数据库性能监控页面
  * @description 管理员数据库性能监控和优化管理界面
  * @author ZK-Agent Team
@@ -104,7 +104,6 @@ export default function DatabasePerformancePage() {
       const data = await response.json();
       setPerformanceData(data);
     } catch (err) {
-      console.error('获取数据库性能数据失败:', err);
       setError(err instanceof Error ? err.message : '未知错误');
 
       // 设置模拟数据用于演示
@@ -187,7 +186,6 @@ export default function DatabasePerformancePage() {
       // 刷新数据
       await fetchPerformanceData();
     } catch (err) {
-      console.error('触发优化失败:', err);
       setError(err instanceof Error ? err.message : '优化失败');
     }
   };
