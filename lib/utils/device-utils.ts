@@ -50,18 +50,19 @@ export interface BrowserCapabilities {
  */
 export function detectDeviceType(userAgent?: string): 'mobile' | 'tablet' | 'desktop' {
   const ua = userAgent || navigator.userAgent;
-  
+
   // 移动设备检测
   const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
   if (mobileRegex.test(ua)) {
     // 平板检测
-    const tabletRegex = /iPad|Android(?=.*\bMobile\b)(?!.*\bMobile\b)|Android.*Tablet|KFAPWI|LG-V909|SM-T.*|Galaxy.*Tab|GT-P.*|SAMSUNG.*Tablet/i;
+    const tabletRegex =
+      /iPad|Android(?=.*\bMobile\b)(?!.*\bMobile\b)|Android.*Tablet|KFAPWI|LG-V909|SM-T.*|Galaxy.*Tab|GT-P.*|SAMSUNG.*Tablet/i;
     if (tabletRegex.test(ua) || (ua.includes('Android') && !ua.includes('Mobile'))) {
       return 'tablet';
     }
     return 'mobile';
   }
-  
+
   return 'desktop';
 }
 
@@ -108,7 +109,7 @@ export function isTouchDevice(): boolean {
  */
 export function detectOS(userAgent?: string): { name: string; version: string } {
   const ua = userAgent || navigator.userAgent;
-  
+
   // Windows
   if (ua.includes('Windows NT')) {
     const version = ua.match(/Windows NT ([\d.]+)/);
@@ -118,52 +119,52 @@ export function detectOS(userAgent?: string): { name: string; version: string } 
       '6.2': '8',
       '6.1': '7',
       '6.0': 'Vista',
-      '5.1': 'XP'
+      '5.1': 'XP',
     };
     return {
       name: 'Windows',
-      version: versionMap[version?.[1] || ''] || version?.[1] || 'Unknown'
+      version: versionMap[version?.[1] || ''] || version?.[1] || 'Unknown',
     };
   }
-  
+
   // macOS
   if (ua.includes('Mac OS X')) {
     const version = ua.match(/Mac OS X ([\d_]+)/);
     return {
       name: 'macOS',
-      version: version?.[1]?.replace(/_/g, '.') || 'Unknown'
+      version: version?.[1]?.replace(/_/g, '.') || 'Unknown',
     };
   }
-  
+
   // iOS
   if (ua.includes('iPhone OS') || ua.includes('OS ')) {
     const version = ua.match(/OS ([\d_]+)/);
     return {
       name: 'iOS',
-      version: version?.[1]?.replace(/_/g, '.') || 'Unknown'
+      version: version?.[1]?.replace(/_/g, '.') || 'Unknown',
     };
   }
-  
+
   // Android
   if (ua.includes('Android')) {
     const version = ua.match(/Android ([\d.]+)/);
     return {
       name: 'Android',
-      version: version?.[1] || 'Unknown'
+      version: version?.[1] || 'Unknown',
     };
   }
-  
+
   // Linux
   if (ua.includes('Linux')) {
     return {
       name: 'Linux',
-      version: 'Unknown'
+      version: 'Unknown',
     };
   }
-  
+
   return {
     name: 'Unknown',
-    version: 'Unknown'
+    version: 'Unknown',
   };
 }
 
@@ -178,55 +179,55 @@ export function detectOS(userAgent?: string): { name: string; version: string } 
  */
 export function detectBrowser(userAgent?: string): { name: string; version: string } {
   const ua = userAgent || navigator.userAgent;
-  
+
   // Chrome
   if (ua.includes('Chrome') && !ua.includes('Edg')) {
     const version = ua.match(/Chrome\/([\d.]+)/);
     return {
       name: 'Chrome',
-      version: version?.[1] || 'Unknown'
+      version: version?.[1] || 'Unknown',
     };
   }
-  
+
   // Edge
   if (ua.includes('Edg')) {
     const version = ua.match(/Edg\/([\d.]+)/);
     return {
       name: 'Edge',
-      version: version?.[1] || 'Unknown'
+      version: version?.[1] || 'Unknown',
     };
   }
-  
+
   // Firefox
   if (ua.includes('Firefox')) {
     const version = ua.match(/Firefox\/([\d.]+)/);
     return {
       name: 'Firefox',
-      version: version?.[1] || 'Unknown'
+      version: version?.[1] || 'Unknown',
     };
   }
-  
+
   // Safari
   if (ua.includes('Safari') && !ua.includes('Chrome')) {
     const version = ua.match(/Version\/([\d.]+)/);
     return {
       name: 'Safari',
-      version: version?.[1] || 'Unknown'
+      version: version?.[1] || 'Unknown',
     };
   }
-  
+
   // Internet Explorer
   if (ua.includes('MSIE') || ua.includes('Trident')) {
     const version = ua.match(/(?:MSIE |rv:)([\d.]+)/);
     return {
       name: 'Internet Explorer',
-      version: version?.[1] || 'Unknown'
+      version: version?.[1] || 'Unknown',
     };
   }
-  
+
   return {
     name: 'Unknown',
-    version: 'Unknown'
+    version: 'Unknown',
   };
 }
 
@@ -246,7 +247,7 @@ export function getScreenInfo() {
     availHeight: screen.availHeight,
     pixelRatio: window.devicePixelRatio || 1,
     colorDepth: screen.colorDepth,
-    orientation: screen.orientation?.type || 'unknown'
+    orientation: screen.orientation?.type || 'unknown',
   };
 }
 
@@ -259,7 +260,7 @@ export function getViewportInfo() {
     width: window.innerWidth,
     height: window.innerHeight,
     scrollX: window.scrollX || window.pageXOffset,
-    scrollY: window.scrollY || window.pageYOffset
+    scrollY: window.scrollY || window.pageYOffset,
   };
 }
 
@@ -271,7 +272,7 @@ export function getOrientation(): 'portrait' | 'landscape' {
   if (screen.orientation) {
     return screen.orientation.type.includes('portrait') ? 'portrait' : 'landscape';
   }
-  
+
   // 回退方法
   return window.innerHeight > window.innerWidth ? 'portrait' : 'landscape';
 }
@@ -298,7 +299,7 @@ export function detectBrowserCapabilities(): BrowserCapabilities {
     camera: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia),
     microphone: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia),
     notifications: 'Notification' in window,
-    clipboard: !!(navigator.clipboard && navigator.clipboard.writeText)
+    clipboard: !!(navigator.clipboard && navigator.clipboard.writeText),
   };
 }
 
@@ -345,24 +346,27 @@ export function supportsWebRTC(): boolean {
  * @returns 网络信息
  */
 export function getNetworkInfo() {
-  const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
-  
+  const connection =
+    (navigator as any).connection ||
+    (navigator as any).mozConnection ||
+    (navigator as any).webkitConnection;
+
   if (!connection) {
     return {
       type: 'unknown',
       effectiveType: 'unknown',
       downlink: 0,
       rtt: 0,
-      saveData: false
+      saveData: false,
     };
   }
-  
+
   return {
     type: connection.type || 'unknown',
     effectiveType: connection.effectiveType || 'unknown',
     downlink: connection.downlink || 0,
     rtt: connection.rtt || 0,
-    saveData: connection.saveData || false
+    saveData: connection.saveData || false,
   };
 }
 
@@ -384,23 +388,23 @@ export function isOnline(): boolean {
  */
 export async function generateDeviceFingerprint(): Promise<string> {
   const components = [];
-  
+
   // 用户代理
   components.push(navigator.userAgent);
-  
+
   // 屏幕信息
   const screen = getScreenInfo();
   components.push(`${screen.width}x${screen.height}x${screen.colorDepth}`);
-  
+
   // 时区
   components.push(Intl.DateTimeFormat().resolvedOptions().timeZone);
-  
+
   // 语言
   components.push(navigator.language);
-  
+
   // 平台
   components.push(navigator.platform);
-  
+
   // Canvas指纹
   try {
     const canvas = document.createElement('canvas');
@@ -414,7 +418,7 @@ export async function generateDeviceFingerprint(): Promise<string> {
   } catch (e) {
     // Canvas可能被禁用
   }
-  
+
   // WebGL指纹
   try {
     const canvas = document.createElement('canvas');
@@ -427,36 +431,36 @@ export async function generateDeviceFingerprint(): Promise<string> {
   } catch (e) {
     // WebGL可能被禁用
   }
-  
+
   // 音频指纹
   try {
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
     const oscillator = audioContext.createOscillator();
     const analyser = audioContext.createAnalyser();
     const gainNode = audioContext.createGain();
-    
+
     oscillator.type = 'triangle';
     oscillator.frequency.setValueAtTime(10000, audioContext.currentTime);
-    
+
     gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-    
+
     oscillator.connect(analyser);
     analyser.connect(gainNode);
     gainNode.connect(audioContext.destination);
-    
+
     oscillator.start(0);
-    
+
     const frequencyData = new Uint8Array(analyser.frequencyBinCount);
     analyser.getByteFrequencyData(frequencyData);
-    
+
     components.push(Array.from(frequencyData).join(','));
-    
+
     oscillator.stop();
     audioContext.close();
   } catch (e) {
     // 音频可能被禁用
   }
-  
+
   // 生成哈希
   const fingerprint = components.join('|');
   const encoder = new TextEncoder();
@@ -478,7 +482,7 @@ export function getDeviceInfo(): DeviceInfo {
   const os = detectOS();
   const browser = detectBrowser();
   const screen = getScreenInfo();
-  
+
   return {
     type: detectDeviceType(),
     os: os.name,
@@ -490,7 +494,7 @@ export function getDeviceInfo(): DeviceInfo {
     screenHeight: screen.height,
     pixelRatio: screen.pixelRatio,
     touchSupport: isTouchDevice(),
-    orientation: getOrientation()
+    orientation: getOrientation(),
   };
 }
 
@@ -505,22 +509,24 @@ export function getDeviceInfo(): DeviceInfo {
 export async function detectPerformanceLevel(): Promise<'low' | 'medium' | 'high'> {
   const deviceInfo = getDeviceInfo();
   let score = 0;
-  
+
   // 设备类型评分
   if (deviceInfo.type === 'desktop') score += 3;
   else if (deviceInfo.type === 'tablet') score += 2;
   else score += 1;
-  
+
   // 屏幕分辨率评分
   const totalPixels = deviceInfo.screenWidth * deviceInfo.screenHeight;
-  if (totalPixels > 2073600) score += 3; // > 1920x1080
-  else if (totalPixels > 921600) score += 2; // > 1280x720
+  if (totalPixels > 2073600)
+    score += 3; // > 1920x1080
+  else if (totalPixels > 921600)
+    score += 2; // > 1280x720
   else score += 1;
-  
+
   // 像素比评分
   if (deviceInfo.pixelRatio >= 2) score += 2;
   else score += 1;
-  
+
   // 内存评分（如果可用）
   const memory = (navigator as any).deviceMemory;
   if (memory) {
@@ -528,7 +534,7 @@ export async function detectPerformanceLevel(): Promise<'low' | 'medium' | 'high
     else if (memory >= 4) score += 2;
     else score += 1;
   }
-  
+
   // CPU核心数评分（如果可用）
   const cores = navigator.hardwareConcurrency;
   if (cores) {
@@ -536,7 +542,7 @@ export async function detectPerformanceLevel(): Promise<'low' | 'medium' | 'high
     else if (cores >= 4) score += 2;
     else score += 1;
   }
-  
+
   // 简单性能测试
   const start = performance.now();
   let result = 0;
@@ -544,11 +550,11 @@ export async function detectPerformanceLevel(): Promise<'low' | 'medium' | 'high
     result += Math.random();
   }
   const duration = performance.now() - start;
-  
+
   if (duration < 10) score += 3;
   else if (duration < 20) score += 2;
   else score += 1;
-  
+
   // 根据总分判断性能等级
   if (score >= 15) return 'high';
   else if (score >= 10) return 'medium';
@@ -566,7 +572,7 @@ export async function detectPerformanceLevel(): Promise<'low' | 'medium' | 'high
  */
 export function supportsFeature(feature: string): boolean {
   const capabilities = detectBrowserCapabilities();
-  
+
   switch (feature.toLowerCase()) {
     case 'webgl':
       return capabilities.webGL;

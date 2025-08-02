@@ -3,9 +3,11 @@
 ## 🎯 实施目标和原则
 
 ### 总体目标
+
 构建世界级的AI智能体平台，确保代码质量卓越、系统性能优异、用户体验出色、安全性可靠。
 
 ### 核心原则
+
 1. **基于现有代码优化** - 在现有系统基础上进行扩展和优化，避免重复建设
 2. **代码即文档**：代码自解释，清晰易懂
 3. **测试驱动**：先写测试，后写实现
@@ -18,6 +20,7 @@
 > **核心原则：尽可能基于现有代码进行优化调整，确保没有代码冗余，是在本系统上优化而不是新建一个系统**
 
 #### 实施标准：
+
 1. **代码继承优先** - 扩展现有类和组件，而非创建新的
 2. **功能渐进增强** - 在现有功能基础上添加新特性
 3. **接口向后兼容** - 保持现有API接口不变
@@ -27,6 +30,7 @@
 #### 具体执行要求：
 
 ##### 组件开发规范
+
 ```typescript
 // ✅ 正确做法：扩展现有组件
 // 基于已存在的组件进行功能扩展
@@ -34,7 +38,7 @@ interface ExistingComponentProps {
   // 保持所有现有属性
   existingProp1: string;
   existingProp2: boolean;
-  
+
   // 新增：扩展属性（可选，有默认值）
   enhancedFeature?: boolean;
   newOptionalProp?: string;
@@ -50,17 +54,17 @@ export const ExistingComponent = ({
 }: ExistingComponentProps) => {
   // 保持现有逻辑不变
   const existingLogic = useExistingHook(existingProp1);
-  
+
   // 添加新功能逻辑（条件性启用）
-  const enhancedLogic = enhancedFeature 
+  const enhancedLogic = enhancedFeature
     ? useNewEnhancedFeature(newOptionalProp)
     : null;
-  
+
   return (
     <div>
       {/* 保持现有渲染逻辑 */}
       <ExistingContent {...existingProps} />
-      
+
       {/* 条件性渲染新功能 */}
       {enhancedFeature && enhancedLogic && (
         <EnhancedFeatureSection data={enhancedLogic} />
@@ -74,6 +78,7 @@ export const ExistingComponent = ({
 ```
 
 ##### 服务扩展规范
+
 ```typescript
 // ✅ 正确做法：扩展现有服务类
 export class ExistingService {
@@ -82,33 +87,33 @@ export class ExistingService {
     // 现有实现保持不变
     return this.performExistingOperation(param);
   }
-  
+
   // 新增：扩展方法（不覆盖现有方法）
   public async enhancedMethod(
-    param: string, 
+    param: string,
     options: EnhancementOptions = {}
   ): Promise<EnhancedResult> {
     // 首先执行现有逻辑
     const baseResult = await this.existingMethod(param);
-    
+
     // 在基础结果上进行增强
     if (options.enableEnhancement) {
       return await this.enhanceResult(baseResult, options);
     }
-    
+
     // 返回兼容的结果格式
     return this.adaptToEnhancedFormat(baseResult);
   }
-  
+
   // 新增：私有增强方法
   private async enhanceResult(
-    baseResult: ExistingResult, 
+    baseResult: ExistingResult,
     options: EnhancementOptions
   ): Promise<EnhancedResult> {
     // 增强逻辑实现
     return {
       ...baseResult,
-      enhancements: await this.generateEnhancements(baseResult, options)
+      enhancements: await this.generateEnhancements(baseResult, options),
     };
   }
 }
@@ -118,53 +123,50 @@ export class ExistingService {
 ```
 
 ##### API扩展规范
+
 ```typescript
 // ✅ 正确做法：扩展现有API端点
 // 在现有API基础上添加新参数和功能
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
-    
+
     // 保持现有参数处理
-    const file = formData.get("file") as File;
-    const existingParam = formData.get("existingParam") as string;
-    
+    const file = formData.get('file') as File;
+    const existingParam = formData.get('existingParam') as string;
+
     // 新增：可选增强参数
-    const enhancementLevel = formData.get("enhancementLevel") as string || "standard";
-    const enableNewFeature = formData.get("enableNewFeature") === "true";
-    
+    const enhancementLevel = (formData.get('enhancementLevel') as string) || 'standard';
+    const enableNewFeature = formData.get('enableNewFeature') === 'true';
+
     // 执行现有处理逻辑
     const baseResult = await processExistingLogic(file, existingParam);
-    
+
     // 条件性执行增强逻辑
     let finalResult = baseResult;
-    if (enhancementLevel !== "standard" || enableNewFeature) {
+    if (enhancementLevel !== 'standard' || enableNewFeature) {
       finalResult = await enhanceProcessing(baseResult, {
         level: enhancementLevel,
-        enableNewFeature
+        enableNewFeature,
       });
     }
-    
+
     // 返回向后兼容的响应格式
     return NextResponse.json({
       // 保持现有响应结构
       success: true,
       data: baseResult,
-      
+
       // 新增：增强信息（可选）
-      enhanced: enhancementLevel !== "standard" ? finalResult : undefined,
+      enhanced: enhancementLevel !== 'standard' ? finalResult : undefined,
       enhancement: {
-        applied: enhancementLevel !== "standard",
-        level: enhancementLevel
-      }
+        applied: enhancementLevel !== 'standard',
+        level: enhancementLevel,
+      },
     });
-    
   } catch (error) {
     // 保持现有错误处理
-    return NextResponse.json(
-      { error: error.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
@@ -173,6 +175,7 @@ export async function POST(request: NextRequest) {
 ```
 
 #### 代码复用强制检查清单：
+
 - [ ] **架构一致性**：是否遵循现有的项目架构？
 - [ ] **组件复用**：是否基于现有组件进行扩展？
 - [ ] **服务复用**：是否复用现有的服务和工具？
@@ -183,6 +186,7 @@ export async function POST(request: NextRequest) {
 - [ ] **测试框架**：是否基于现有的测试结构？
 
 #### 质量保证要求：
+
 1. **零破坏原则** - 新功能不能破坏任何现有功能
 2. **向后兼容** - 所有现有的调用方式必须继续工作
 3. **配置控制** - 新功能必须可以通过配置完全禁用
@@ -194,6 +198,7 @@ export async function POST(request: NextRequest) {
 ### TypeScript编码标准
 
 #### 类型定义规范
+
 ```typescript
 // ✅ 好的实践：明确的类型定义
 interface AgentConfig {
@@ -235,30 +240,31 @@ interface GoodConfig {
 ```
 
 #### 组件设计原则
+
 ```typescript
 // ✅ 组件接口设计最佳实践
 interface ButtonProps {
   // 必需属性
   children: React.ReactNode;
-  
+
   // 可选属性，提供默认值
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
   size?: 'sm' | 'md' | 'lg' | 'xl';
-  
+
   // 响应式配置
   responsiveSize?: Partial<Record<Breakpoint, ButtonProps['size']>>;
-  
+
   // 状态控制
   loading?: boolean;
   disabled?: boolean;
-  
+
   // 事件处理（明确参数类型）
   onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
-  
+
   // 可访问性
   'aria-label'?: string;
   'aria-describedby'?: string;
-  
+
   // 测试标识
   'data-testid'?: string;
 }
@@ -269,12 +275,12 @@ interface UseResponsiveReturn {
   readonly currentBreakpoint: Breakpoint;
   readonly width: number;
   readonly height: number;
-  
+
   // 设备判断（计算属性）
   readonly isMobile: boolean;
   readonly isTablet: boolean;
   readonly isDesktop: boolean;
-  
+
   // 工具函数
   matches: (breakpoint: Breakpoint) => boolean;
   between: (min: Breakpoint, max: Breakpoint) => boolean;
@@ -287,12 +293,13 @@ export const useResponsive = (): UseResponsiveReturn => {
 ```
 
 #### 错误处理规范
+
 ```typescript
 // ✅ 统一的错误类型系统
 abstract class AppError extends Error {
   abstract readonly code: string;
   abstract readonly statusCode: number;
-  
+
   constructor(
     message: string,
     public readonly context?: Record<string, unknown>
@@ -318,13 +325,9 @@ class AIServiceError extends AppError {
 }
 
 // ✅ 错误处理包装器
-type Result<T, E = AppError> = 
-  | { success: true; data: T }
-  | { success: false; error: E };
+type Result<T, E = AppError> = { success: true; data: T } | { success: false; error: E };
 
-async function safeAsyncOperation<T>(
-  operation: () => Promise<T>
-): Promise<Result<T>> {
+async function safeAsyncOperation<T>(operation: () => Promise<T>): Promise<Result<T>> {
   try {
     const data = await operation();
     return { success: true, data };
@@ -332,11 +335,11 @@ async function safeAsyncOperation<T>(
     if (error instanceof AppError) {
       return { success: false, error };
     }
-    
+
     // 将未知错误包装
     return {
       success: false,
-      error: new AppError('Unknown error occurred', { originalError: error })
+      error: new AppError('Unknown error occurred', { originalError: error }),
     };
   }
 }
@@ -348,19 +351,19 @@ const processCADFile = async (file: File): Promise<Result<CADAnalysisResult>> =>
     if (!isValidCADFile(file)) {
       throw new ValidationError('Invalid CAD file format');
     }
-    
+
     // 解析文件
     const parsedData = await parseCADFile(file);
     if (!parsedData) {
       throw new CADParsingError('Failed to parse CAD file');
     }
-    
+
     // AI分析
     const analysis = await analyzeWithAI(parsedData);
     if (!analysis) {
       throw new AIServiceError('AI analysis service unavailable');
     }
-    
+
     return analysis;
   });
 };
@@ -369,6 +372,7 @@ const processCADFile = async (file: File): Promise<Result<CADAnalysisResult>> =>
 ### React组件最佳实践
 
 #### 组件结构标准
+
 ```typescript
 // ✅ 标准组件结构
 import React, { forwardRef, useCallback, useMemo } from 'react';
@@ -429,12 +433,12 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ) => {
     // 4. Hooks调用
     const { getValue } = useResponsive();
-    
+
     // 5. 计算属性（使用useMemo优化）
     const currentSize = useMemo(() => {
       return responsiveSize ? getValue(responsiveSize) || size : size;
     }, [responsiveSize, size, getValue]);
-    
+
     // 6. 事件处理（使用useCallback优化）
     const handleClick = useCallback(
       (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -443,7 +447,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       },
       [loading, disabled, props.onClick]
     );
-    
+
     // 7. 渲染
     return (
       <button
@@ -465,7 +469,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent" />
           </div>
         )}
-        
+
         {!loading && (
           <>
             {leftIcon && (
@@ -488,6 +492,7 @@ export { Button, buttonVariants, type ButtonProps };
 ```
 
 #### 性能优化技巧
+
 ```typescript
 // ✅ 组件优化最佳实践
 
@@ -509,17 +514,17 @@ const ExpensiveComponent = React.memo<ComponentProps>(
 // 2. 使用useCallback缓存事件处理函数
 const ParentComponent = () => {
   const [items, setItems] = useState<Item[]>([]);
-  
+
   // ✅ 稳定的引用，避免子组件不必要的重渲染
   const handleItemClick = useCallback(
     (id: string) => {
-      setItems(prev => prev.map(item => 
+      setItems(prev => prev.map(item =>
         item.id === id ? { ...item, selected: !item.selected } : item
       ));
     },
     [] // 没有依赖，函数引用永远稳定
   );
-  
+
   return (
     <div>
       {items.map(item => (
@@ -545,12 +550,12 @@ const DataVisualization = ({ rawData }: { rawData: RawData[] }) => {
       }))
       .sort((a, b) => a.computed - b.computed);
   }, [rawData]);
-  
+
   return <Chart data={processedData} />;
 };
 
 // 4. 使用懒加载减少初始包大小
-const LazyCADAnalyzer = React.lazy(() => 
+const LazyCADAnalyzer = React.lazy(() =>
   import('./CADAnalyzer').then(module => ({
     default: module.CADAnalyzer
   }))
@@ -570,6 +575,7 @@ const App = () => {
 ### Git工作流程
 
 #### 分支管理策略
+
 ```bash
 # 主要分支
 main/                    # 生产分支（稳定版本）
@@ -602,6 +608,7 @@ git push origin feature/agent-a/responsive-hooks
 ```
 
 #### 提交信息规范
+
 ```bash
 # 提交信息格式：<type>(<scope>): <subject>
 
@@ -634,34 +641,40 @@ test(agents): add unit tests for agent registry
 ### 代码审查检查清单
 
 #### 功能性检查
+
 ```markdown
 ## 功能性审查清单
 
 ### 基础检查
+
 - [ ] 代码实现了预期功能
 - [ ] 处理了所有edge cases
 - [ ] 错误处理完善
 - [ ] 输入验证充分
 
 ### 性能检查
+
 - [ ] 没有不必要的重渲染
 - [ ] 合理使用useMemo/useCallback
 - [ ] 避免了内存泄漏
 - [ ] 网络请求有适当的缓存
 
 ### 安全检查
+
 - [ ] 用户输入经过验证和清理
 - [ ] 没有SQL注入风险
 - [ ] 没有XSS漏洞
 - [ ] 敏感信息没有泄露
 
 ### 可访问性检查
+
 - [ ] 所有交互元素可键盘访问
 - [ ] 有适当的ARIA标签
 - [ ] 颜色对比度符合标准
 - [ ] 支持屏幕阅读器
 
 ### 测试检查
+
 - [ ] 有充分的单元测试
 - [ ] 测试覆盖了主要路径
 - [ ] 集成测试通过
@@ -669,6 +682,7 @@ test(agents): add unit tests for agent registry
 ```
 
 #### 代码质量检查
+
 ```typescript
 // ✅ 代码审查自动化检查
 // .github/workflows/code-review.yml
@@ -683,33 +697,33 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      
+
       # TypeScript检查
       - name: TypeScript Check
         run: npx tsc --noEmit
-      
+
       # ESLint检查
       - name: ESLint Check
         run: npx eslint . --ext .ts,.tsx --max-warnings 0
-      
+
       # 测试覆盖率检查
       - name: Test Coverage
         run: |
           npm test -- --coverage --watchAll=false
           npx coverage-threshold-check
-      
+
       # 性能预算检查
       - name: Performance Budget
         run: npx bundlesize
-      
+
       # 安全扫描
       - name: Security Scan
         run: npm audit --audit-level high
-      
+
       # 依赖检查
       - name: Dependency Check
         run: npx depcheck
-      
+
       # 文档检查
       - name: Documentation Check
         run: npx typedoc --validation --excludeExternals
@@ -720,6 +734,7 @@ jobs:
 ### 生产环境配置
 
 #### Docker容器化
+
 ```dockerfile
 # Dockerfile.prod
 FROM node:18-alpine AS base
@@ -767,6 +782,7 @@ CMD ["node", "server.js"]
 ```
 
 #### 生产环境配置
+
 ```bash
 # .env.production
 NODE_ENV=production
@@ -815,6 +831,7 @@ REQUEST_TIMEOUT=30000     # 30秒
 ### 监控和告警系统
 
 #### 应用性能监控
+
 ```typescript
 // lib/monitoring/performance.ts
 import { performance } from 'perf_hooks';
@@ -822,14 +839,14 @@ import { performance } from 'perf_hooks';
 export class PerformanceMonitor {
   private static instance: PerformanceMonitor;
   private metrics: Map<string, number[]> = new Map();
-  
+
   public static getInstance(): PerformanceMonitor {
     if (!PerformanceMonitor.instance) {
       PerformanceMonitor.instance = new PerformanceMonitor();
     }
     return PerformanceMonitor.instance;
   }
-  
+
   // 记录API响应时间
   recordAPILatency(endpoint: string, duration: number): void {
     const key = `api.${endpoint}.latency`;
@@ -837,12 +854,13 @@ export class PerformanceMonitor {
       this.metrics.set(key, []);
     }
     this.metrics.get(key)!.push(duration);
-    
+
     // 发送到监控系统
     this.sendMetric(key, duration);
-    
+
     // 检查是否超过阈值
-    if (duration > 5000) { // 5秒
+    if (duration > 5000) {
+      // 5秒
       this.sendAlert('API_SLOW_RESPONSE', {
         endpoint,
         duration,
@@ -850,7 +868,7 @@ export class PerformanceMonitor {
       });
     }
   }
-  
+
   // 记录内存使用
   recordMemoryUsage(): void {
     const usage = process.memoryUsage();
@@ -860,42 +878,43 @@ export class PerformanceMonitor {
       'memory.heapUsed': usage.heapUsed,
       'memory.external': usage.external,
     };
-    
+
     Object.entries(metrics).forEach(([key, value]) => {
       this.sendMetric(key, value);
     });
-    
+
     // 内存使用告警
-    if (usage.heapUsed > 1024 * 1024 * 1024) { // 1GB
+    if (usage.heapUsed > 1024 * 1024 * 1024) {
+      // 1GB
       this.sendAlert('HIGH_MEMORY_USAGE', {
         heapUsed: usage.heapUsed,
         threshold: 1024 * 1024 * 1024,
       });
     }
   }
-  
+
   // 记录业务指标
   recordBusinessMetric(metric: string, value: number, tags?: Record<string, string>): void {
     this.sendMetric(`business.${metric}`, value, tags);
   }
-  
+
   private sendMetric(key: string, value: number, tags?: Record<string, string>): void {
     // 发送到DataDog/New Relic/CloudWatch等
     if (process.env.DATADOG_API_KEY) {
       // DataDog实现
       this.sendToDataDog(key, value, tags);
     }
-    
+
     if (process.env.NEW_RELIC_LICENSE_KEY) {
       // New Relic实现
       this.sendToNewRelic(key, value, tags);
     }
   }
-  
+
   private sendAlert(type: string, details: Record<string, unknown>): void {
     // 发送告警到Slack/PagerDuty/钉钉等
     console.error(`ALERT: ${type}`, details);
-    
+
     // 实际告警发送逻辑
     if (process.env.SLACK_WEBHOOK_URL) {
       this.sendSlackAlert(type, details);
@@ -911,18 +930,18 @@ export const performanceMiddleware = (
 ) => {
   const startTime = performance.now();
   const monitor = PerformanceMonitor.getInstance();
-  
+
   // 请求开始
   monitor.recordBusinessMetric('api.requests', 1, {
     endpoint: req.url || 'unknown',
     method: req.method || 'unknown',
   });
-  
+
   // 响应结束时记录
   res.on('finish', () => {
     const duration = performance.now() - startTime;
     const endpoint = req.url?.replace(/\/\d+/g, '/:id') || 'unknown';
-    
+
     monitor.recordAPILatency(endpoint, duration);
     monitor.recordBusinessMetric('api.responses', 1, {
       endpoint,
@@ -930,12 +949,13 @@ export const performanceMiddleware = (
       method: req.method || 'unknown',
     });
   });
-  
+
   next();
 };
 ```
 
 #### 错误监控和日志
+
 ```typescript
 // lib/monitoring/logger.ts
 import winston from 'winston';
@@ -949,26 +969,23 @@ const logger = winston.createLogger({
     winston.format.errors({ stack: true }),
     winston.format.json()
   ),
-  defaultMeta: { 
+  defaultMeta: {
     service: 'ai-chat-interface',
     version: process.env.APP_VERSION || '1.0.0',
   },
   transports: [
     // 控制台输出
     new winston.transports.Console({
-      format: winston.format.combine(
-        winston.format.colorize(),
-        winston.format.simple()
-      ),
+      format: winston.format.combine(winston.format.colorize(), winston.format.simple()),
     }),
-    
+
     // 文件输出
-    new winston.transports.File({ 
-      filename: 'logs/error.log', 
-      level: 'error' 
+    new winston.transports.File({
+      filename: 'logs/error.log',
+      level: 'error',
     }),
-    new winston.transports.File({ 
-      filename: 'logs/combined.log' 
+    new winston.transports.File({
+      filename: 'logs/combined.log',
     }),
   ],
 });
@@ -976,11 +993,13 @@ const logger = winston.createLogger({
 // 生产环境添加外部日志服务
 if (process.env.NODE_ENV === 'production') {
   // 添加ElasticSearch/Fluentd等
-  logger.add(new winston.transports.Http({
-    host: process.env.LOG_HOST,
-    port: parseInt(process.env.LOG_PORT || '9200'),
-    path: '/logs',
-  }));
+  logger.add(
+    new winston.transports.Http({
+      host: process.env.LOG_HOST,
+      port: parseInt(process.env.LOG_PORT || '9200'),
+      path: '/logs',
+    })
+  );
 }
 
 // 错误追踪类
@@ -995,7 +1014,7 @@ export class ErrorTracker {
       },
       context,
     });
-    
+
     // 发送到Sentry
     Sentry.withScope(scope => {
       if (context) {
@@ -1006,12 +1025,12 @@ export class ErrorTracker {
       Sentry.captureException(error);
     });
   }
-  
+
   static captureMessage(message: string, level: 'info' | 'warning' | 'error' = 'info'): void {
     logger.log(level, message);
     Sentry.captureMessage(message, level as any);
   }
-  
+
   static setUser(user: { id: string; email?: string }): void {
     Sentry.setUser(user);
   }
@@ -1025,7 +1044,7 @@ export const withErrorTracking = <T extends (...args: any[]) => any>(
   return ((...args: Parameters<T>) => {
     try {
       const result = fn(...args);
-      
+
       // 如果是Promise，捕获异步错误
       if (result instanceof Promise) {
         return result.catch(error => {
@@ -1033,7 +1052,7 @@ export const withErrorTracking = <T extends (...args: any[]) => any>(
           throw error;
         });
       }
-      
+
       return result;
     } catch (error) {
       ErrorTracker.captureException(error as Error, context);
@@ -1046,15 +1065,16 @@ export const withErrorTracking = <T extends (...args: any[]) => any>(
 ## 📊 持续集成和部署
 
 ### CI/CD流水线
+
 ```yaml
 # .github/workflows/ci-cd.yml
 name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
 
 env:
   NODE_VERSION: '18'
@@ -1067,38 +1087,38 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-      
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Type checking
         run: npm run type-check
-      
+
       - name: Lint checking
         run: npm run lint
-      
+
       - name: Format checking
         run: npm run format:check
-      
+
       - name: Unit tests
         run: npm run test:unit -- --coverage
-      
+
       - name: Upload coverage
         uses: codecov/codecov-action@v3
         with:
           files: ./coverage/lcov.info
-  
+
   # 集成测试
   integration-test:
     runs-on: ubuntu-latest
     needs: quality-check
-    
+
     services:
       postgres:
         image: postgres:14
@@ -1110,7 +1130,7 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-      
+
       redis:
         image: redis:7
         options: >-
@@ -1118,79 +1138,79 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-    
+
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-      
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Run database migrations
         run: npm run db:migrate
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
-      
+
       - name: Integration tests
         run: npm run test:integration
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
           REDIS_URL: redis://localhost:6379
-  
+
   # E2E测试
   e2e-test:
     runs-on: ubuntu-latest
     needs: integration-test
-    
+
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-      
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Install Playwright
         run: npx playwright install --with-deps
-      
+
       - name: Build application
         run: npm run build
-      
+
       - name: Start application
         run: npm start &
         env:
           NODE_ENV: test
-      
+
       - name: Wait for application
         run: npx wait-on http://localhost:3000
-      
+
       - name: Run E2E tests
         run: npm run test:e2e
-      
+
       - name: Upload test results
         uses: actions/upload-artifact@v3
         if: always()
         with:
           name: playwright-report
           path: playwright-report/
-  
+
   # 安全扫描
   security-scan:
     runs-on: ubuntu-latest
     needs: quality-check
-    
+
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
@@ -1198,12 +1218,12 @@ jobs:
           scan-ref: '.'
           format: 'sarif'
           output: 'trivy-results.sarif'
-      
+
       - name: Upload Trivy scan results
         uses: github/codeql-action/upload-sarif@v2
         with:
           sarif_file: 'trivy-results.sarif'
-      
+
       - name: Run Semgrep
         uses: returntocorp/semgrep-action@v1
         with:
@@ -1211,27 +1231,27 @@ jobs:
             p/security-audit
             p/secrets
             p/owasp-top-ten
-  
+
   # 构建和发布
   build-and-push:
     runs-on: ubuntu-latest
     needs: [e2e-test, security-scan]
     if: github.event_name == 'push'
-    
+
     permissions:
       contents: read
       packages: write
-    
+
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Log in to Container Registry
         uses: docker/login-action@v2
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v4
@@ -1242,7 +1262,7 @@ jobs:
             type=ref,event=pr
             type=sha,prefix={{branch}}-
             type=raw,value=latest,enable={{is_default_branch}}
-      
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
         with:
@@ -1251,14 +1271,14 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-  
+
   # 部署到生产环境
   deploy-production:
     runs-on: ubuntu-latest
     needs: build-and-push
     if: github.ref == 'refs/heads/main'
     environment: production
-    
+
     steps:
       - name: Deploy to production
         run: |
@@ -1267,17 +1287,17 @@ jobs:
           # kubectl apply -f k8s/production/
           # or terraform apply
           # or ansible-playbook deploy.yml
-      
+
       - name: Run smoke tests
         run: |
           # 部署后验证
           curl -f https://your-production-url.com/api/health
-      
+
       - name: Notify deployment
         uses: 8398a7/action-slack@v3
         with:
           status: ${{ job.status }}
-          text: "🚀 Production deployment completed!"
+          text: '🚀 Production deployment completed!'
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 ```
@@ -1285,6 +1305,7 @@ jobs:
 ## 🔒 安全最佳实践
 
 ### 应用安全清单
+
 ```typescript
 // lib/security/validation.ts
 import { z } from 'zod';
@@ -1293,22 +1314,37 @@ import DOMPurify from 'isomorphic-dompurify';
 // 输入验证schemas
 export const schemas = {
   cadFile: z.object({
-    name: z.string().min(1).max(255).regex(/\.(dwg|dxf|step|iges)$/i),
-    size: z.number().min(1).max(100 * 1024 * 1024), // 100MB
+    name: z
+      .string()
+      .min(1)
+      .max(255)
+      .regex(/\.(dwg|dxf|step|iges)$/i),
+    size: z
+      .number()
+      .min(1)
+      .max(100 * 1024 * 1024), // 100MB
     type: z.enum(['application/octet-stream', 'application/x-dwg']),
   }),
-  
+
   chatMessage: z.object({
-    content: z.string().min(1).max(4000).refine(
-      content => !/<script|javascript:|data:/i.test(content),
-      'Potentially dangerous content detected'
-    ),
+    content: z
+      .string()
+      .min(1)
+      .max(4000)
+      .refine(
+        content => !/<script|javascript:|data:/i.test(content),
+        'Potentially dangerous content detected'
+      ),
     type: z.enum(['text', 'file', 'image']),
   }),
-  
+
   userInput: z.object({
     email: z.string().email(),
-    name: z.string().min(1).max(100).regex(/^[a-zA-Z\s\u4e00-\u9fff]+$/),
+    name: z
+      .string()
+      .min(1)
+      .max(100)
+      .regex(/^[a-zA-Z\s\u4e00-\u9fff]+$/),
   }),
 };
 
@@ -1318,14 +1354,14 @@ export const securityMiddleware = {
   csrfProtection: (req: NextApiRequest, res: NextApiResponse, next: NextHandler) => {
     const token = req.headers['x-csrf-token'];
     const sessionToken = req.session?.csrfToken;
-    
+
     if (!token || token !== sessionToken) {
       return res.status(403).json({ error: 'CSRF token validation failed' });
     }
-    
+
     next();
   },
-  
+
   // 速率限制
   rateLimit: createRateLimiter({
     windowMs: 15 * 60 * 1000, // 15分钟
@@ -1334,7 +1370,7 @@ export const securityMiddleware = {
     standardHeaders: true,
     legacyHeaders: false,
   }),
-  
+
   // 输入清理
   sanitizeInput: (req: NextApiRequest, res: NextApiResponse, next: NextHandler) => {
     if (req.body) {
@@ -1352,11 +1388,11 @@ function sanitizeObject(obj: any): any {
   if (typeof obj === 'string') {
     return DOMPurify.sanitize(obj);
   }
-  
+
   if (Array.isArray(obj)) {
     return obj.map(sanitizeObject);
   }
-  
+
   if (obj && typeof obj === 'object') {
     const sanitized: any = {};
     for (const [key, value] of Object.entries(obj)) {
@@ -1364,7 +1400,7 @@ function sanitizeObject(obj: any): any {
     }
     return sanitized;
   }
-  
+
   return obj;
 }
 
@@ -1377,40 +1413,40 @@ export class FileUploadSecurity {
     'application/step',
     'application/iges',
   ];
-  
+
   private static readonly MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
-  
+
   static validateFile(file: File): Result<true, ValidationError> {
     // 检查文件大小
     if (file.size > this.MAX_FILE_SIZE) {
       return {
         success: false,
-        error: new ValidationError(`File size exceeds limit: ${this.MAX_FILE_SIZE} bytes`)
+        error: new ValidationError(`File size exceeds limit: ${this.MAX_FILE_SIZE} bytes`),
       };
     }
-    
+
     // 检查MIME类型
     if (!this.ALLOWED_MIME_TYPES.includes(file.type)) {
       return {
         success: false,
-        error: new ValidationError(`Unsupported file type: ${file.type}`)
+        error: new ValidationError(`Unsupported file type: ${file.type}`),
       };
     }
-    
+
     // 检查文件扩展名
     const extension = file.name.split('.').pop()?.toLowerCase();
     const allowedExtensions = ['dwg', 'dxf', 'step', 'iges'];
-    
+
     if (!extension || !allowedExtensions.includes(extension)) {
       return {
         success: false,
-        error: new ValidationError(`Unsupported file extension: ${extension}`)
+        error: new ValidationError(`Unsupported file extension: ${extension}`),
       };
     }
-    
+
     return { success: true, data: true };
   }
-  
+
   static async scanForMalware(fileBuffer: Buffer): Promise<Result<true, SecurityError>> {
     // 这里可以集成ClamAV或其他反病毒引擎
     // 简单的启发式检查
@@ -1419,18 +1455,18 @@ export class FileUploadSecurity {
       /<script/, // JavaScript
       /\$\{.*\}/, // 模板注入
     ];
-    
+
     const fileContent = fileBuffer.toString('utf8', 0, Math.min(1024, fileBuffer.length));
-    
+
     for (const pattern of suspiciousPatterns) {
       if (pattern.test(fileContent)) {
         return {
           success: false,
-          error: new SecurityError('Potentially malicious content detected')
+          error: new SecurityError('Potentially malicious content detected'),
         };
       }
     }
-    
+
     return { success: true, data: true };
   }
 }
@@ -1443,4 +1479,4 @@ export class FileUploadSecurity {
 3. **生产级的部署配置**：Docker、监控、日志、告警系统
 4. **全面的安全防护**：输入验证、文件安全、CSRF保护等
 
-最后，让我创建一个总结性的实施检查清单文档。 
+最后，让我创建一个总结性的实施检查清单文档。

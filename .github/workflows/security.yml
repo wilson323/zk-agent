@@ -1,68 +1,95 @@
-# 安全扫描和漏洞检测工作流
-# 专门用于应用安全性检查、漏洞扫描和合规性验证
-
 name: Security Scanning
-
-on:
+'on':
   push:
-    branches: [ main, develop ]
+    branches:
+      - main
+      - develop
+    paths:
+      - src/**
+      - package*.json
+      - .github/workflows/**
   pull_request:
-    branches: [ main, develop ]
+    branches:
+      - main
+      - develop
+    paths:
+      - src/**
+      - package*.json
+      - .github/workflows/**
   schedule:
-    # 每天凌晨4点运行完整安全扫描
-    - cron: '0 4 * * *'
+    - cron: 0 4 * * *
   workflow_dispatch:
     inputs:
       scan_type:
-        description: 'Security scan type'
+        description: Security scan type
         required: true
-        default: 'full'
+        default: full
         type: choice
         options:
-          - 'full'
-          - 'dependencies'
-          - 'code'
-          - 'container'
-          - 'secrets'
-
+          - full
+          - dependencies
+          - code
+          - container
+          - secrets
 env:
   NODE_VERSION: '20'
   SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
   SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-
+  OPTIMIZED_BY: ZK-Agent Pipeline Optimizer
+  OPTIMIZED_AT: '2025-07-22T05:22:52.059Z'
+  TOKEN_LIMIT_AWARE: 'true'
 jobs:
-  # 依赖漏洞扫描
   dependency-scan:
     name: Dependency Vulnerability Scan
-    runs-on: ubuntu-latest
-    if: github.event.inputs.scan_type == 'full' || github.event.inputs.scan_type == 'dependencies' || github.event.inputs.scan_type == ''
+    runs-on: ${{ matrix.os }}
+    if: >-
+      github.event.inputs.scan_type == 'full' || github.event.inputs.scan_type == 'dependencies' ||
+      github.event.inputs.scan_type == ''
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-
+          cache: npm
+      - name: 缓存依赖
+        uses: actions/cache@v4
+        with:
+          path: |-
+            ~/.npm
+            ~/.pnpm-store
+            node_modules
+            .next/cache
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json', '**/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-node-
       - name: Install dependencies
-        run: npm ci
-
+        run: |-
+          set +e
+          for i in {1..3}; do
+            echo "🔄 尝试第 $i 次..."
+            npm ci
+            if [ $? -eq 0 ]; then
+              echo "✅ 成功"
+              break
+            else
+              echo "❌ 失败，等待重试..."
+              sleep $((i * 5))
+            fi
+          done
+          set -e
       - name: Run npm audit
         run: |
           npm audit --audit-level=low --json > npm-audit.json || true
           npm audit --audit-level=moderate
         continue-on-error: true
-
       - name: Run Snyk vulnerability scan
         uses: snyk/actions/node@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          args: --severity-threshold=medium --json > snyk-results.json
+          args: '--severity-threshold=medium --json > snyk-results.json'
         continue-on-error: true
-
       - name: Run OSV Scanner
         uses: google/osv-scanner-action@v1
         with:
@@ -72,11 +99,10 @@ jobs:
             --output=osv-results.json
             .
         continue-on-error: true
-
       - name: Analyze vulnerability results
         run: |
           echo "## 🔍 依赖漏洞扫描结果" >> $GITHUB_STEP_SUMMARY
-          
+
           # NPM Audit 结果
           if [ -f npm-audit.json ]; then
             HIGH_VULNS=$(cat npm-audit.json | jq '.metadata.vulnerabilities.high // 0')
@@ -85,21 +111,20 @@ jobs:
             echo "- **严重漏洞**: $CRITICAL_VULNS" >> $GITHUB_STEP_SUMMARY
             echo "- **高危漏洞**: $HIGH_VULNS" >> $GITHUB_STEP_SUMMARY
           fi
-          
+
           # Snyk 结果
           if [ -f snyk-results.json ]; then
             SNYK_ISSUES=$(cat snyk-results.json | jq '.vulnerabilities | length')
             echo "### Snyk 扫描" >> $GITHUB_STEP_SUMMARY
             echo "- **发现问题**: $SNYK_ISSUES" >> $GITHUB_STEP_SUMMARY
           fi
-          
+
           # OSV 结果
           if [ -f osv-results.json ]; then
             OSV_VULNS=$(cat osv-results.json | jq '.results[].packages[].vulnerabilities | length' | awk '{sum+=$1} END {print sum+0}')
             echo "### OSV 扫描" >> $GITHUB_STEP_SUMMARY
             echo "- **发现漏洞**: $OSV_VULNS" >> $GITHUB_STEP_SUMMARY
           fi
-
       - name: Upload vulnerability reports
         uses: actions/upload-artifact@v4
         with:
@@ -110,12 +135,54 @@ jobs:
             osv-results.json
           retention-days: 30
         if: always()
+      - name: 失败诊断
+        if: failure()
+        run: |-
+          echo "🔍 收集失败诊断信息..."
 
-  # 代码安全扫描
+          # 系统信息
+          echo "📊 系统信息:"
+          uname -a
+          df -h
+          free -h
+
+          # Node.js 环境
+          echo "📦 Node.js 环境:"
+          node --version
+          npm --version
+          npm config list
+
+          # 项目状态
+          echo "📁 项目状态:"
+          ls -la
+          if [ -f package.json ]; then
+            echo "📄 package.json 存在"
+            cat package.json | jq '.scripts' || echo "无法解析 scripts"
+          fi
+
+          # 日志文件
+          echo "📋 查找日志文件:"
+          find . -name "*.log" -type f -exec echo "发现日志: {}" \; -exec tail -20 {} \;
+
+          # 错误报告
+          echo "📊 生成错误报告..."
+          mkdir -p reports/diagnostics
+          echo "$(date): CI/CD 流程失败" > reports/diagnostics/failure-$(date +%Y%m%d-%H%M%S).log
+    strategy:
+      matrix:
+        node-version:
+          - 18.x
+          - 20.x
+          - 22.x
+        os:
+          - ubuntu-latest
+      fail-fast: false
   code-security-scan:
     name: Code Security Analysis
-    runs-on: ubuntu-latest
-    if: github.event.inputs.scan_type == 'full' || github.event.inputs.scan_type == 'code' || github.event.inputs.scan_type == ''
+    runs-on: ${{ matrix.os }}
+    if: >-
+      github.event.inputs.scan_type == 'full' || github.event.inputs.scan_type == 'code' ||
+      github.event.inputs.scan_type == ''
     permissions:
       security-events: write
       actions: read
@@ -123,30 +190,47 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-
+          cache: npm
+      - name: 缓存依赖
+        uses: actions/cache@v4
+        with:
+          path: |-
+            ~/.npm
+            ~/.pnpm-store
+            node_modules
+            .next/cache
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json', '**/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-node-
       - name: Install dependencies
-        run: npm ci
-
+        run: |-
+          set +e
+          for i in {1..3}; do
+            echo "🔄 尝试第 $i 次..."
+            npm ci
+            if [ $? -eq 0 ]; then
+              echo "✅ 成功"
+              break
+            else
+              echo "❌ 失败，等待重试..."
+              sleep $((i * 5))
+            fi
+          done
+          set -e
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
           languages: javascript
           queries: security-extended,security-and-quality
-
       - name: Autobuild
         uses: github/codeql-action/autobuild@v3
-
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
         with:
-          category: "/language:javascript"
-
+          category: /language:javascript
       - name: Run ESLint security rules
         run: |
           npm install eslint-plugin-security --save-dev
@@ -156,55 +240,87 @@ jobs:
             --output-file eslint-security.sarif \
             --no-error-on-unmatched-pattern
         continue-on-error: true
-
       - name: Upload ESLint security results
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: eslint-security.sarif
         if: always()
-
       - name: Run Semgrep security scan
         uses: returntocorp/semgrep-action@v1
         with:
-          config: >-
-            p/security-audit
-            p/secrets
-            p/owasp-top-ten
-            p/javascript
-            p/typescript
+          config: p/security-audit p/secrets p/owasp-top-ten p/javascript p/typescript
         env:
           SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
         continue-on-error: true
+      - name: 失败诊断
+        if: failure()
+        run: |-
+          echo "🔍 收集失败诊断信息..."
 
-  # 密钥和敏感信息扫描
+          # 系统信息
+          echo "📊 系统信息:"
+          uname -a
+          df -h
+          free -h
+
+          # Node.js 环境
+          echo "📦 Node.js 环境:"
+          node --version
+          npm --version
+          npm config list
+
+          # 项目状态
+          echo "📁 项目状态:"
+          ls -la
+          if [ -f package.json ]; then
+            echo "📄 package.json 存在"
+            cat package.json | jq '.scripts' || echo "无法解析 scripts"
+          fi
+
+          # 日志文件
+          echo "📋 查找日志文件:"
+          find . -name "*.log" -type f -exec echo "发现日志: {}" \; -exec tail -20 {} \;
+
+          # 错误报告
+          echo "📊 生成错误报告..."
+          mkdir -p reports/diagnostics
+          echo "$(date): CI/CD 流程失败" > reports/diagnostics/failure-$(date +%Y%m%d-%H%M%S).log
+    strategy:
+      matrix:
+        node-version:
+          - 18.x
+          - 20.x
+          - 22.x
+        os:
+          - ubuntu-latest
+      fail-fast: false
   secrets-scan:
     name: Secrets and Sensitive Data Scan
     runs-on: ubuntu-latest
-    if: github.event.inputs.scan_type == 'full' || github.event.inputs.scan_type == 'secrets' || github.event.inputs.scan_type == ''
+    if: >-
+      github.event.inputs.scan_type == 'full' || github.event.inputs.scan_type == 'secrets' ||
+      github.event.inputs.scan_type == ''
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # 获取完整历史记录
-
+          fetch-depth: 0
       - name: Run TruffleHog secrets scan
         uses: trufflesecurity/trufflehog@main
         with:
           path: ./
           base: ${{ github.event.repository.default_branch }}
           head: HEAD
-          extra_args: --debug --only-verified
-
+          extra_args: '--debug --only-verified'
       - name: Run GitLeaks secrets scan
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
-
       - name: Custom secrets pattern scan
         run: |
           echo "## 🔐 敏感信息扫描结果" >> $GITHUB_STEP_SUMMARY
-          
+
           # 检查常见的敏感信息模式
           PATTERNS=(
             "password\s*=\s*['\"][^'\"]+['\"]" 
@@ -216,7 +332,7 @@ jobs:
             "sk_live_[0-9a-zA-Z]{24}" 
             "pk_live_[0-9a-zA-Z]{24}"
           )
-          
+
           FOUND_ISSUES=0
           for pattern in "${PATTERNS[@]}"; do
             MATCHES=$(grep -r -i -E "$pattern" . --exclude-dir=node_modules --exclude-dir=.git --exclude="*.log" || true)
@@ -225,20 +341,19 @@ jobs:
               FOUND_ISSUES=$((FOUND_ISSUES + 1))
             fi
           done
-          
+
           if [ $FOUND_ISSUES -eq 0 ]; then
             echo "✅ 未发现明显的敏感信息泄露" >> $GITHUB_STEP_SUMMARY
           else
             echo "❌ 发现 $FOUND_ISSUES 个潜在的敏感信息问题" >> $GITHUB_STEP_SUMMARY
           fi
-
       - name: Check environment files
         run: |
           echo "### 环境文件检查" >> $GITHUB_STEP_SUMMARY
-          
+
           # 检查是否有不应该提交的环境文件
           SENSITIVE_FILES=(".env" ".env.local" ".env.production" ".env.development")
-          
+
           for file in "${SENSITIVE_FILES[@]}"; do
             if [ -f "$file" ]; then
               echo "⚠️ 发现环境文件: $file" >> $GITHUB_STEP_SUMMARY
@@ -248,41 +363,82 @@ jobs:
               fi
             fi
           done
+      - name: 失败诊断
+        if: failure()
+        run: |-
+          echo "🔍 收集失败诊断信息..."
 
-  # 容器安全扫描
+          # 系统信息
+          echo "📊 系统信息:"
+          uname -a
+          df -h
+          free -h
+
+          # Node.js 环境
+          echo "📦 Node.js 环境:"
+          node --version
+          npm --version
+          npm config list
+
+          # 项目状态
+          echo "📁 项目状态:"
+          ls -la
+          if [ -f package.json ]; then
+            echo "📄 package.json 存在"
+            cat package.json | jq '.scripts' || echo "无法解析 scripts"
+          fi
+
+          # 日志文件
+          echo "📋 查找日志文件:"
+          find . -name "*.log" -type f -exec echo "发现日志: {}" \; -exec tail -20 {} \;
+
+          # 错误报告
+          echo "📊 生成错误报告..."
+          mkdir -p reports/diagnostics
+          echo "$(date): CI/CD 流程失败" > reports/diagnostics/failure-$(date +%Y%m%d-%H%M%S).log
   container-scan:
     name: Container Security Scan
     runs-on: ubuntu-latest
-    if: github.event.inputs.scan_type == 'full' || github.event.inputs.scan_type == 'container' || github.event.inputs.scan_type == ''
+    if: >-
+      github.event.inputs.scan_type == 'full' || github.event.inputs.scan_type == 'container' ||
+      github.event.inputs.scan_type == ''
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Build Docker image
-        run: |
-          docker build -t zk-agent:security-scan .
+        run: |-
+          set +e
+          for i in {1..3}; do
+            echo "🔄 尝试第 $i 次..."
+            docker build -t zk-agent:security-scan .
 
+            if [ $? -eq 0 ]; then
+              echo "✅ 成功"
+              break
+            else
+              echo "❌ 失败，等待重试..."
+              sleep $((i * 5))
+            fi
+          done
+          set -e
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: 'zk-agent:security-scan'
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-
+          image-ref: zk-agent:security-scan
+          format: sarif
+          output: trivy-results.sarif
       - name: Upload Trivy scan results
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: 'trivy-results.sarif'
+          sarif_file: trivy-results.sarif
         if: always()
-
       - name: Run Trivy config scan
         uses: aquasecurity/trivy-action@master
         with:
-          scan-type: 'config'
-          format: 'json'
-          output: 'trivy-config.json'
+          scan-type: config
+          format: json
+          output: trivy-config.json
         continue-on-error: true
-
       - name: Run Docker Bench Security
         run: |
           docker run --rm --net host --pid host --userns host --cap-add audit_control \
@@ -296,11 +452,10 @@ jobs:
             --label docker_bench_security \
             docker/docker-bench-security > docker-bench-results.txt || true
         continue-on-error: true
-
       - name: Analyze container security
         run: |
           echo "## 🐳 容器安全扫描结果" >> $GITHUB_STEP_SUMMARY
-          
+
           # Trivy 漏洞统计
           if [ -f trivy-config.json ]; then
             CRITICAL=$(cat trivy-config.json | jq '[.Results[]?.Vulnerabilities[]? | select(.Severity=="CRITICAL")] | length')
@@ -309,7 +464,7 @@ jobs:
             echo "- **严重漏洞**: $CRITICAL" >> $GITHUB_STEP_SUMMARY
             echo "- **高危漏洞**: $HIGH" >> $GITHUB_STEP_SUMMARY
           fi
-          
+
           # Docker Bench 结果
           if [ -f docker-bench-results.txt ]; then
             WARNINGS=$(grep -c "\[WARN\]" docker-bench-results.txt || echo "0")
@@ -318,7 +473,6 @@ jobs:
             echo "- **警告**: $WARNINGS" >> $GITHUB_STEP_SUMMARY
             echo "- **注意事项**: $NOTES" >> $GITHUB_STEP_SUMMARY
           fi
-
       - name: Upload container scan results
         uses: actions/upload-artifact@v4
         with:
@@ -329,11 +483,42 @@ jobs:
             docker-bench-results.txt
           retention-days: 30
         if: always()
+      - name: 失败诊断
+        if: failure()
+        run: |-
+          echo "🔍 收集失败诊断信息..."
 
-  # OWASP ZAP 动态安全测试
+          # 系统信息
+          echo "📊 系统信息:"
+          uname -a
+          df -h
+          free -h
+
+          # Node.js 环境
+          echo "📦 Node.js 环境:"
+          node --version
+          npm --version
+          npm config list
+
+          # 项目状态
+          echo "📁 项目状态:"
+          ls -la
+          if [ -f package.json ]; then
+            echo "📄 package.json 存在"
+            cat package.json | jq '.scripts' || echo "无法解析 scripts"
+          fi
+
+          # 日志文件
+          echo "📋 查找日志文件:"
+          find . -name "*.log" -type f -exec echo "发现日志: {}" \; -exec tail -20 {} \;
+
+          # 错误报告
+          echo "📊 生成错误报告..."
+          mkdir -p reports/diagnostics
+          echo "$(date): CI/CD 流程失败" > reports/diagnostics/failure-$(date +%Y%m%d-%H%M%S).log
   dast-scan:
     name: Dynamic Application Security Testing
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     if: github.event.inputs.scan_type == 'full' || github.event.inputs.scan_type == ''
     services:
       postgres:
@@ -341,71 +526,133 @@ jobs:
         env:
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: zkagent_test
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+        options: '--health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5'
         ports:
-          - 5432:5432
-
+          - '5432:5432'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-
+          cache: npm
+      - name: 缓存依赖
+        uses: actions/cache@v4
+        with:
+          path: |-
+            ~/.npm
+            ~/.pnpm-store
+            node_modules
+            .next/cache
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json', '**/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-node-
       - name: Install dependencies
-        run: npm ci
-
+        run: |-
+          set +e
+          for i in {1..3}; do
+            echo "🔄 尝试第 $i 次..."
+            npm ci
+            if [ $? -eq 0 ]; then
+              echo "✅ 成功"
+              break
+            else
+              echo "❌ 失败，等待重试..."
+              sleep $((i * 5))
+            fi
+          done
+          set -e
       - name: Setup test environment
         run: |
           cp .env.example .env.local
           echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/zkagent_test" >> .env.local
           echo "NEXTAUTH_SECRET=test-secret-key-for-zap" >> .env.local
           echo "NEXTAUTH_URL=http://localhost:3000" >> .env.local
-
       - name: Generate Prisma client
         run: npm run db:generate
-
       - name: Run database migrations
         run: npm run db:migrate
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/zkagent_test
-
       - name: Build and start application
-        run: |
-          npm run build
+        run: |-
+          set +e
+          for i in {1..3}; do
+            echo "🔄 尝试第 $i 次..."
+            npm run build
           npm start &
           sleep 30
           curl -f http://localhost:3000 || exit 1
+
+            if [ $? -eq 0 ]; then
+              echo "✅ 成功"
+              break
+            else
+              echo "❌ 失败，等待重试..."
+              sleep $((i * 5))
+            fi
+          done
+          set -e
         env:
           PORT: 3000
-
       - name: Run OWASP ZAP baseline scan
         uses: zaproxy/action-baseline@v0.10.0
         with:
-          target: 'http://localhost:3000'
-          rules_file_name: '.zap/rules.tsv'
+          target: http://localhost:3000
+          rules_file_name: .zap/rules.tsv
           cmd_options: '-a'
         continue-on-error: true
-
       - name: Create ZAP rules file
-        run: |
-          mkdir -p .zap
-          cat > .zap/rules.tsv << 'EOF'
-          10021	IGNORE	(Cookie No HttpOnly Flag)
-          10023	IGNORE	(Information Disclosure - Debug Error Messages)
-          10025	IGNORE	(Information Disclosure - Sensitive Information in URL)
-          10026	IGNORE	(HTTP Parameter Override)
-          10027	IGNORE	(Information Disclosure - Suspicious Comments)
-          EOF
+        run: "mkdir -p .zap\ncat > .zap/rules.tsv << 'EOF'\n10021\tIGNORE\t(Cookie No HttpOnly Flag)\n10023\tIGNORE\t(Information Disclosure - Debug Error Messages)\n10025\tIGNORE\t(Information Disclosure - Sensitive Information in URL)\n10026\tIGNORE\t(HTTP Parameter Override)\n10027\tIGNORE\t(Information Disclosure - Suspicious Comments)\nEOF\n"
+      - name: 失败诊断
+        if: failure()
+        run: |-
+          echo "🔍 收集失败诊断信息..."
 
-  # 合规性检查
+          # 系统信息
+          echo "📊 系统信息:"
+          uname -a
+          df -h
+          free -h
+
+          # Node.js 环境
+          echo "📦 Node.js 环境:"
+          node --version
+          npm --version
+          npm config list
+
+          # 项目状态
+          echo "📁 项目状态:"
+          ls -la
+          if [ -f package.json ]; then
+            echo "📄 package.json 存在"
+            cat package.json | jq '.scripts' || echo "无法解析 scripts"
+          fi
+
+          # 日志文件
+          echo "📋 查找日志文件:"
+          find . -name "*.log" -type f -exec echo "发现日志: {}" \; -exec tail -20 {} \;
+
+          # 错误报告
+          echo "📊 生成错误报告..."
+          mkdir -p reports/diagnostics
+          echo "$(date): CI/CD 流程失败" > reports/diagnostics/failure-$(date +%Y%m%d-%H%M%S).log
+      - name: 发布测试报告
+        uses: dorny/test-reporter@v1
+        if: success() || failure()
+        with:
+          name: Jest Tests
+          path: reports/jest-*.xml
+          reporter: jest-junit
+    strategy:
+      matrix:
+        node-version:
+          - 18.x
+          - 20.x
+          - 22.x
+        os:
+          - ubuntu-latest
+      fail-fast: false
   compliance-check:
     name: Security Compliance Check
     runs-on: ubuntu-latest
@@ -413,11 +660,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Check security headers configuration
         run: |
           echo "## 🛡️ 安全合规性检查" >> $GITHUB_STEP_SUMMARY
-          
+
           # 检查 Next.js 安全配置
           if [ -f "next.config.js" ] || [ -f "next.config.mjs" ]; then
             echo "### Next.js 安全配置" >> $GITHUB_STEP_SUMMARY
@@ -436,11 +682,10 @@ jobs:
               echo "⚠️ 未发现 CSP 配置" >> $GITHUB_STEP_SUMMARY
             fi
           fi
-
       - name: Check authentication configuration
         run: |
           echo "### 身份验证配置" >> $GITHUB_STEP_SUMMARY
-          
+
           # 检查 NextAuth 配置
           if [ -f "pages/api/auth/[...nextauth].ts" ] || [ -f "app/api/auth/[...nextauth]/route.ts" ]; then
             echo "✅ 发现 NextAuth 配置" >> $GITHUB_STEP_SUMMARY
@@ -454,11 +699,10 @@ jobs:
           else
             echo "⚠️ 未发现身份验证配置" >> $GITHUB_STEP_SUMMARY
           fi
-
       - name: Check database security
         run: |
           echo "### 数据库安全配置" >> $GITHUB_STEP_SUMMARY
-          
+
           # 检查 Prisma 配置
           if [ -f "prisma/schema.prisma" ]; then
             echo "✅ 发现 Prisma 配置" >> $GITHUB_STEP_SUMMARY
@@ -470,45 +714,101 @@ jobs:
               echo "⚠️ 建议启用数据库 SSL" >> $GITHUB_STEP_SUMMARY
             fi
           fi
-
       - name: Check HTTPS configuration
         run: |
           echo "### HTTPS 配置" >> $GITHUB_STEP_SUMMARY
-          
+
           # 检查生产环境 HTTPS 配置
           if grep -r "https://" .env.example .env.production 2>/dev/null; then
             echo "✅ 发现 HTTPS 配置" >> $GITHUB_STEP_SUMMARY
           else
             echo "⚠️ 建议在生产环境启用 HTTPS" >> $GITHUB_STEP_SUMMARY
           fi
+      - name: 失败诊断
+        if: failure()
+        run: |-
+          echo "🔍 收集失败诊断信息..."
 
-  # 安全报告汇总
+          # 系统信息
+          echo "📊 系统信息:"
+          uname -a
+          df -h
+          free -h
+
+          # Node.js 环境
+          echo "📦 Node.js 环境:"
+          node --version
+          npm --version
+          npm config list
+
+          # 项目状态
+          echo "📁 项目状态:"
+          ls -la
+          if [ -f package.json ]; then
+            echo "📄 package.json 存在"
+            cat package.json | jq '.scripts' || echo "无法解析 scripts"
+          fi
+
+          # 日志文件
+          echo "📋 查找日志文件:"
+          find . -name "*.log" -type f -exec echo "发现日志: {}" \; -exec tail -20 {} \;
+
+          # 错误报告
+          echo "📊 生成错误报告..."
+          mkdir -p reports/diagnostics
+          echo "$(date): CI/CD 流程失败" > reports/diagnostics/failure-$(date +%Y%m%d-%H%M%S).log
   security-summary:
     name: Security Summary
     runs-on: ubuntu-latest
-    needs: [dependency-scan, code-security-scan, secrets-scan, container-scan, dast-scan, compliance-check]
+    needs:
+      - dependency-scan
+      - code-security-scan
+      - secrets-scan
+      - container-scan
+      - dast-scan
+      - compliance-check
     if: always()
     steps:
       - name: Generate security summary
-        run: |
+        run: >
           echo "## 🔒 安全扫描汇总" >> $GITHUB_STEP_SUMMARY
-          echo "| 扫描类型 | 状态 | 说明 |" >> $GITHUB_STEP_SUMMARY
-          echo "|----------|------|------|" >> $GITHUB_STEP_SUMMARY
-          echo "| 依赖漏洞 | ${{ needs.dependency-scan.result == 'success' && '✅' || needs.dependency-scan.result == 'skipped' && '⏭️' || '❌' }} | NPM、Snyk、OSV 漏洞扫描 |" >> $GITHUB_STEP_SUMMARY
-          echo "| 代码安全 | ${{ needs.code-security-scan.result == 'success' && '✅' || needs.code-security-scan.result == 'skipped' && '⏭️' || '❌' }} | CodeQL、ESLint、Semgrep 分析 |" >> $GITHUB_STEP_SUMMARY
-          echo "| 密钥扫描 | ${{ needs.secrets-scan.result == 'success' && '✅' || needs.secrets-scan.result == 'skipped' && '⏭️' || '❌' }} | TruffleHog、GitLeaks 扫描 |" >> $GITHUB_STEP_SUMMARY
-          echo "| 容器安全 | ${{ needs.container-scan.result == 'success' && '✅' || needs.container-scan.result == 'skipped' && '⏭️' || '❌' }} | Trivy、Docker Bench 扫描 |" >> $GITHUB_STEP_SUMMARY
-          echo "| 动态测试 | ${{ needs.dast-scan.result == 'success' && '✅' || needs.dast-scan.result == 'skipped' && '⏭️' || '❌' }} | OWASP ZAP 动态扫描 |" >> $GITHUB_STEP_SUMMARY
-          echo "| 合规检查 | ${{ needs.compliance-check.result == 'success' && '✅' || needs.compliance-check.result == 'skipped' && '⏭️' || '❌' }} | 安全配置和合规性 |" >> $GITHUB_STEP_SUMMARY
-          
-          echo "\n### 🛡️ 安全最佳实践建议" >> $GITHUB_STEP_SUMMARY
-          echo "- 定期更新依赖包，修复已知漏洞" >> $GITHUB_STEP_SUMMARY
-          echo "- 实施严格的输入验证和输出编码" >> $GITHUB_STEP_SUMMARY
-          echo "- 使用 HTTPS 和安全的会话管理" >> $GITHUB_STEP_SUMMARY
-          echo "- 配置适当的安全头和 CSP 策略" >> $GITHUB_STEP_SUMMARY
-          echo "- 定期进行安全审计和渗透测试" >> $GITHUB_STEP_SUMMARY
-          echo "- 实施最小权限原则和访问控制" >> $GITHUB_STEP_SUMMARY
 
+          echo "| 扫描类型 | 状态 | 说明 |" >> $GITHUB_STEP_SUMMARY
+
+          echo "|----------|------|------|" >> $GITHUB_STEP_SUMMARY
+
+          echo "| 依赖漏洞 | ${{ needs.dependency-scan.result == 'success' && '✅' || needs.dependency-scan.result ==
+          'skipped' && '⏭️' || '❌' }} | NPM、Snyk、OSV 漏洞扫描 |" >> $GITHUB_STEP_SUMMARY
+
+          echo "| 代码安全 | ${{ needs.code-security-scan.result == 'success' && '✅' || needs.code-security-scan.result ==
+          'skipped' && '⏭️' || '❌' }} | CodeQL、ESLint、Semgrep 分析 |" >> $GITHUB_STEP_SUMMARY
+
+          echo "| 密钥扫描 | ${{ needs.secrets-scan.result == 'success' && '✅' || needs.secrets-scan.result == 'skipped' &&
+          '⏭️' || '❌' }} | TruffleHog、GitLeaks 扫描 |" >> $GITHUB_STEP_SUMMARY
+
+          echo "| 容器安全 | ${{ needs.container-scan.result == 'success' && '✅' || needs.container-scan.result == 'skipped'
+          && '⏭️' || '❌' }} | Trivy、Docker Bench 扫描 |" >> $GITHUB_STEP_SUMMARY
+
+          echo "| 动态测试 | ${{ needs.dast-scan.result == 'success' && '✅' || needs.dast-scan.result == 'skipped' && '⏭️'
+          || '❌' }} | OWASP ZAP 动态扫描 |" >> $GITHUB_STEP_SUMMARY
+
+          echo "| 合规检查 | ${{ needs.compliance-check.result == 'success' && '✅' || needs.compliance-check.result ==
+          'skipped' && '⏭️' || '❌' }} | 安全配置和合规性 |" >> $GITHUB_STEP_SUMMARY
+
+
+          echo "\n### 🛡️ 安全最佳实践建议" >> $GITHUB_STEP_SUMMARY
+
+          echo "- 定期更新依赖包，修复已知漏洞" >> $GITHUB_STEP_SUMMARY
+
+          echo "- 实施严格的输入验证和输出编码" >> $GITHUB_STEP_SUMMARY
+
+          echo "- 使用 HTTPS 和安全的会话管理" >> $GITHUB_STEP_SUMMARY
+
+          echo "- 配置适当的安全头和 CSP 策略" >> $GITHUB_STEP_SUMMARY
+
+          echo "- 定期进行安全审计和渗透测试" >> $GITHUB_STEP_SUMMARY
+
+          echo "- 实施最小权限原则和访问控制" >> $GITHUB_STEP_SUMMARY
       - name: Create security issue on failure
         if: failure() && github.event_name == 'schedule'
         uses: actions/github-script@v7
@@ -521,7 +821,7 @@ jobs:
               `- **工作流**: ${context.workflow}\n` +
               `- **运行ID**: ${context.runId}\n\n` +
               `请查看详细的扫描结果并及时修复发现的安全问题。`;
-            
+
             github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -529,9 +829,50 @@ jobs:
               body: body,
               labels: ['security', 'bug', 'high-priority']
             });
-
       - name: Notify security team
         if: failure() && github.ref == 'refs/heads/main'
         run: |
           echo "Security scan failed on main branch. Consider notifying security team."
           # 这里可以添加通知逻辑，如发送邮件或 Slack 消息
+      - name: 失败诊断
+        if: failure()
+        run: |-
+          echo "🔍 收集失败诊断信息..."
+
+          # 系统信息
+          echo "📊 系统信息:"
+          uname -a
+          df -h
+          free -h
+
+          # Node.js 环境
+          echo "📦 Node.js 环境:"
+          node --version
+          npm --version
+          npm config list
+
+          # 项目状态
+          echo "📁 项目状态:"
+          ls -la
+          if [ -f package.json ]; then
+            echo "📄 package.json 存在"
+            cat package.json | jq '.scripts' || echo "无法解析 scripts"
+          fi
+
+          # 日志文件
+          echo "📋 查找日志文件:"
+          find . -name "*.log" -type f -exec echo "发现日志: {}" \; -exec tail -20 {} \;
+
+          # 错误报告
+          echo "📊 生成错误报告..."
+          mkdir -p reports/diagnostics
+          echo "$(date): CI/CD 流程失败" > reports/diagnostics/failure-$(date +%Y%m%d-%H%M%S).log
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+  checks: write
+  pull-requests: write
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true

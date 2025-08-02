@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file ag-ui\compliance\audit\route.ts
  * @description Migrated API route with global error handling
  * @author ZK-Agent Team
@@ -20,15 +20,17 @@ export const POST = createApiRoute(
   async (req: NextRequest, { params, validatedBody, validatedQuery, user, requestId }) => {
     try {
       const { agentId, auditConfig } = await req.json();
-      
+
       // 实现合规审计逻辑
       const audit = new AgentComplianceAudit();
-      
+
       // 验证输入参数
       if (!agentId) {
-        return ApiResponseWrapper.error(UnifiedErrorCode.VALIDATION_ERROR, 'Agent ID is required', { status: 400 });
+        return ApiResponseWrapper.error(UnifiedErrorCode.VALIDATION_ERROR, 'Agent ID is required', {
+          status: 400,
+        });
       }
-      
+
       // 执行合规审计
       const result = await audit.performAudit(agentId, {
         checkSecurity: auditConfig?.checkSecurity ?? true,
@@ -36,28 +38,23 @@ export const POST = createApiRoute(
         checkCompliance: auditConfig?.checkCompliance ?? true,
         checkDataPrivacy: auditConfig?.checkDataPrivacy ?? true,
         generateReport: auditConfig?.generateReport ?? true,
-        ...auditConfig
+        ...auditConfig,
       });
-      
+
       // 记录审计日志
-      console.log(`Compliance audit completed for agent ${agentId}:`, {
-        score: result.overallScore,
-        // issues: result.issues?.length || 0,
-        timestamp: new Date().toISOString()
+      .toISOString(),
       });
-      
+
       return ApiResponseWrapper.success(result);
     } catch (error) {
-      console.error('Error performing compliance audit:', error);
       return ApiResponseWrapper.error(
         UnifiedErrorCode.INTERNAL_SERVER_ERROR,
         'Failed to perform compliance audit',
-        { 
+        {
           status: 500,
-          details: error instanceof Error ? error.message : 'Unknown error'
+          details: error instanceof Error ? error.message : 'Unknown error',
         }
       );
     }
   }
 );
-

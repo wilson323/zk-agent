@@ -7,12 +7,11 @@
  * @security 生产级安全审计实现
  */
 
-import { Logger } from '@/lib/utils/logger';
+import { getLogger } from '@/lib/utils/logger';
 import { enhancedCacheManager } from '@/lib/cache/enhanced-cache-manager';
 import { getErrorMessage, getErrorCode, isFileNotFoundError } from '@/lib/utils/error-handler';
-import { enhancedPasswordSecurity } from '@/lib/auth/enhanced-password-security';
 
-const logger = new Logger('SecurityAuditSystem');
+const logger = getLogger();
 
 // 安全事件类型
 export enum SecurityEventType {
@@ -125,7 +124,9 @@ export class SecurityAuditSystem {
   /**
    * 记录安全事件
    */
-  async recordEvent(eventData: Omit<SecurityEvent, 'id' | 'timestamp' | 'resolved'>): Promise<string> {
+  async recordEvent(
+    eventData: Omit<SecurityEvent, 'id' | 'timestamp' | 'resolved'>
+  ): Promise<string> {
     const event: SecurityEvent = {
       id: this.generateEventId(),
       timestamp: new Date(),
@@ -154,11 +155,10 @@ export class SecurityAuditSystem {
 
     // 缓存高风险事件
     if (event.riskScore >= 7) {
-      await enhancedCacheManager.set(
-        `security:high-risk:${event.id}`,
-        event,
-        { ttl: 86400000, tags: ['security', 'high-risk'] }
-      );
+      await enhancedCacheManager.set(`security:high-risk:${event.id}`, event, {
+        ttl: 86400000,
+        tags: ['security', 'high-risk'],
+      });
     }
 
     logger.info('Security event recorded', {
@@ -176,14 +176,18 @@ export class SecurityAuditSystem {
   /**
    * 文件安全检查
    */
-  async scanFile(filePath: string, fileBuffer: Buffer, metadata: {
-    originalName: string;
-    mimeType: string;
-    size: number;
-  }): Promise<FileSecurityResult> {
+  async scanFile(
+    filePath: string,
+    fileBuffer: Buffer,
+    metadata: {
+      originalName: string;
+      mimeType: string;
+      size: number;
+    }
+  ): Promise<FileSecurityResult> {
     const startTime = Date.now();
     const hash = this.calculateFileHash(fileBuffer);
-    
+
     const result: FileSecurityResult = {
       safe: true,
       threats: [],
@@ -254,7 +258,6 @@ export class SecurityAuditSystem {
       });
 
       return result;
-
     } catch (error) {
       logger.error('File security scan failed', {
         fileName: metadata.originalName,
@@ -264,7 +267,7 @@ export class SecurityAuditSystem {
       result.safe = false;
       result.threats.push('扫描过程中发生错误');
       result.scanTime = Date.now() - startTime;
-      
+
       return result;
     }
   }
@@ -437,10 +440,7 @@ export class SecurityAuditSystem {
   /**
    * 生成安全报告
    */
-  async generateSecurityReport(timeRange: {
-    start: Date;
-    end: Date;
-  }): Promise<{
+  async generateSecurityReport(timeRange: { start: Date; end: Date }): Promise<{
     summary: {
       totalEvents: number;
       highRiskEvents: number;
@@ -459,11 +459,9 @@ export class SecurityAuditSystem {
     }>;
     recommendations: string[];
   }> {
-    const events = Array.from(this.events.values())
-      .filter(event => 
-        event.timestamp >= timeRange.start && 
-        event.timestamp <= timeRange.end
-      );
+    const events = Array.from(this.events.values()).filter(
+      event => event.timestamp >= timeRange.start && event.timestamp <= timeRange.end
+    );
 
     const summary = {
       totalEvents: events.length,
@@ -511,10 +509,11 @@ export class SecurityAuditSystem {
         name: '暴力破解检测',
         type: SecurityEventType.LOGIN_FAILURE,
         condition: (event, history) => {
-          const recentFailures = history.filter(e => 
-            e.type === SecurityEventType.LOGIN_FAILURE &&
-            e.ip === event.ip &&
-            Date.now() - e.timestamp.getTime() < 300000 // 5分钟内
+          const recentFailures = history.filter(
+            e =>
+              e.type === SecurityEventType.LOGIN_FAILURE &&
+              e.ip === event.ip &&
+              Date.now() - e.timestamp.getTime() < 300000 // 5分钟内
           );
           return recentFailures.length >= 5;
         },
@@ -527,18 +526,21 @@ export class SecurityAuditSystem {
         name: '异常地理位置',
         type: SecurityEventType.LOGIN_SUCCESS,
         condition: (event, history) => {
-          if (!event.location || !event.userId) {return false;}
-          
-          const recentLogins = history.filter(e =>
-            e.type === SecurityEventType.LOGIN_SUCCESS &&
-            e.userId === event.userId &&
-            e.location &&
-            Date.now() - e.timestamp.getTime() < 86400000 // 24小时内
+          if (!event.location || !event.userId) {
+            return false;
+          }
+
+          const recentLogins = history.filter(
+            e =>
+              e.type === SecurityEventType.LOGIN_SUCCESS &&
+              e.userId === event.userId &&
+              e.location &&
+              Date.now() - e.timestamp.getTime() < 86400000 // 24小时内
           );
 
           const locations = recentLogins.map(e => e.location!.country).filter(Boolean);
           const uniqueCountries = new Set(locations);
-          
+
           return uniqueCountries.size > 2; // 24小时内从超过2个国家登录
         },
         severity: SecuritySeverity.MEDIUM,
@@ -549,7 +551,7 @@ export class SecurityAuditSystem {
         id: 'malware-upload',
         name: '恶意文件上传',
         type: SecurityEventType.FILE_UPLOAD,
-        condition: (event) => {
+        condition: event => {
           return event.details.threats && event.details.threats.length > 0;
         },
         severity: SecuritySeverity.CRITICAL,
@@ -574,12 +576,14 @@ export class SecurityAuditSystem {
       .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 
     for (const rule of this.threatRules.values()) {
-      if (!rule.enabled) {continue;}
+      if (!rule.enabled) {
+        continue;
+      }
 
       try {
         if (rule.condition(event, history)) {
           await this.executeRuleAction(rule, event);
-          
+
           logger.warn('Threat rule triggered', {
             ruleId: rule.id,
             ruleName: rule.name,
@@ -708,7 +712,12 @@ export class SecurityAuditSystem {
   }> {
     try {
       // 检查是否为本地IP
-      if (ip === '127.0.0.1' || ip === 'localhost' || ip.startsWith('192.168.') || ip.startsWith('10.')) {
+      if (
+        ip === '127.0.0.1' ||
+        ip === 'localhost' ||
+        ip.startsWith('192.168.') ||
+        ip.startsWith('10.')
+      ) {
         return {
           country: 'Local',
           city: 'Local Network',
@@ -721,7 +730,7 @@ export class SecurityAuditSystem {
       // - IP2Location
       // - ipapi.co
       // - ipgeolocation.io
-      
+
       // 示例：使用免费的ipapi.co服务
       // const response = await fetch(`https://ipapi.co/${ip}/json/`);
       // const data = await response.json();
@@ -734,7 +743,6 @@ export class SecurityAuditSystem {
       // 暂时返回空对象，避免使用模拟数据
       logger.warn('IP geolocation service not configured', { ip });
       return {};
-
     } catch (error) {
       logger.error('Failed to get location from IP', { ip, error: error.message });
       return {};
@@ -777,7 +785,6 @@ export class SecurityAuditSystem {
       if (this.hasEmbeddedExecutable(buffer)) {
         threats.push('文件包含嵌入的可执行代码');
       }
-
     } catch (error) {
       logger.error('File content scan failed', { error: error.message });
       threats.push('文件内容扫描失败');
@@ -789,7 +796,10 @@ export class SecurityAuditSystem {
   /**
    * 私有方法：恶意软件检查
    */
-  private async checkMalware(hash: string, buffer: Buffer): Promise<{
+  private async checkMalware(
+    hash: string,
+    buffer: Buffer
+  ): Promise<{
     safe: boolean;
     threats: string[];
   }> {
@@ -817,7 +827,6 @@ export class SecurityAuditSystem {
         result.safe = false;
         result.threats.push(...behaviorThreats);
       }
-
     } catch (error) {
       logger.error('Malware check failed', { hash, error: error.message });
       result.safe = false;
@@ -895,14 +904,14 @@ export class SecurityAuditSystem {
    */
   private async detectBruteForce(ip: string): Promise<number> {
     const cacheKey = `security:brute-force:${ip}`;
-    const attempts = await enhancedCacheManager.get<number>(cacheKey) || 0;
-    
+    const attempts = (await enhancedCacheManager.get<number>(cacheKey)) || 0;
+
     if (attempts >= 10) {
       return 8; // 高风险
     } else if (attempts >= 5) {
       return 4; // 中等风险
     }
-    
+
     return 0;
   }
 
@@ -910,7 +919,9 @@ export class SecurityAuditSystem {
    * 私有方法：可疑User-Agent检测
    */
   private detectSuspiciousUserAgent(userAgent?: string): number {
-    if (!userAgent) {return 1;}
+    if (!userAgent) {
+      return 1;
+    }
 
     const suspiciousPatterns = [
       /bot|crawler|spider/i,
@@ -934,18 +945,18 @@ export class SecurityAuditSystem {
    */
   private async checkRateLimit(ip: string, path: string): Promise<number> {
     const cacheKey = `security:rate-limit:${ip}:${path}`;
-    const requests = await enhancedCacheManager.get<number>(cacheKey) || 0;
-    
+    const requests = (await enhancedCacheManager.get<number>(cacheKey)) || 0;
+
     // 每分钟最多100个请求
     if (requests > 100) {
       return 6;
     } else if (requests > 50) {
       return 3;
     }
-    
+
     // 更新计数器
     await enhancedCacheManager.set(cacheKey, requests + 1, { ttl: 60000 });
-    
+
     return 0;
   }
 
@@ -1111,7 +1122,10 @@ export class SecurityAuditSystem {
     return severityMap[type] || SecuritySeverity.MEDIUM;
   }
 
-  private calculateRiskTrends(events: SecurityEvent[], timeRange: { start: Date; end: Date }): Array<{
+  private calculateRiskTrends(
+    events: SecurityEvent[],
+    timeRange: { start: Date; end: Date }
+  ): Array<{
     date: string;
     riskScore: number;
     eventCount: number;
@@ -1150,5 +1164,7 @@ export const securityAuditSystem = SecurityAuditSystem.getInstance();
 export const recordSecurityEvent = securityAuditSystem.recordEvent.bind(securityAuditSystem);
 export const scanFile = securityAuditSystem.scanFile.bind(securityAuditSystem);
 export const detectThreats = securityAuditSystem.detectThreats.bind(securityAuditSystem);
-export const analyzeUserBehavior = securityAuditSystem.analyzeUserBehavior.bind(securityAuditSystem);
-export const generateSecurityReport = securityAuditSystem.generateSecurityReport.bind(securityAuditSystem); 
+export const analyzeUserBehavior =
+  securityAuditSystem.analyzeUserBehavior.bind(securityAuditSystem);
+export const generateSecurityReport =
+  securityAuditSystem.generateSecurityReport.bind(securityAuditSystem);

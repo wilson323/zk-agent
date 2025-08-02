@@ -5,6 +5,7 @@
 ## 📋 部署前检查清单
 
 ### 系统要求
+
 - Node.js >= 18.0.0
 - npm >= 8.0.0
 - PostgreSQL >= 13
@@ -12,6 +13,7 @@
 - Git
 
 ### 必需的环境变量
+
 ```bash
 # 数据库配置
 DATABASE_URL="postgresql://username:password@localhost:5432/zkagent"
@@ -34,17 +36,20 @@ REDIS_PASSWORD="your-redis-password"
 ## 🔧 开发环境部署
 
 ### 1. 克隆项目
+
 ```bash
 git clone <repository-url>
 cd zk-agent
 ```
 
 ### 2. 安装依赖
+
 ```bash
 npm install
 ```
 
 ### 3. 配置环境变量
+
 ```bash
 # 复制环境变量模板
 cp .env.example .env.local
@@ -54,6 +59,7 @@ nano .env.local
 ```
 
 ### 4. 数据库设置
+
 ```bash
 # 生成 Prisma 客户端
 npm run db:generate
@@ -66,6 +72,7 @@ npm run db:seed
 ```
 
 ### 5. 启动开发服务器
+
 ```bash
 npm run dev
 ```
@@ -73,6 +80,7 @@ npm run dev
 ## 🧪 测试环境部署
 
 ### 1. 运行测试套件
+
 ```bash
 # 运行所有测试
 npm run test:all
@@ -85,6 +93,7 @@ npm run test:performance
 ```
 
 ### 2. 代码质量检查
+
 ```bash
 # ESLint 检查
 npm run lint
@@ -97,6 +106,7 @@ npm run format
 ```
 
 ### 3. 构建测试
+
 ```bash
 npm run build
 ```
@@ -104,6 +114,7 @@ npm run build
 ## 🌐 生产环境部署
 
 ### 1. 环境准备
+
 ```bash
 # 设置生产环境变量
 export NODE_ENV=production
@@ -113,17 +124,20 @@ npm ci --only=production
 ```
 
 ### 2. 数据库迁移
+
 ```bash
 # 生产环境数据库迁移
 npm run db:migrate:deploy
 ```
 
 ### 3. 构建应用
+
 ```bash
 npm run build:production
 ```
 
 ### 4. 启动生产服务器
+
 ```bash
 npm run start:production
 ```
@@ -131,11 +145,13 @@ npm run start:production
 ## 🐳 Docker 部署
 
 ### 1. 构建 Docker 镜像
+
 ```bash
 docker build -t zk-agent .
 ```
 
 ### 2. 运行容器
+
 ```bash
 docker run -d \
   --name zk-agent \
@@ -145,6 +161,7 @@ docker run -d \
 ```
 
 ### 3. Docker Compose 部署
+
 ```yaml
 # docker-compose.yml
 version: '3.8'
@@ -152,7 +169,7 @@ services:
   app:
     build: .
     ports:
-      - "3000:3000"
+      - '3000:3000'
     environment:
       - NODE_ENV=production
     env_file:
@@ -181,12 +198,14 @@ volumes:
 ## 🔒 安全配置
 
 ### 1. SSL/TLS 配置
+
 ```bash
 # 使用 Let's Encrypt 获取 SSL 证书
 certbot --nginx -d yourdomain.com
 ```
 
 ### 2. 防火墙设置
+
 ```bash
 # 只开放必要端口
 ufw allow 22    # SSH
@@ -196,6 +215,7 @@ ufw enable
 ```
 
 ### 3. 数据库安全
+
 ```sql
 -- 创建专用数据库用户
 CREATE USER zkagent_user WITH PASSWORD 'secure_password';
@@ -207,6 +227,7 @@ GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO zkagent_user;
 ## 📊 监控和日志
 
 ### 1. 应用监控
+
 ```bash
 # 启用性能监控
 export ENABLE_PERFORMANCE_MONITORING=true
@@ -216,6 +237,7 @@ export ENABLE_ERROR_TRACKING=true
 ```
 
 ### 2. 日志配置
+
 ```bash
 # 设置日志级别
 export LOG_LEVEL=info
@@ -225,6 +247,7 @@ export LOG_FILE_PATH=/var/log/zk-agent/app.log
 ```
 
 ### 3. 健康检查
+
 ```bash
 # 数据库健康检查
 npm run db:health-check
@@ -236,6 +259,7 @@ curl http://localhost:3000/api/health
 ## 🔄 CI/CD 配置
 
 ### GitHub Actions 示例
+
 ```yaml
 # .github/workflows/deploy.yml
 name: Deploy to Production
@@ -271,12 +295,14 @@ jobs:
 ### 常见问题
 
 1. **数据库连接失败**
+
    ```bash
    # 检查数据库连接
    npm run db:test-connection
    ```
 
 2. **端口被占用**
+
    ```bash
    # 查找占用端口的进程
    netstat -tulpn | grep :3000

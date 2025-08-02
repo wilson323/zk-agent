@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file fastgpt\health\route.ts
  * @description FastGPT health check API route
  * @author ZK-Agent Team
@@ -15,11 +15,11 @@ export const GET = createApiRoute(
   async (_req: NextRequest, { params, validatedBody, validatedQuery, user, requestId }) => {
     try {
       const startTime = Date.now();
-      
+
       // 检查FastGPT API连接
       const apiUrl = process.env.FASTGPT_API_URL || 'https://zktecoaihub.com';
       const apiKey = process.env.FASTGPT_API_KEY;
-  
+
       if (!apiKey) {
         return ApiResponseWrapper.error(
           ErrorCode.EXTERNAL_SERVICE_ERROR,
@@ -28,19 +28,19 @@ export const GET = createApiRoute(
           500
         );
       }
-  
+
       // 简单的健康检查请求
       const response = await fetch(`${apiUrl}/api/v1/models`, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${apiKey}`,
+          Authorization: `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
         },
         signal: AbortSignal.timeout(5000), // 5秒超时
       });
-  
+
       const latency = Date.now() - startTime;
-  
+
       if (response.ok) {
         return ApiResponseWrapper.success({
           status: 'healthy',
@@ -62,7 +62,6 @@ export const GET = createApiRoute(
         );
       }
     } catch (error) {
-      console.error('FastGPT health check error:', error);
       return ApiResponseWrapper.error(
         ErrorCode.INTERNAL_SERVER_ERROR,
         'Health check failed',

@@ -17,12 +17,12 @@ import { GlobalErrorHandler } from '@/lib/middleware/global-error-handler';
 
 // Mock CAD analyzer
 jest.mock('@/lib/cad/analyzer', () => ({
-  analyzeCADFile: jest.fn()
+  analyzeCADFile: jest.fn(),
 }));
 
 // Mock storage service
 jest.mock('@/lib/storage/file-storage', () => ({
-  uploadFile: jest.fn()
+  uploadFile: jest.fn(),
 }));
 
 // Mock upload-enhanced handler since it doesn't exist
@@ -46,7 +46,7 @@ describe('CAD API Routes Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/cad/upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({})
+        body: JSON.stringify({}),
       });
 
       const response = await uploadHandler(request);
@@ -65,7 +65,7 @@ describe('CAD API Routes Error Handling', () => {
 
       const request = new NextRequest('http://localhost:3000/api/cad/upload', {
         method: 'POST',
-        body: formData
+        body: formData,
       });
 
       const response = await uploadHandler(request);
@@ -86,7 +86,7 @@ describe('CAD API Routes Error Handling', () => {
 
       const request = new NextRequest('http://localhost:3000/api/cad/upload', {
         method: 'POST',
-        body: formData
+        body: formData,
       });
 
       const response = await uploadHandler(request);
@@ -104,7 +104,7 @@ describe('CAD API Routes Error Handling', () => {
 
       const request = new NextRequest('http://localhost:3000/api/cad/upload', {
         method: 'POST',
-        body: formData
+        body: formData,
       });
 
       const response = await uploadHandler(request);
@@ -126,7 +126,7 @@ describe('CAD API Routes Error Handling', () => {
 
       const request = new NextRequest('http://localhost:3000/api/cad/upload', {
         method: 'POST',
-        body: formData
+        body: formData,
       });
 
       const response = await uploadHandler(request);
@@ -143,7 +143,7 @@ describe('CAD API Routes Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/cad/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({})
+        body: JSON.stringify({}),
       });
 
       const response = await analyzeHandler(request);
@@ -159,8 +159,8 @@ describe('CAD API Routes Error Handling', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          fileId: 'non-existent-file-id'
-        })
+          fileId: 'non-existent-file-id',
+        }),
       });
 
       const response = await analyzeHandler(request);
@@ -174,18 +174,17 @@ describe('CAD API Routes Error Handling', () => {
     it('should handle analysis timeout error', async () => {
       // Mock analysis service to simulate timeout
       const { analyzeCADFile } = require('@/lib/cad/analyzer');
-      (analyzeCADFile as jest.Mock).mockImplementation(() => 
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Analysis timeout')), 100)
-        )
+      (analyzeCADFile as jest.Mock).mockImplementation(
+        () =>
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Analysis timeout')), 100))
       );
 
       const request = new NextRequest('http://localhost:3000/api/cad/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          fileId: 'valid-file-id'
-        })
+          fileId: 'valid-file-id',
+        }),
       });
 
       const response = await analyzeHandler(request);
@@ -205,8 +204,8 @@ describe('CAD API Routes Error Handling', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          fileId: 'large-file-id'
-        })
+          fileId: 'large-file-id',
+        }),
       });
 
       const response = await analyzeHandler(request);
@@ -220,14 +219,16 @@ describe('CAD API Routes Error Handling', () => {
     it('should handle concurrent analysis limit error', async () => {
       // Mock analysis service to simulate concurrent limit
       const { analyzeCADFile } = require('@/lib/cad/analyzer');
-      (analyzeCADFile as jest.Mock).mockRejectedValue(new Error('Too many concurrent analyses') as Error);
+      (analyzeCADFile as jest.Mock).mockRejectedValue(
+        new Error('Too many concurrent analyses') as Error
+      );
 
       const request = new NextRequest('http://localhost:3000/api/cad/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          fileId: 'valid-file-id'
-        })
+          fileId: 'valid-file-id',
+        }),
       });
 
       const response = await analyzeHandler(request);
@@ -242,7 +243,7 @@ describe('CAD API Routes Error Handling', () => {
   describe('History Route (/api/cad/history)', () => {
     it('should handle unauthorized access error', async () => {
       const request = new NextRequest('http://localhost:3000/api/cad/history', {
-        method: 'GET'
+        method: 'GET',
       });
 
       const response = await historyHandler(request);
@@ -257,8 +258,8 @@ describe('CAD API Routes Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/cad/history?page=-1&limit=0', {
         method: 'GET',
         headers: {
-          'Authorization': 'Bearer valid_token'
-        }
+          Authorization: 'Bearer valid_token',
+        },
       });
 
       const response = await historyHandler(request);
@@ -272,13 +273,15 @@ describe('CAD API Routes Error Handling', () => {
     it('should handle database query timeout error', async () => {
       // Mock database to simulate timeout
       const db = require('@/lib/database/connection').default;
-      (db.cadAnalysis.findMany as MockedFunction<any>).mockRejectedValue(new Error('Query timeout'));
+      (db.cadAnalysis.findMany as MockedFunction<any>).mockRejectedValue(
+        new Error('Query timeout')
+      );
 
       const request = new NextRequest('http://localhost:3000/api/cad/history', {
         method: 'GET',
         headers: {
-          'Authorization': 'Bearer valid_token'
-        }
+          Authorization: 'Bearer valid_token',
+        },
       });
 
       const response = await historyHandler(request);
@@ -292,12 +295,15 @@ describe('CAD API Routes Error Handling', () => {
 
   describe('Statistics Route (/api/cad/statistics)', () => {
     it('should handle invalid date range error', async () => {
-      const request = new NextRequest('http://localhost:3000/api/cad/statistics?startDate=invalid&endDate=invalid', {
-        method: 'GET',
-        headers: {
-          'Authorization': 'Bearer valid_token'
+      const request = new NextRequest(
+        'http://localhost:3000/api/cad/statistics?startDate=invalid&endDate=invalid',
+        {
+          method: 'GET',
+          headers: {
+            Authorization: 'Bearer valid_token',
+          },
         }
-      });
+      );
 
       const response = await statisticsHandler(request);
       const data = await (response as any).json();
@@ -310,12 +316,15 @@ describe('CAD API Routes Error Handling', () => {
     it('should handle date range too large error', async () => {
       const startDate = '2020-01-01';
       const endDate = '2025-12-31';
-      const request = new NextRequest(`http://localhost:3000/api/cad/statistics?startDate=${startDate}&endDate=${endDate}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': 'Bearer valid_token'
+      const request = new NextRequest(
+        `http://localhost:3000/api/cad/statistics?startDate=${startDate}&endDate=${endDate}`,
+        {
+          method: 'GET',
+          headers: {
+            Authorization: 'Bearer valid_token',
+          },
         }
-      });
+      );
 
       const response = await statisticsHandler(request);
       const data = await (response as any).json();
@@ -331,7 +340,7 @@ describe('CAD API Routes Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/cad/export', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({})
+        body: JSON.stringify({}),
       });
 
       const response = await exportHandler(request);
@@ -348,8 +357,8 @@ describe('CAD API Routes Error Handling', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           analysisId: 'valid-analysis-id',
-          format: 'unsupported-format'
-        })
+          format: 'unsupported-format',
+        }),
       });
 
       const response = await exportHandler(request);
@@ -363,7 +372,7 @@ describe('CAD API Routes Error Handling', () => {
     it('should handle export generation failure error', async () => {
       // Mock export service to simulate failure
       jest.mock('@/lib/cad/exporter', () => ({
-        generateExport: jest.fn().mockRejectedValue(new Error('Export generation failed') as Error)
+        generateExport: jest.fn().mockRejectedValue(new Error('Export generation failed') as Error),
       }));
 
       const request = new NextRequest('http://localhost:3000/api/cad/export', {
@@ -371,8 +380,8 @@ describe('CAD API Routes Error Handling', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           analysisId: 'valid-analysis-id',
-          format: 'pdf'
-        })
+          format: 'pdf',
+        }),
       });
 
       const response = await exportHandler(request);
@@ -392,7 +401,7 @@ describe('CAD API Routes Error Handling', () => {
 
       const request = new NextRequest('http://localhost:3000/api/cad/upload-enhanced', {
         method: 'POST',
-        body: formData
+        body: formData,
       });
 
       const response = await uploadEnhancedHandler(request);
@@ -406,7 +415,9 @@ describe('CAD API Routes Error Handling', () => {
     it('should handle preprocessing failure error', async () => {
       // Mock preprocessing service to simulate failure
       const { preprocessCADFile } = require('@/lib/cad/preprocessor');
-      (preprocessCADFile as MockedFunction<any>).mockRejectedValue(new Error('Preprocessing failed'));
+      (preprocessCADFile as MockedFunction<any>).mockRejectedValue(
+        new Error('Preprocessing failed')
+      );
 
       const formData = new FormData();
       const file = new File(['test content'], 'test.dwg', { type: 'application/dwg' });
@@ -415,7 +426,7 @@ describe('CAD API Routes Error Handling', () => {
 
       const request = new NextRequest('http://localhost:3000/api/cad/upload-enhanced', {
         method: 'POST',
-        body: formData
+        body: formData,
       });
 
       const response = await uploadEnhancedHandler(request);
@@ -437,19 +448,19 @@ describe('CAD API Routes Error Handling', () => {
             return Promise.reject(new Error('Transient failure'));
           }
           return Promise.resolve({ success: true, results: {} });
-        })
+        }),
       }));
 
       const request = new NextRequest('http://localhost:3000/api/cad/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          fileId: 'valid-file-id'
-        })
+          fileId: 'valid-file-id',
+        }),
       });
 
       const response = await analyzeHandler(request);
-      
+
       expect(callCount).toBe(3);
       expect(response.status).toBe(200);
     });
@@ -463,8 +474,8 @@ describe('CAD API Routes Error Handling', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          fileId: 'valid-file-id'
-        })
+          fileId: 'valid-file-id',
+        }),
       });
 
       const response = await analyzeHandler(request);
@@ -482,13 +493,16 @@ describe('CAD API Routes Error Handling', () => {
       const { analyzeCADFile } = require('@/lib/cad/analyzer');
       (analyzeCADFile as jest.Mock).mockRejectedValue(new Error('Analysis failed') as Error);
 
-      const requests = Array(5).fill(null).map(() => 
-        new NextRequest('http://localhost:3000/api/cad/analyze', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fileId: 'test-file-id' })
-        })
-      );
+      const requests = Array(5)
+        .fill(null)
+        .map(
+          () =>
+            new NextRequest('http://localhost:3000/api/cad/analyze', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ fileId: 'test-file-id' }),
+            })
+        );
 
       for (const request of requests) {
         await analyzeHandler(request).catch(() => {});

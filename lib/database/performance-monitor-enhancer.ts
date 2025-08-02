@@ -6,18 +6,19 @@
  */
 
 import { EventEmitter } from 'events';
-import { Logger } from '../utils/logger';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
 // import { DatabaseMonitor, databaseMonitor, Alert, DatabaseMetrics } from './monitoring'; // 移除循环依赖
 import { DatabaseMetrics, Alert, IMonitoringService } from './unified-interfaces';
 import { IMonitoringService as IMonitoringServiceLegacy } from './monitoring-interfaces';
 import { getMonitoringService, isMonitoringInitialized } from './monitoring-registry';
 
-export class PerformanceMonitorEnhancer extends EventEmitter {
-  private logger: Logger;
+class PerformanceMonitorEnhancer extends EventEmitter {
+  private logger = getLogger();
 
   constructor(private monitor: IMonitoringService) {
     super();
-    this.logger = new Logger('PerformanceMonitorEnhancer');
     this.setupEventListeners();
   }
 
@@ -40,28 +41,29 @@ export class PerformanceMonitorEnhancer extends EventEmitter {
     this.logger.info('Fetching status from underlying DatabaseMonitor');
     return this.monitor.getStatus();
   }
-  
+
   public generateOptimizationReport() {
-      return this.monitor.getOptimizationStatus();
+    return this.monitor.getOptimizationStatus();
   }
-  
+
   public generateOptimizationRecommendations() {
-      return this.monitor.getOptimizationRecommendations();
+    return this.monitor.getOptimizationRecommendations();
   }
 }
 
 // 延迟初始化以避免循环依赖
 let _databaseMonitoringEnhancer: PerformanceMonitorEnhancer | null = null;
 
-export const getDatabaseMonitoringEnhancer = async (): Promise<PerformanceMonitorEnhancer | null> => {
-  if (!_databaseMonitoringEnhancer && isMonitoringInitialized()) {
-    const monitoringService = await getMonitoringService();
-    if (monitoringService) {
-      _databaseMonitoringEnhancer = new PerformanceMonitorEnhancer(monitoringService);
+export const getDatabaseMonitoringEnhancer =
+  async (): Promise<PerformanceMonitorEnhancer | null> => {
+    if (!_databaseMonitoringEnhancer && isMonitoringInitialized()) {
+      const monitoringService = await getMonitoringService();
+      if (monitoringService) {
+        _databaseMonitoringEnhancer = new PerformanceMonitorEnhancer(monitoringService);
+      }
     }
-  }
-  return _databaseMonitoringEnhancer;
-};
+    return _databaseMonitoringEnhancer;
+  };
 
 // 为了向后兼容，保留原有的导出方式
 // 注意：这可能返回null，使用时需要检查
@@ -69,10 +71,20 @@ export const databaseMonitoringEnhancer = getDatabaseMonitoringEnhancer();
 
 // Re-exporting types for compatibility
 export type {
-    AdvancedMonitoringConfig,
-    PerformanceTrend,
-    AnomalyDetectionResult,
-    BenchmarkResult,
-    PredictionResult,
-    MonitoringReport,
+  AdvancedMonitoringConfig,
+  PerformanceTrend,
+  AnomalyDetectionResult,
+  BenchmarkResult,
+  PredictionResult,
+  MonitoringReport,
+  MonitoringConfig,
+  PerformanceReport,
+  MonitoringAlert,
+  PerformanceMetrics,
+  AnomalyType,
+  Trend,
+  ThresholdConfig,
 } from './monitoring-enhancer.types';
+
+// Export the enhancer class
+export { PerformanceMonitorEnhancer };

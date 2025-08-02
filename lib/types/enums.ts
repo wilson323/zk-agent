@@ -18,7 +18,7 @@ export enum CloudProvider {
   AZURE = 'azure',
   GCP = 'gcp',
   ALIYUN = 'aliyun',
-  LOCAL = 'local'
+  LOCAL = 'local',
 }
 
 // ============================================================================
@@ -37,7 +37,15 @@ export enum ErrorType {
   AUTHORIZATION = 'authorization',
   BUSINESS_LOGIC = 'business_logic',
   SYSTEM = 'system',
-  UNKNOWN = 'unknown'
+  TIMEOUT = 'timeout',
+  RATE_LIMIT = 'rate_limit',
+  SERVER = 'server',
+  INTEGRATION = 'integration',
+  UNKNOWN = 'unknown',
+  NOT_FOUND = 'not_found',
+  CONFLICT = 'conflict',
+  EXTERNAL_SERVICE = 'external_service',
+  FILE_SYSTEM = 'file_system',
 }
 
 /**
@@ -48,7 +56,7 @@ export enum ErrorSeverity {
   LOW = 'low',
   MEDIUM = 'medium',
   HIGH = 'high',
-  CRITICAL = 'critical'
+  CRITICAL = 'critical',
 }
 
 /**
@@ -88,7 +96,7 @@ export enum Permission {
   FILE_DELETE = 'file_delete',
   REPORT_VIEW = 'report_view',
   CODE_REVIEW = 'code_review',
-  DEBUG_TOOLS = 'debug_tools'
+  DEBUG_TOOLS = 'debug_tools',
 }
 
 /**
@@ -104,7 +112,7 @@ export enum ResourceType {
   REPORT = 'report',
   SYSTEM = 'system',
   CONFIG = 'config',
-  LOG = 'log'
+  LOG = 'log',
 }
 
 /**
@@ -117,7 +125,7 @@ export enum AgentErrorType {
   COMMUNICATION_ERROR = 'communication_error',
   RESOURCE_EXHAUSTED = 'resource_exhausted',
   TIMEOUT = 'timeout',
-  INVALID_STATE = 'invalid_state'
+  INVALID_STATE = 'invalid_state',
 }
 
 /**
@@ -127,7 +135,7 @@ export enum AgentErrorType {
 export enum CircuitBreakerState {
   CLOSED = 'closed',
   OPEN = 'open',
-  HALF_OPEN = 'half_open'
+  HALF_OPEN = 'half_open',
 }
 
 /**
@@ -139,7 +147,7 @@ export enum ResourceStatus {
   BUSY = 'busy',
   UNAVAILABLE = 'unavailable',
   MAINTENANCE = 'maintenance',
-  ERROR = 'error'
+  ERROR = 'error',
 }
 
 // ============================================================================
@@ -151,15 +159,15 @@ export enum ResourceStatus {
  * 定义不同的缓存策略类型
  */
 export enum CacheStrategy {
-  LRU = 'lru',           // 最近最少使用
-  LFU = 'lfu',           // 最少使用频率
-  TTL = 'ttl',           // 基于过期时间
-  FIFO = 'fifo',         // 先进先出
-  PRIORITY = 'priority',  // 基于优先级
-  ADAPTIVE = 'adaptive',  // 自适应策略
+  LRU = 'lru', // 最近最少使用
+  LFU = 'lfu', // 最少使用频率
+  TTL = 'ttl', // 基于过期时间
+  FIFO = 'fifo', // 先进先出
+  PRIORITY = 'priority', // 基于优先级
+  ADAPTIVE = 'adaptive', // 自适应策略
   WRITE_THROUGH = 'write_through',
   WRITE_BACK = 'write_back',
-  WRITE_AROUND = 'write_around'
+  WRITE_AROUND = 'write_around',
 }
 
 /**
@@ -196,7 +204,7 @@ export enum AlertLevel {
   INFO = 'info',
   WARNING = 'warning',
   ERROR = 'error',
-  CRITICAL = 'critical'
+  CRITICAL = 'critical',
 }
 
 // ============================================================================
@@ -214,7 +222,7 @@ export enum UserRole {
   MODERATOR = 'moderator',
   DEVELOPER = 'developer',
   SUPER_ADMIN = 'super_admin',
-  SYSTEM = 'system'
+  SYSTEM = 'system',
 }
 
 /**
@@ -225,7 +233,7 @@ export enum UserStatus {
   ACTIVE = 'active',
   INACTIVE = 'inactive',
   SUSPENDED = 'suspended',
-  DELETED = 'deleted'
+  DELETED = 'deleted',
 }
 
 // 任务状态枚举
@@ -234,7 +242,7 @@ export enum TaskStatus {
   PROCESSING = 'PROCESSING',
   COMPLETED = 'COMPLETED',
   FAILED = 'FAILED',
-  CANCELLED = 'CANCELLED'
+  CANCELLED = 'CANCELLED',
 }
 
 // ============================================================================
@@ -250,7 +258,10 @@ export enum AIProvider {
   ANTHROPIC = 'anthropic',
   GOOGLE = 'google',
   AZURE_OPENAI = 'azure_openai',
-  LOCAL = 'local'
+  FASTGPT = 'fastgpt',
+  QIANWEN = 'qianwen',
+  SILICONFLOW = 'siliconflow',
+  LOCAL = 'local',
 }
 
 // ============================================================================
@@ -267,7 +278,7 @@ export enum ThreatType {
   SUSPICIOUS_CONTENT = 'suspicious_content',
   UNAUTHORIZED_ACCESS = 'unauthorized_access',
   DATA_BREACH = 'data_breach',
-  INJECTION_ATTACK = 'injection_attack'
+  INJECTION_ATTACK = 'injection_attack',
 }
 
 // ============================================================================
@@ -276,7 +287,7 @@ export enum ThreatType {
 
 /**
  * 错误代码枚举
- * 定义API返回的错误代码
+ * 定义系统中各种错误的代码
  */
 export enum ErrorCode {
   INVALID_REQUEST = 'INVALID_REQUEST',
@@ -286,9 +297,14 @@ export enum ErrorCode {
   METHOD_NOT_ALLOWED = 'METHOD_NOT_ALLOWED',
   CONFLICT = 'CONFLICT',
   VALIDATION_ERROR = 'VALIDATION_ERROR',
+  AUTHENTICATION_ERROR = 'AUTHENTICATION_ERROR',
   INTERNAL_ERROR = 'INTERNAL_ERROR',
   SERVICE_UNAVAILABLE = 'SERVICE_UNAVAILABLE',
-  RATE_LIMIT_EXCEEDED = 'RATE_LIMIT_EXCEEDED'
+  RATE_LIMIT_EXCEEDED = 'RATE_LIMIT_EXCEEDED',
+  NETWORK_ERROR = 'NETWORK_ERROR',
+  TIMEOUT = 'TIMEOUT',
+  EXTERNAL_SERVICE_ERROR = 'EXTERNAL_SERVICE_ERROR',
+  DATABASE_ERROR = 'DATABASE_ERROR',
 }
 
 // ============================================================================
@@ -305,7 +321,7 @@ export enum CADFileType {
   STEP = 'step',
   IGES = 'iges',
   STL = 'stl',
-  OBJ = 'obj'
+  OBJ = 'obj',
 }
 
 // ============================================================================
@@ -322,7 +338,7 @@ export enum ChatMessageType {
   FILE = 'file',
   SYSTEM = 'system',
   ERROR = 'error',
-  TYPING = 'typing'
+  TYPING = 'typing',
 }
 
 // ============================================================================
@@ -336,7 +352,7 @@ export enum ChatMessageType {
 export enum ButtonSize {
   SMALL = 'small',
   MEDIUM = 'medium',
-  LARGE = 'large'
+  LARGE = 'large',
 }
 
 /**
@@ -348,7 +364,7 @@ export enum ButtonVariant {
   SECONDARY = 'secondary',
   OUTLINE = 'outline',
   GHOST = 'ghost',
-  DESTRUCTIVE = 'destructive'
+  DESTRUCTIVE = 'destructive',
 }
 
 /**
@@ -358,5 +374,5 @@ export enum ButtonVariant {
 export enum ColorTheme {
   LIGHT = 'light',
   DARK = 'dark',
-  AUTO = 'auto'
+  AUTO = 'auto',
 }

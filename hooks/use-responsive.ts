@@ -6,9 +6,9 @@
  * @date 2024-12-19
  */
 
-"use client"
+'use client';
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react';
 
 // 断点定义 - 基于Tailwind CSS标准
 const BREAKPOINTS = {
@@ -17,34 +17,34 @@ const BREAKPOINTS = {
   lg: 1024,
   xl: 1280,
   '2xl': 1536,
-} as const
+} as const;
 
-type Breakpoint = keyof typeof BREAKPOINTS
-type DeviceType = 'mobile' | 'tablet' | 'desktop' | 'tv'
-type Orientation = 'portrait' | 'landscape'
+type Breakpoint = keyof typeof BREAKPOINTS;
+type DeviceType = 'mobile' | 'tablet' | 'desktop' | 'tv';
+type Orientation = 'portrait' | 'landscape';
 
 interface ResponsiveState {
-  width: number
-  height: number
-  breakpoint: Breakpoint
-  isMobile: boolean
-  isTablet: boolean
-  isDesktop: boolean
-  isTV: boolean
-  deviceType: DeviceType
-  orientation: Orientation
-  pixelRatio: number
-  isOnline: boolean
-  connectionType: string
-  isReducedMotion: boolean
-  isDarkMode: boolean
+  width: number;
+  height: number;
+  breakpoint: Breakpoint;
+  isMobile: boolean;
+  isTablet: boolean;
+  isDesktop: boolean;
+  isTV: boolean;
+  deviceType: DeviceType;
+  orientation: Orientation;
+  pixelRatio: number;
+  isOnline: boolean;
+  connectionType: string;
+  isReducedMotion: boolean;
+  isDarkMode: boolean;
 }
 
 interface UseResponsiveOptions {
-  debounceMs?: number
-  enableNetworkDetection?: boolean
-  enableMotionDetection?: boolean
-  enableThemeDetection?: boolean
+  debounceMs?: number;
+  enableNetworkDetection?: boolean;
+  enableMotionDetection?: boolean;
+  enableThemeDetection?: boolean;
 }
 
 export const useResponsive = (options: UseResponsiveOptions = {}): ResponsiveState => {
@@ -52,8 +52,8 @@ export const useResponsive = (options: UseResponsiveOptions = {}): ResponsiveSta
     debounceMs = 150,
     enableNetworkDetection = true,
     enableMotionDetection = true,
-    enableThemeDetection = true
-  } = options
+    enableThemeDetection = true,
+  } = options;
 
   const [state, setState] = useState<ResponsiveState>(() => {
     if (typeof window === 'undefined') {
@@ -72,67 +72,77 @@ export const useResponsive = (options: UseResponsiveOptions = {}): ResponsiveSta
         isOnline: true,
         connectionType: 'unknown',
         isReducedMotion: false,
-        isDarkMode: false
-      }
+        isDarkMode: false,
+      };
     }
 
-    return getResponsiveState()
-  })
+    return getResponsiveState();
+  });
 
   // 获取当前响应式状态
   const getResponsiveState = useCallback((): ResponsiveState => {
     if (typeof window === 'undefined') {
-      return state
+      return state;
     }
 
-    const width = window.innerWidth
-    const height = window.innerHeight
-    const pixelRatio = window.devicePixelRatio || 1
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    const pixelRatio = window.devicePixelRatio || 1;
 
     // 确定断点
-    let breakpoint: Breakpoint = 'sm'
-    if (width >= BREAKPOINTS['2xl']) {breakpoint = '2xl'}
-    else if (width >= BREAKPOINTS.xl) {breakpoint = 'xl'}
-    else if (width >= BREAKPOINTS.lg) {breakpoint = 'lg'}
-    else if (width >= BREAKPOINTS.md) {breakpoint = 'md'}
-    else if (width >= BREAKPOINTS.sm) {breakpoint = 'sm'}
+    let breakpoint: Breakpoint = 'sm';
+    if (width >= BREAKPOINTS['2xl']) {
+      breakpoint = '2xl';
+    } else if (width >= BREAKPOINTS.xl) {
+      breakpoint = 'xl';
+    } else if (width >= BREAKPOINTS.lg) {
+      breakpoint = 'lg';
+    } else if (width >= BREAKPOINTS.md) {
+      breakpoint = 'md';
+    } else if (width >= BREAKPOINTS.sm) {
+      breakpoint = 'sm';
+    }
 
     // 确定设备类型
-    const isMobile = width < BREAKPOINTS.md
-    const isTablet = width >= BREAKPOINTS.md && width < BREAKPOINTS.lg
-    const isDesktop = width >= BREAKPOINTS.lg && width < BREAKPOINTS['2xl']
-    const isTV = width >= BREAKPOINTS['2xl']
+    const isMobile = width < BREAKPOINTS.md;
+    const isTablet = width >= BREAKPOINTS.md && width < BREAKPOINTS.lg;
+    const isDesktop = width >= BREAKPOINTS.lg && width < BREAKPOINTS['2xl'];
+    const isTV = width >= BREAKPOINTS['2xl'];
 
-    let deviceType: DeviceType = 'desktop'
-    if (isMobile) {deviceType = 'mobile'}
-    else if (isTablet) {deviceType = 'tablet'}
-    else if (isTV) {deviceType = 'tv'}
+    let deviceType: DeviceType = 'desktop';
+    if (isMobile) {
+      deviceType = 'mobile';
+    } else if (isTablet) {
+      deviceType = 'tablet';
+    } else if (isTV) {
+      deviceType = 'tv';
+    }
 
     // 确定方向
-    const orientation: Orientation = width > height ? 'landscape' : 'portrait'
+    const orientation: Orientation = width > height ? 'landscape' : 'portrait';
 
     // 网络状态检测
-    let isOnline = true
-    let connectionType = 'unknown'
+    let isOnline = true;
+    let connectionType = 'unknown';
     if (enableNetworkDetection && 'navigator' in window) {
-      isOnline = navigator.onLine
+      isOnline = navigator.onLine;
       // @ts-ignore - connection API是实验性的
       if ('connection' in navigator) {
         // @ts-ignore
-        connectionType = navigator.connection?.effectiveType || 'unknown'
+        connectionType = navigator.connection?.effectiveType || 'unknown';
       }
     }
 
     // 动画偏好检测
-    let isReducedMotion = false
+    let isReducedMotion = false;
     if (enableMotionDetection && 'matchMedia' in window) {
-      isReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      isReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     }
 
     // 主题偏好检测
-    let isDarkMode = false
+    let isDarkMode = false;
     if (enableThemeDetection && 'matchMedia' in window) {
-      isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches
+      isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
     }
 
     return {
@@ -149,131 +159,140 @@ export const useResponsive = (options: UseResponsiveOptions = {}): ResponsiveSta
       isOnline,
       connectionType,
       isReducedMotion,
-      isDarkMode
-    }
-  }, [enableNetworkDetection, enableMotionDetection, enableThemeDetection, state])
+      isDarkMode,
+    };
+  }, [enableNetworkDetection, enableMotionDetection, enableThemeDetection, state]);
 
   // 防抖更新函数
   const debouncedUpdate = useCallback(() => {
-    setState(getResponsiveState())
-  }, [getResponsiveState])
+    setState(getResponsiveState());
+  }, [getResponsiveState]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') {return}
+    if (typeof window === 'undefined') {
+      return;
+    }
 
     // 初始化状态
-    setState(getResponsiveState())
+    setState(getResponsiveState());
 
     // 窗口大小变化监听
     const handleResize = debounce(() => {
-      debouncedUpdate()
-    }, debounceMs)
+      debouncedUpdate();
+    }, debounceMs);
 
     // 网络状态变化监听
     const handleOnline = () => {
       if (enableNetworkDetection) {
-        setState(prev => ({ ...prev, isOnline: true }))
+        setState(prev => ({ ...prev, isOnline: true }));
       }
-    }
+    };
 
     const handleOffline = () => {
       if (enableNetworkDetection) {
-        setState(prev => ({ ...prev, isOnline: false }))
+        setState(prev => ({ ...prev, isOnline: false }));
       }
-    }
+    };
 
     // 主题变化监听
     const handleThemeChange = (e: MediaQueryListEvent) => {
       if (enableThemeDetection) {
-        setState(prev => ({ ...prev, isDarkMode: e.matches }))
+        setState(prev => ({ ...prev, isDarkMode: e.matches }));
       }
-    }
+    };
 
     // 动画偏好变化监听
     const handleMotionChange = (e: MediaQueryListEvent) => {
       if (enableMotionDetection) {
-        setState(prev => ({ ...prev, isReducedMotion: e.matches }))
+        setState(prev => ({ ...prev, isReducedMotion: e.matches }));
       }
-    }
+    };
 
     // 添加事件监听器
-    window.addEventListener('resize', handleResize, { passive: true })
-    window.addEventListener('orientationchange', handleResize, { passive: true })
+    window.addEventListener('resize', handleResize, { passive: true });
+    window.addEventListener('orientationchange', handleResize, { passive: true });
 
     if (enableNetworkDetection) {
-      window.addEventListener('online', handleOnline)
-      window.addEventListener('offline', handleOffline)
+      window.addEventListener('online', handleOnline);
+      window.addEventListener('offline', handleOffline);
     }
 
-    let themeMediaQuery: MediaQueryList | null = null
-    let motionMediaQuery: MediaQueryList | null = null
+    let themeMediaQuery: MediaQueryList | null = null;
+    let motionMediaQuery: MediaQueryList | null = null;
 
     if (enableThemeDetection && 'matchMedia' in window) {
-      themeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-      themeMediaQuery.addEventListener('change', handleThemeChange)
+      themeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      themeMediaQuery.addEventListener('change', handleThemeChange);
     }
 
     if (enableMotionDetection && 'matchMedia' in window) {
-      motionMediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
-      motionMediaQuery.addEventListener('change', handleMotionChange)
+      motionMediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+      motionMediaQuery.addEventListener('change', handleMotionChange);
     }
 
     // 清理函数
     return () => {
-      window.removeEventListener('resize', handleResize)
-      window.removeEventListener('orientationchange', handleResize)
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
 
       if (enableNetworkDetection) {
-        window.removeEventListener('online', handleOnline)
-        window.removeEventListener('offline', handleOffline)
+        window.removeEventListener('online', handleOnline);
+        window.removeEventListener('offline', handleOffline);
       }
 
       if (themeMediaQuery) {
-        themeMediaQuery.removeEventListener('change', handleThemeChange)
+        themeMediaQuery.removeEventListener('change', handleThemeChange);
       }
 
       if (motionMediaQuery) {
-        motionMediaQuery.removeEventListener('change', handleMotionChange)
+        motionMediaQuery.removeEventListener('change', handleMotionChange);
       }
-    }
-  }, [debouncedUpdate, enableNetworkDetection, enableMotionDetection, enableThemeDetection, getResponsiveState, debounceMs])
+    };
+  }, [
+    debouncedUpdate,
+    enableNetworkDetection,
+    enableMotionDetection,
+    enableThemeDetection,
+    getResponsiveState,
+    debounceMs,
+  ]);
 
-  return state
-}
+  return state;
+};
 
 import { debounce } from '../lib/utils/performance-utils';
 
 // 断点匹配Hook
 export const useBreakpoint = (breakpoint: Breakpoint): boolean => {
-  const { width } = useResponsive()
-  return width >= BREAKPOINTS[breakpoint]
-}
+  const { width } = useResponsive();
+  return width >= BREAKPOINTS[breakpoint];
+};
 
 // 设备类型检测Hook
 export const useDeviceType = (): DeviceType => {
-  const { deviceType } = useResponsive()
-  return deviceType
-}
+  const { deviceType } = useResponsive();
+  return deviceType;
+};
 
 // 方向检测Hook
 export const useOrientation = (): Orientation => {
-  const { orientation } = useResponsive()
-  return orientation
-}
+  const { orientation } = useResponsive();
+  return orientation;
+};
 
 // 网络状态Hook
 export const useNetworkStatus = () => {
-  const { isOnline, connectionType } = useResponsive({ enableNetworkDetection: true })
-  return { isOnline, connectionType }
-}
+  const { isOnline, connectionType } = useResponsive({ enableNetworkDetection: true });
+  return { isOnline, connectionType };
+};
 
 // 用户偏好Hook
 export const useUserPreferences = () => {
   const { isReducedMotion, isDarkMode } = useResponsive({
     enableMotionDetection: true,
-    enableThemeDetection: true
-  })
-  return { isReducedMotion, isDarkMode }
-}
+    enableThemeDetection: true,
+  });
+  return { isReducedMotion, isDarkMode };
+};
 
-export default useResponsive
+export default useResponsive;

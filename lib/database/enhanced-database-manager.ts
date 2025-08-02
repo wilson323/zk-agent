@@ -6,23 +6,29 @@
  */
 
 import { PrismaClient, Prisma } from '@prisma/client';
-import { Logger } from '../utils/logger';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
 import { enhancedDb, EnhancedDatabaseConnection, ConnectionState } from './enhanced-connection';
 // import { databaseMonitor, DatabaseMonitor } from './monitoring'; // 移除循环依赖
 import { IMonitoringService } from './unified-interfaces';
-import { IMonitoringService as IMonitoringServiceLegacy } from './monitoring-interfaces';
-import { getMonitoringService, getMonitoringServiceSync, isMonitoringInitialized } from './monitoring-registry';
+//import { IMonitoringService as IMonitoringServiceLegacy } from './monitoring-interfaces';
+import {
+  getMonitoringService,
+  getMonitoringServiceSync,
+  isMonitoringInitialized,
+} from './monitoring-registry';
 import { ConnectionPoolAnalyzer } from './connection-pool-analyzer';
 import { DynamicPoolAdjuster } from './dynamic-pool-adjuster';
 import { QueryPerformanceOptimizer } from './query-performance-optimizer';
-import { IntelligentCacheManager } from './intelligent-cache-manager';
+import { IntelligentCacheManager, intelligentCacheManager } from './intelligent-cache-manager';
 import { CacheStrategyOptimizer } from './cache-strategy-optimizer';
 import { PerformanceMonitorEnhancer } from './performance-monitor-enhancer';
 import { PerformanceOptimizationCoordinator } from './performance-optimization-coordinator';
 
 export class EnhancedDatabaseManager {
   private static instance: EnhancedDatabaseManager;
-  private logger = new Logger('EnhancedDatabaseManager');
+  private logger = getLogger();
 
   private constructor() {
     this.logger.info('EnhancedDatabaseManager initialized as a proxy.');
@@ -76,7 +82,7 @@ export class EnhancedDatabaseManager {
 
   async healthCheck(): Promise<any> {
     if (isMonitoringInitialized()) {
-      const monitoringService = getMonitoringService();
+      const monitoringService = await getMonitoringService();
       if (monitoringService) {
         return await monitoringService.getHealthStatus();
       }
@@ -95,14 +101,14 @@ export class EnhancedDatabaseManager {
   get databaseMonitorSync(): IMonitoringService | null {
     return isMonitoringInitialized() ? getMonitoringServiceSync() : null;
   }
-  
+
   get performanceOptimizationCoordinator(): PerformanceOptimizationCoordinator {
     return new PerformanceOptimizationCoordinator();
   }
 
   get connectionPoolAnalyzer(): ConnectionPoolAnalyzer | null {
-    const monitor = this.databaseMonitor;
-    return monitor ? new ConnectionPoolAnalyzer(monitor) : null;
+    const monitor = this.databaseMonitorSync;
+    return new ConnectionPoolAnalyzer();
   }
 
   get dynamicPoolAdjuster(): DynamicPoolAdjuster {
@@ -110,12 +116,13 @@ export class EnhancedDatabaseManager {
   }
 
   get queryPerformanceOptimizer(): QueryPerformanceOptimizer | null {
-    const monitor = this.databaseMonitor;
-    return monitor ? new QueryPerformanceOptimizer(monitor) : null;
+    const monitor = this.databaseMonitorSync;
+    return new QueryPerformanceOptimizer();
   }
 
   get intelligentCacheManager(): IntelligentCacheManager {
-    return new IntelligentCacheManager();
+    // 使用导出的单例实例，而不是每次创建新实例
+    return intelligentCacheManager;
   }
 
   get cacheStrategyOptimizer(): CacheStrategyOptimizer {
@@ -123,13 +130,17 @@ export class EnhancedDatabaseManager {
   }
 
   get performanceMonitorEnhancer(): PerformanceMonitorEnhancer | null {
-    const monitor = this.databaseMonitor;
+    const monitor = this.databaseMonitorSync;
     return monitor ? new PerformanceMonitorEnhancer(monitor) : null;
   }
 }
 
 export const enhancedDatabaseManager = EnhancedDatabaseManager.getInstance();
 
-export const db = enhancedDatabaseManager.db;
 export const dbQuery = enhancedDatabaseManager.executeQuery.bind(enhancedDatabaseManager);
-export const dbTransaction = enhancedDatabaseManager.executeTransaction.bind(enhancedDatabaseManager);
+export const dbTransaction =
+  enhancedDatabaseManager.executeTransaction.bind(enhancedDatabaseManager);
+
+// 延迟导出以避免循环引用
+export const getDb = () => enhancedDatabaseManager.db;
+export const getEnhancedDb = () => enhancedDatabaseManager.enhancedDb;

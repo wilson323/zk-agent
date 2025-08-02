@@ -1,35 +1,37 @@
-# ZK-Agent Docker Compose 配置
-# 用于本地开发环境
+# 多智能体系统 Docker Compose 配置
+# 包含完整的生产环境部署栈
 
 version: '3.8'
 
 services:
-  # 主应用服务
-  app:
+  # 多智能体系统主服务
+  multi-agent-system:
     build:
       context: .
       dockerfile: Dockerfile
-      target: runner
-    container_name: zk-agent-app
-    ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=development
-      - DATABASE_URL=postgresql://postgres:123456@postgres:5432/zkagent_dev
-      - REDIS_URL=redis://redis:6379
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    volumes:
-      - ./uploads:/app/uploads
-      - ./logs:/app/logs
-    networks:
-      - zk-agent-network
+    container_name: multi-agent-system
     restart: unless-stopped
+    ports:
+      - '8000:8000'
+    environment:
+      - ENVIRONMENT=production
+      - DEBUG=false
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/multi_agent_db
+      - REDIS_URL=redis://redis:6379/0
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-change-in-production}
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./temp:/app/temp
+      - ./config.yaml:/app/config.yaml:ro
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - multi-agent-network
     healthcheck:
-      test: ["CMD", "node", "healthcheck.js"]
+      test: ['CMD', 'python', '-c', "import requests; requests.get('http://localhost:8000/health')"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -37,72 +39,75 @@ services:
 
   # PostgreSQL 数据库
   postgres:
-    image: postgres:16-alpine
-    container_name: zk-agent-postgres
+    image: postgres:15-alpine
+    container_name: multi-agent-postgres
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: zkagent_dev
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: 123456
-      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
-    ports:
-      - "5432:5432"
+      - POSTGRES_DB=multi_agent_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./prisma/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    ports:
+      - '5432:5432'
     networks:
-      - zk-agent-network
-    restart: unless-stopped
+      - multi-agent-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d zkagent_dev"]
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d multi_agent_db']
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 30s
 
-  # Redis 缓存
+  # Redis 缓存和消息队列
   redis:
     image: redis:7-alpine
-    container_name: zk-agent-redis
-    ports:
-      - "6379:6379"
+    container_name: multi-agent-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis_password}
     volumes:
       - redis_data:/data
       - ./config/redis.conf:/usr/local/etc/redis/redis.conf:ro
-    command: redis-server /usr/local/etc/redis/redis.conf
+    ports:
+      - '6379:6379'
     networks:
-      - zk-agent-network
-    restart: unless-stopped
+      - multi-agent-network
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', '--raw', 'incr', 'ping']
       interval: 10s
       timeout: 3s
-      retries: 3
-      start_period: 10s
+      retries: 5
 
-  # Nginx 反向代理（可选）
+  # Nginx 反向代理
   nginx:
     image: nginx:alpine
-    container_name: zk-agent-nginx
+    container_name: multi-agent-nginx
+    restart: unless-stopped
     ports:
-      - "80:80"
-      - "443:443"
+      - '80:80'
+      - '443:443'
     volumes:
       - ./config/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./config/ssl:/etc/nginx/ssl:ro
+      - ./logs/nginx:/var/log/nginx
     depends_on:
-      - app
+      - multi-agent-system
     networks:
-      - zk-agent-network
-    restart: unless-stopped
-    profiles:
-      - production
+      - multi-agent-network
+    healthcheck:
+      test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://localhost/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-  # 监控服务（可选）
+  # Prometheus 监控
   prometheus:
     image: prom/prometheus:latest
-    container_name: zk-agent-prometheus
+    container_name: multi-agent-prometheus
+    restart: unless-stopped
     ports:
-      - "9090:9090"
+      - '9090:9090'
     volumes:
       - ./config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
@@ -114,30 +119,126 @@ services:
       - '--storage.tsdb.retention.time=200h'
       - '--web.enable-lifecycle'
     networks:
-      - zk-agent-network
-    restart: unless-stopped
-    profiles:
-      - monitoring
+      - multi-agent-network
 
-  # Grafana 仪表板（可选）
+  # Grafana 可视化
   grafana:
     image: grafana/grafana:latest
-    container_name: zk-agent-grafana
+    container_name: multi-agent-grafana
+    restart: unless-stopped
     ports:
-      - "3001:3000"
+      - '3000:3000'
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./config/grafana:/etc/grafana/provisioning:ro
+      - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./config/grafana/dashboards:/var/lib/grafana/dashboards:ro
     depends_on:
       - prometheus
     networks:
-      - zk-agent-network
-    restart: unless-stopped
-    profiles:
-      - monitoring
+      - multi-agent-network
 
+  # Elasticsearch (日志存储)
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: multi-agent-elasticsearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - xpack.security.enabled=false
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    ports:
+      - '9200:9200'
+    networks:
+      - multi-agent-network
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:9200/_cluster/health || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Kibana (日志可视化)
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.0
+    container_name: multi-agent-kibana
+    restart: unless-stopped
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports:
+      - '5601:5601'
+    depends_on:
+      - elasticsearch
+    networks:
+      - multi-agent-network
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:5601/api/status || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Logstash (日志处理)
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.11.0
+    container_name: multi-agent-logstash
+    restart: unless-stopped
+    volumes:
+      - ./config/logstash/pipeline:/usr/share/logstash/pipeline:ro
+      - ./config/logstash/config:/usr/share/logstash/config:ro
+      - ./logs:/var/log/multi-agent:ro
+    depends_on:
+      - elasticsearch
+    networks:
+      - multi-agent-network
+
+  # Jaeger 分布式追踪
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: multi-agent-jaeger
+    restart: unless-stopped
+    ports:
+      - '16686:16686'
+      - '14268:14268'
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    networks:
+      - multi-agent-network
+
+  # MinIO 对象存储
+  minio:
+    image: minio/minio:latest
+    container_name: multi-agent-minio
+    restart: unless-stopped
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-minioadmin}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-minioadmin}
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    networks:
+      - multi-agent-network
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:9000/minio/health/live']
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+# 网络配置
+networks:
+  multi-agent-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# 数据卷配置
 volumes:
   postgres_data:
     driver: local
@@ -147,10 +248,7 @@ volumes:
     driver: local
   grafana_data:
     driver: local
-
-networks:
-  zk-agent-network:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 172.20.0.0/16
+  elasticsearch_data:
+    driver: local
+  minio_data:
+    driver: local

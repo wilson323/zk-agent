@@ -18,20 +18,20 @@ jest.mock('../../../lib/services/admin-service', () => ({
   getAuditLogs: jest.fn(),
   managePermissions: jest.fn(),
   backupSystem: jest.fn(),
-  restoreSystem: jest.fn()
+  restoreSystem: jest.fn(),
 }));
 
 jest.mock('../../../lib/auth/admin-auth', () => ({
   validateAdminSession: jest.fn(),
   checkSuperAdminPermissions: jest.fn(),
   validateAdminToken: jest.fn(),
-  logAdminAction: jest.fn()
+  logAdminAction: jest.fn(),
 }));
 
 jest.mock('../../../lib/storage/audit-logger', () => ({
   logSecurityEvent: jest.fn(),
   logSystemChange: jest.fn(),
-  getAuditTrail: jest.fn()
+  getAuditTrail: jest.fn(),
 }));
 
 describe('Admin API Error Handling', () => {
@@ -58,7 +58,7 @@ describe('Admin API Error Handling', () => {
       validateAdminToken.mockRejectedValue(new Error('Invalid admin token'));
 
       const request = new NextRequest('http://localhost:3000/api/admin/stats', {
-        headers: { 'Authorization': 'Bearer invalid-token' }
+        headers: { Authorization: 'Bearer invalid-token' },
       });
       const response = await GET(request);
       const data = await response.json();
@@ -72,7 +72,7 @@ describe('Admin API Error Handling', () => {
       validateAdminSession.mockRejectedValue(new Error('Admin session expired'));
 
       const request = new NextRequest('http://localhost:3000/api/admin/stats', {
-        headers: { 'Authorization': 'Bearer expired-token' }
+        headers: { Authorization: 'Bearer expired-token' },
       });
       const response = await GET(request);
       const data = await response.json();
@@ -87,8 +87,8 @@ describe('Admin API Error Handling', () => {
 
       const request = new NextRequest('http://localhost:3000/api/admin/system/config', {
         method: 'PUT',
-        headers: { 'Authorization': 'Bearer admin-token' },
-        body: JSON.stringify({ setting: 'value' })
+        headers: { Authorization: 'Bearer admin-token' },
+        body: JSON.stringify({ setting: 'value' }),
       });
       const response = await PUT(request);
       const data = await response.json();
@@ -104,7 +104,7 @@ describe('Admin API Error Handling', () => {
 
       const request = new NextRequest('http://localhost:3000/api/admin/users/delete', {
         method: 'DELETE',
-        headers: { 'Authorization': 'Bearer moderator-token' }
+        headers: { Authorization: 'Bearer moderator-token' },
       });
       const response = await DELETE(request);
       const data = await response.json();
@@ -120,7 +120,7 @@ describe('Admin API Error Handling', () => {
       getSystemStats.mockRejectedValue(new Error('Database connection failed'));
 
       const request = new NextRequest('http://localhost:3000/api/admin/stats', {
-        headers: { 'Authorization': 'Bearer valid-admin-token' }
+        headers: { Authorization: 'Bearer valid-admin-token' },
       });
       const response = await GET(request);
       const data = await response.json();
@@ -134,7 +134,7 @@ describe('Admin API Error Handling', () => {
       getSystemStats.mockRejectedValue(new Error('Metrics service unavailable'));
 
       const request = new NextRequest('http://localhost:3000/api/admin/stats', {
-        headers: { 'Authorization': 'Bearer valid-admin-token' }
+        headers: { Authorization: 'Bearer valid-admin-token' },
       });
       const response = await GET(request);
       const data = await response.json();
@@ -148,11 +148,11 @@ describe('Admin API Error Handling', () => {
       getSystemStats.mockResolvedValue({
         users: { total: 100, active: 80 },
         system: null, // Failed to collect system stats
-        errors: ['Failed to collect system metrics']
+        errors: ['Failed to collect system metrics'],
       });
 
       const request = new NextRequest('http://localhost:3000/api/admin/stats', {
-        headers: { 'Authorization': 'Bearer valid-admin-token' }
+        headers: { Authorization: 'Bearer valid-admin-token' },
       });
       const response = await GET(request);
       const data = await response.json();
@@ -168,7 +168,7 @@ describe('Admin API Error Handling', () => {
       getUserManagement.mockRejectedValue(new Error('User not found'));
 
       const request = new NextRequest('http://localhost:3000/api/admin/users/nonexistent-id', {
-        headers: { 'Authorization': 'Bearer valid-admin-token' }
+        headers: { Authorization: 'Bearer valid-admin-token' },
       });
       const response = await GET(request);
       const data = await response.json();
@@ -180,7 +180,7 @@ describe('Admin API Error Handling', () => {
 
     it('should handle invalid user ID format', async () => {
       const request = new NextRequest('http://localhost:3000/api/admin/users/invalid-id-format', {
-        headers: { 'Authorization': 'Bearer valid-admin-token' }
+        headers: { Authorization: 'Bearer valid-admin-token' },
       });
       const response = await GET(request);
       const data = await response.json();
@@ -195,8 +195,8 @@ describe('Admin API Error Handling', () => {
 
       const request = new NextRequest('http://localhost:3000/api/admin/users/super-admin-id', {
         method: 'PUT',
-        headers: { 'Authorization': 'Bearer admin-token' },
-        body: JSON.stringify({ role: 'user' })
+        headers: { Authorization: 'Bearer admin-token' },
+        body: JSON.stringify({ role: 'user' }),
       });
       const response = await PUT(request);
       const data = await response.json();
@@ -211,8 +211,8 @@ describe('Admin API Error Handling', () => {
 
       const request = new NextRequest('http://localhost:3000/api/admin/users/bulk', {
         method: 'PUT',
-        headers: { 'Authorization': 'Bearer valid-admin-token' },
-        body: JSON.stringify({ userIds: ['id1', 'id2', 'id3'], action: 'suspend' })
+        headers: { Authorization: 'Bearer valid-admin-token' },
+        body: JSON.stringify({ userIds: ['id1', 'id2', 'id3'], action: 'suspend' }),
       });
       const response = await PUT(request);
       const data = await response.json();
@@ -226,8 +226,8 @@ describe('Admin API Error Handling', () => {
     it('should handle invalid configuration format', async () => {
       const request = new NextRequest('http://localhost:3000/api/admin/system/config', {
         method: 'PUT',
-        headers: { 'Authorization': 'Bearer valid-admin-token' },
-        body: JSON.stringify({ invalidConfig: 'value' })
+        headers: { Authorization: 'Bearer valid-admin-token' },
+        body: JSON.stringify({ invalidConfig: 'value' }),
       });
       const response = await PUT(request);
       const data = await response.json();
@@ -239,12 +239,14 @@ describe('Admin API Error Handling', () => {
 
     it('should handle configuration validation failure', async () => {
       const { updateSystemConfig } = require('../../../lib/services/admin-service');
-      updateSystemConfig.mockRejectedValue(new Error('Configuration validation failed: invalid database URL'));
+      updateSystemConfig.mockRejectedValue(
+        new Error('Configuration validation failed: invalid database URL')
+      );
 
       const request = new NextRequest('http://localhost:3000/api/admin/system/config', {
         method: 'PUT',
-        headers: { 'Authorization': 'Bearer valid-admin-token' },
-        body: JSON.stringify({ databaseUrl: 'invalid-url' })
+        headers: { Authorization: 'Bearer valid-admin-token' },
+        body: JSON.stringify({ databaseUrl: 'invalid-url' }),
       });
       const response = await PUT(request);
       const data = await response.json();
@@ -259,8 +261,8 @@ describe('Admin API Error Handling', () => {
 
       const request = new NextRequest('http://localhost:3000/api/admin/system/config', {
         method: 'PUT',
-        headers: { 'Authorization': 'Bearer valid-admin-token' },
-        body: JSON.stringify({ setting: 'value' })
+        headers: { Authorization: 'Bearer valid-admin-token' },
+        body: JSON.stringify({ setting: 'value' }),
       });
       const response = await PUT(request);
       const data = await response.json();
@@ -271,12 +273,14 @@ describe('Admin API Error Handling', () => {
 
     it('should handle configuration rollback on apply failure', async () => {
       const { updateSystemConfig } = require('../../../lib/services/admin-service');
-      updateSystemConfig.mockRejectedValue(new Error('Configuration apply failed, rolled back to previous version'));
+      updateSystemConfig.mockRejectedValue(
+        new Error('Configuration apply failed, rolled back to previous version')
+      );
 
       const request = new NextRequest('http://localhost:3000/api/admin/system/config', {
         method: 'PUT',
-        headers: { 'Authorization': 'Bearer valid-admin-token' },
-        body: JSON.stringify({ setting: 'value' })
+        headers: { Authorization: 'Bearer valid-admin-token' },
+        body: JSON.stringify({ setting: 'value' }),
       });
       const response = await PUT(request);
       const data = await response.json();
@@ -293,8 +297,8 @@ describe('Admin API Error Handling', () => {
 
       const request = new NextRequest('http://localhost:3000/api/admin/maintenance', {
         method: 'POST',
-        headers: { 'Authorization': 'Bearer valid-admin-token' },
-        body: JSON.stringify({ action: 'enable', reason: 'System update' })
+        headers: { Authorization: 'Bearer valid-admin-token' },
+        body: JSON.stringify({ action: 'enable', reason: 'System update' }),
       });
       const response = await POST(request);
       const data = await response.json();
@@ -305,12 +309,14 @@ describe('Admin API Error Handling', () => {
 
     it('should handle database maintenance operation failure', async () => {
       const { performMaintenance } = require('../../../lib/services/admin-service');
-      performMaintenance.mockRejectedValue(new Error('Database maintenance failed: table lock timeout'));
+      performMaintenance.mockRejectedValue(
+        new Error('Database maintenance failed: table lock timeout')
+      );
 
       const request = new NextRequest('http://localhost:3000/api/admin/maintenance/database', {
         method: 'POST',
-        headers: { 'Authorization': 'Bearer valid-admin-token' },
-        body: JSON.stringify({ operation: 'optimize' })
+        headers: { Authorization: 'Bearer valid-admin-token' },
+        body: JSON.stringify({ operation: 'optimize' }),
       });
       const response = await POST(request);
       const data = await response.json();
@@ -325,8 +331,8 @@ describe('Admin API Error Handling', () => {
 
       const request = new NextRequest('http://localhost:3000/api/admin/maintenance/cache', {
         method: 'POST',
-        headers: { 'Authorization': 'Bearer valid-admin-token' },
-        body: JSON.stringify({ action: 'clear' })
+        headers: { Authorization: 'Bearer valid-admin-token' },
+        body: JSON.stringify({ action: 'clear' }),
       });
       const response = await POST(request);
       const data = await response.json();
@@ -342,7 +348,7 @@ describe('Admin API Error Handling', () => {
       getAuditLogs.mockRejectedValue(new Error('Audit log service unavailable'));
 
       const request = new NextRequest('http://localhost:3000/api/admin/audit-logs', {
-        headers: { 'Authorization': 'Bearer valid-admin-token' }
+        headers: { Authorization: 'Bearer valid-admin-token' },
       });
       const response = await GET(request);
       const data = await response.json();
@@ -352,9 +358,12 @@ describe('Admin API Error Handling', () => {
     });
 
     it('should handle invalid audit log query parameters', async () => {
-      const request = new NextRequest('http://localhost:3000/api/admin/audit-logs?startDate=invalid&endDate=also-invalid', {
-        headers: { 'Authorization': 'Bearer valid-admin-token' }
-      });
+      const request = new NextRequest(
+        'http://localhost:3000/api/admin/audit-logs?startDate=invalid&endDate=also-invalid',
+        {
+          headers: { Authorization: 'Bearer valid-admin-token' },
+        }
+      );
       const response = await GET(request);
       const data = await response.json();
 
@@ -369,8 +378,8 @@ describe('Admin API Error Handling', () => {
 
       const request = new NextRequest('http://localhost:3000/api/admin/audit-logs/export', {
         method: 'POST',
-        headers: { 'Authorization': 'Bearer valid-admin-token' },
-        body: JSON.stringify({ format: 'csv', dateRange: '30d' })
+        headers: { Authorization: 'Bearer valid-admin-token' },
+        body: JSON.stringify({ format: 'csv', dateRange: '30d' }),
       });
       const response = await POST(request);
       const data = await response.json();
@@ -387,8 +396,8 @@ describe('Admin API Error Handling', () => {
 
       const request = new NextRequest('http://localhost:3000/api/admin/backup', {
         method: 'POST',
-        headers: { 'Authorization': 'Bearer valid-admin-token' },
-        body: JSON.stringify({ type: 'full', compression: true })
+        headers: { Authorization: 'Bearer valid-admin-token' },
+        body: JSON.stringify({ type: 'full', compression: true }),
       });
       const response = await POST(request);
       const data = await response.json();
@@ -399,12 +408,14 @@ describe('Admin API Error Handling', () => {
 
     it('should handle backup corruption detection', async () => {
       const { backupSystem } = require('../../../lib/services/admin-service');
-      backupSystem.mockRejectedValue(new Error('Backup verification failed: data corruption detected'));
+      backupSystem.mockRejectedValue(
+        new Error('Backup verification failed: data corruption detected')
+      );
 
       const request = new NextRequest('http://localhost:3000/api/admin/backup', {
         method: 'POST',
-        headers: { 'Authorization': 'Bearer valid-admin-token' },
-        body: JSON.stringify({ type: 'incremental' })
+        headers: { Authorization: 'Bearer valid-admin-token' },
+        body: JSON.stringify({ type: 'incremental' }),
       });
       const response = await POST(request);
       const data = await response.json();
@@ -419,8 +430,8 @@ describe('Admin API Error Handling', () => {
 
       const request = new NextRequest('http://localhost:3000/api/admin/restore', {
         method: 'POST',
-        headers: { 'Authorization': 'Bearer valid-admin-token' },
-        body: JSON.stringify({ backupId: 'backup-123' })
+        headers: { Authorization: 'Bearer valid-admin-token' },
+        body: JSON.stringify({ backupId: 'backup-123' }),
       });
       const response = await POST(request);
       const data = await response.json();
@@ -431,12 +442,14 @@ describe('Admin API Error Handling', () => {
 
     it('should handle restore validation failure', async () => {
       const { restoreSystem } = require('../../../lib/services/admin-service');
-      restoreSystem.mockRejectedValue(new Error('Restore validation failed: incompatible backup version'));
+      restoreSystem.mockRejectedValue(
+        new Error('Restore validation failed: incompatible backup version')
+      );
 
       const request = new NextRequest('http://localhost:3000/api/admin/restore', {
         method: 'POST',
-        headers: { 'Authorization': 'Bearer valid-admin-token' },
-        body: JSON.stringify({ backupId: 'backup-old-version' })
+        headers: { Authorization: 'Bearer valid-admin-token' },
+        body: JSON.stringify({ backupId: 'backup-old-version' }),
       });
       const response = await POST(request);
       const data = await response.json();
@@ -453,8 +466,8 @@ describe('Admin API Error Handling', () => {
 
       const request = new NextRequest('http://localhost:3000/api/admin/permissions', {
         method: 'PUT',
-        headers: { 'Authorization': 'Bearer valid-admin-token' },
-        body: JSON.stringify({ userId: 'user-123', permissions: ['NONEXISTENT_PERMISSION'] })
+        headers: { Authorization: 'Bearer valid-admin-token' },
+        body: JSON.stringify({ userId: 'user-123', permissions: ['NONEXISTENT_PERMISSION'] }),
       });
       const response = await PUT(request);
       const data = await response.json();
@@ -469,8 +482,8 @@ describe('Admin API Error Handling', () => {
 
       const request = new NextRequest('http://localhost:3000/api/admin/roles', {
         method: 'PUT',
-        headers: { 'Authorization': 'Bearer valid-admin-token' },
-        body: JSON.stringify({ roleId: 'role-a', inheritsFrom: ['role-b'] })
+        headers: { Authorization: 'Bearer valid-admin-token' },
+        body: JSON.stringify({ roleId: 'role-a', inheritsFrom: ['role-b'] }),
       });
       const response = await PUT(request);
       const data = await response.json();
@@ -485,8 +498,8 @@ describe('Admin API Error Handling', () => {
 
       const request = new NextRequest('http://localhost:3000/api/admin/permissions', {
         method: 'PUT',
-        headers: { 'Authorization': 'Bearer admin-token' },
-        body: JSON.stringify({ userId: 'user-123', permissions: ['SUPER_ADMIN'] })
+        headers: { Authorization: 'Bearer admin-token' },
+        body: JSON.stringify({ userId: 'user-123', permissions: ['SUPER_ADMIN'] }),
       });
       const response = await PUT(request);
       const data = await response.json();
@@ -503,7 +516,7 @@ describe('Admin API Error Handling', () => {
       getSystemStats.mockResolvedValue({ users: 100 });
 
       const request = new NextRequest('http://localhost:3000/api/admin/stats', {
-        headers: { 'Authorization': 'Bearer valid-admin-token' }
+        headers: { Authorization: 'Bearer valid-admin-token' },
       });
       await GET(request);
 
@@ -511,16 +524,16 @@ describe('Admin API Error Handling', () => {
         expect.objectContaining({
           action: 'VIEW_SYSTEM_STATS',
           adminId: expect.any(String),
-          timestamp: expect.any(Date)
+          timestamp: expect.any(Date),
         })
       );
     });
 
     it('should log security violations', async () => {
       const { logSecurityEvent } = require('../../../lib/storage/audit-logger');
-      
+
       const request = new NextRequest('http://localhost:3000/api/admin/stats', {
-        headers: { 'Authorization': 'Bearer invalid-token' }
+        headers: { Authorization: 'Bearer invalid-token' },
       });
       await GET(request);
 
@@ -528,7 +541,7 @@ describe('Admin API Error Handling', () => {
         expect.objectContaining({
           type: 'UNAUTHORIZED_ADMIN_ACCESS',
           severity: 'HIGH',
-          details: expect.any(Object)
+          details: expect.any(Object),
         })
       );
     });
@@ -536,12 +549,12 @@ describe('Admin API Error Handling', () => {
     it('should handle audit logging failure gracefully', async () => {
       const { logAdminAction } = require('../../../lib/auth/admin-auth');
       const { getSystemStats } = require('../../../lib/services/admin-service');
-      
+
       logAdminAction.mockRejectedValue(new Error('Audit log service down'));
       getSystemStats.mockResolvedValue({ users: 100 });
 
       const request = new NextRequest('http://localhost:3000/api/admin/stats', {
-        headers: { 'Authorization': 'Bearer valid-admin-token' }
+        headers: { Authorization: 'Bearer valid-admin-token' },
       });
       const response = await GET(request);
 
@@ -552,10 +565,12 @@ describe('Admin API Error Handling', () => {
 
   describe('Rate Limiting and DDoS Protection', () => {
     it('should handle admin API rate limiting', async () => {
-      const requests = Array.from({ length: 20 }, () => 
-        new NextRequest('http://localhost:3000/api/admin/stats', {
-          headers: { 'Authorization': 'Bearer valid-admin-token' }
-        })
+      const requests = Array.from(
+        { length: 20 },
+        () =>
+          new NextRequest('http://localhost:3000/api/admin/stats', {
+            headers: { Authorization: 'Bearer valid-admin-token' },
+          })
       );
 
       const responses = await Promise.all(requests.map(req => GET(req)));
@@ -565,12 +580,14 @@ describe('Admin API Error Handling', () => {
     });
 
     it('should implement stricter rate limits for sensitive operations', async () => {
-      const sensitiveRequests = Array.from({ length: 5 }, () => 
-        new NextRequest('http://localhost:3000/api/admin/system/config', {
-          method: 'PUT',
-          headers: { 'Authorization': 'Bearer valid-admin-token' },
-          body: JSON.stringify({ setting: 'value' })
-        })
+      const sensitiveRequests = Array.from(
+        { length: 5 },
+        () =>
+          new NextRequest('http://localhost:3000/api/admin/system/config', {
+            method: 'PUT',
+            headers: { Authorization: 'Bearer valid-admin-token' },
+            body: JSON.stringify({ setting: 'value' }),
+          })
       );
 
       const responses = await Promise.all(sensitiveRequests.map(req => PUT(req)));
@@ -586,7 +603,7 @@ describe('Admin API Error Handling', () => {
       getSystemStats.mockRejectedValue(new Error('Database query timeout'));
 
       const request = new NextRequest('http://localhost:3000/api/admin/stats', {
-        headers: { 'Authorization': 'Bearer valid-admin-token' }
+        headers: { Authorization: 'Bearer valid-admin-token' },
       });
       const response = await GET(request);
       const data = await response.json();
@@ -601,7 +618,7 @@ describe('Admin API Error Handling', () => {
       getSystemStats.mockRejectedValue(new Error('Service degraded'));
 
       const request = new NextRequest('http://localhost:3000/api/admin/stats', {
-        headers: { 'Authorization': 'Bearer valid-admin-token' }
+        headers: { Authorization: 'Bearer valid-admin-token' },
       });
       const response = await GET(request);
       const data = await response.json();
@@ -617,7 +634,7 @@ describe('Admin API Error Handling', () => {
       // Simulate multiple failures
       for (let i = 0; i < 3; i++) {
         const request = new NextRequest('http://localhost:3000/api/admin/stats', {
-          headers: { 'Authorization': 'Bearer valid-admin-token' }
+          headers: { Authorization: 'Bearer valid-admin-token' },
         });
         await GET(request);
       }

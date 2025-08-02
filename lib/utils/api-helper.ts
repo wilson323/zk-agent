@@ -11,6 +11,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ZodSchema, ZodError } from 'zod';
 import { ApiResponse, ErrorCode } from '@/types/core';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
 
 // API响应包装器
 export class ApiResponseWrapper {
@@ -44,43 +47,23 @@ export class ApiResponseWrapper {
   }
 
   static validationError(errors: any): NextResponse<ApiResponse> {
-    return this.error(
-      ErrorCode.VALIDATION_ERROR,
-      'Validation failed',
-      errors,
-      400
-    );
+    return this.error(ErrorCode.VALIDATION_ERROR, 'Validation failed', errors, 400);
   }
 
   static notFound(resource: string = 'Resource'): NextResponse<ApiResponse> {
-    return this.error(
-      ErrorCode.NOT_FOUND,
-      `${resource} not found`,
-      null,
-      404
-    );
+    return this.error(ErrorCode.NOT_FOUND, `${resource} not found`, null, 404);
   }
 
   static unauthorized(message: string = 'Unauthorized'): NextResponse<ApiResponse> {
-    return this.error(
-      ErrorCode.AUTHENTICATION_ERROR,
-      message,
-      null,
-      401
-    );
+    return this.error(ErrorCode.AUTHENTICATION_ERROR, message, null, 401);
   }
 
   static forbidden(message: string = 'Forbidden'): NextResponse<ApiResponse> {
-    return this.error(
-      ErrorCode.AUTHORIZATION_ERROR,
-      message,
-      null,
-      403
-    );
+    return this.error(ErrorCode.AUTHORIZATION_ERROR, message, null, 403);
   }
 
   static internalError(error: any): NextResponse<ApiResponse> {
-    console.error('Internal Server Error:', error);
+    logger.error('Internal Server Error:', error);
     return this.error(
       ErrorCode.INTERNAL_SERVER_ERROR,
       'Internal server error',
@@ -92,7 +75,7 @@ export class ApiResponseWrapper {
   static methodNotAllowed(message?: string | string[]): NextResponse<ApiResponse> {
     let errorMessage: string;
     let details: any = null;
-    
+
     if (typeof message === 'string') {
       errorMessage = message;
     } else if (Array.isArray(message)) {
@@ -101,16 +84,14 @@ export class ApiResponseWrapper {
     } else {
       errorMessage = 'Method not allowed';
     }
-    
-    return this.error(
-      ErrorCode.VALIDATION_ERROR,
-      errorMessage,
-      details,
-      405
-    );
+
+    return this.error(ErrorCode.VALIDATION_ERROR, errorMessage, details, 405);
   }
 
-  static rateLimitExceeded(message: string = 'Rate limit exceeded', resetTime?: number): NextResponse<ApiResponse> {
+  static rateLimitExceeded(
+    message: string = 'Rate limit exceeded',
+    resetTime?: number
+  ): NextResponse<ApiResponse> {
     return this.error(
       ErrorCode.RATE_LIMIT_EXCEEDED,
       message,
@@ -131,17 +112,14 @@ export function withApiHandler(
       if (error instanceof ZodError) {
         return ApiResponseWrapper.validationError(error.errors);
       }
-      
+
       return ApiResponseWrapper.internalError(error);
     }
   };
 }
 
 // 请求体验证
-export async function validateRequestBody<T>(
-  req: NextRequest,
-  schema: ZodSchema<T>
-): Promise<T> {
+export async function validateRequestBody<T>(req: NextRequest, schema: ZodSchema<T>): Promise<T> {
   try {
     const body = await req.json();
     return schema.parse(body);
@@ -154,10 +132,7 @@ export async function validateRequestBody<T>(
 }
 
 // 查询参数验证
-export function validateSearchParams<T>(
-  searchParams: URLSearchParams,
-  schema: ZodSchema<T>
-): T {
+export function validateSearchParams<T>(searchParams: URLSearchParams, schema: ZodSchema<T>): T {
   const params = Object.fromEntries(searchParams.entries());
   return schema.parse(params);
 }
@@ -167,7 +142,7 @@ export function getPaginationParams(searchParams: URLSearchParams) {
   const page = parseInt(searchParams.get('page') || '1', 10);
   const limit = parseInt(searchParams.get('limit') || '10', 10);
   const sortBy = searchParams.get('sortBy') || 'createdAt';
-  const sortOrder = searchParams.get('sortOrder') as 'asc' | 'desc' || 'desc';
+  const sortOrder = (searchParams.get('sortOrder') as 'asc' | 'desc') || 'desc';
 
   return {
     page: Math.max(1, page),
@@ -205,8 +180,6 @@ export class ApiLogger {
       userId,
       timestamp: new Date().toISOString(),
     };
-    
-    console.log('📥 API Request:', JSON.stringify(log, null, 2));
   }
 
   static logResponse(response: NextResponse, duration: number) {
@@ -215,8 +188,6 @@ export class ApiLogger {
       duration: `${duration}ms`,
       timestamp: new Date().toISOString(),
     };
-    
-    console.log('📤 API Response:', JSON.stringify(log, null, 2));
   }
 
   static logError(error: any, context?: any) {
@@ -226,8 +197,8 @@ export class ApiLogger {
       context,
       timestamp: new Date().toISOString(),
     };
-    
-    console.error('🚨 API Error:', JSON.stringify(log, null, 2));
+
+    logger.error('🚨 API Error:', JSON.stringify(log, null, 2));
   }
 }
 
@@ -237,18 +208,18 @@ export function withPerformanceMonitoring(
 ) {
   return async (req: NextRequest, context?: any): Promise<NextResponse> => {
     const startTime = Date.now();
-    
+
     ApiLogger.logRequest(req);
-    
+
     try {
       const response = await handler(req, context);
       const duration = Date.now() - startTime;
-      
+
       ApiLogger.logResponse(response, duration);
-      
+
       // 添加性能头部
       response.headers.set('X-Response-Time', `${duration}ms`);
-      
+
       return response;
     } catch (error) {
       const duration = Date.now() - startTime;

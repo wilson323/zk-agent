@@ -8,7 +8,11 @@
  * @features 云存储集成、安全检查、文件优化、元数据管理
  */
 
-import { Logger } from '@/lib/utils/logger';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
+
+const logger = getLogger();
 import { promises as fs } from 'fs';
 import path from 'path';
 import crypto from 'crypto';
@@ -85,7 +89,7 @@ interface StorageStats {
 
 export class EnhancedFileStorage {
   private static instance: EnhancedFileStorage;
-  private logger = new Logger('EnhancedFileStorage');
+  private logger = getLogger();
   private metadata: Map<string, FileMetadata> = new Map();
   private cleanupInterval: NodeJS.Timeout | null = null;
 
@@ -95,15 +99,27 @@ export class EnhancedFileStorage {
     maxFileSize: 100 * 1024 * 1024, // 100MB
     allowedTypes: [
       // 图片
-      'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
+      'image/jpeg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+      'image/svg+xml',
       // 文档
-      'application/pdf', 'text/plain', 'application/msword',
+      'application/pdf',
+      'text/plain',
+      'application/msword',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       // CAD文件
-      'application/acad', 'application/dwg', 'application/dxf',
-      'application/step', 'application/iges', 'model/stl',
+      'application/acad',
+      'application/dwg',
+      'application/dxf',
+      'application/step',
+      'application/iges',
+      'model/stl',
       // 压缩文件
-      'application/zip', 'application/x-rar-compressed', 'application/x-7z-compressed',
+      'application/zip',
+      'application/x-rar-compressed',
+      'application/x-7z-compressed',
     ],
     enableCompression: true,
     enableThumbnails: true,
@@ -215,8 +231,9 @@ export class EnhancedFileStorage {
         accessCount: 0,
         tags: options.tags || [],
         isPublic: options.isPublic || false,
-        expiresAt: options.expiresIn ? 
-          new Date(Date.now() + options.expiresIn).toISOString() : undefined,
+        expiresAt: options.expiresIn
+          ? new Date(Date.now() + options.expiresIn).toISOString()
+          : undefined,
         encryptionKey,
         virusScanResult,
       };
@@ -227,7 +244,11 @@ export class EnhancedFileStorage {
       }
 
       // 压缩文件
-      if (options.compress && this.config.enableCompression && this.shouldCompress(mimeType, fileBuffer.length)) {
+      if (
+        options.compress &&
+        this.config.enableCompression &&
+        this.shouldCompress(mimeType, fileBuffer.length)
+      ) {
         metadata.compressedPath = await this.compressFile(filePath, fileId);
       }
 
@@ -250,7 +271,6 @@ export class EnhancedFileStorage {
       });
 
       return metadata;
-
     } catch (error) {
       this.logger.error('File upload failed', {
         originalName,
@@ -263,7 +283,10 @@ export class EnhancedFileStorage {
   /**
    * 下载文件
    */
-  async downloadFile(fileId: string, options: DownloadOptions = {}): Promise<{
+  async downloadFile(
+    fileId: string,
+    options: DownloadOptions = {}
+  ): Promise<{
     buffer: Buffer;
     metadata: FileMetadata;
   }> {
@@ -313,7 +336,6 @@ export class EnhancedFileStorage {
         buffer: fileBuffer,
         metadata,
       };
-
     } catch (error) {
       this.logger.error('File download failed', {
         fileId,
@@ -363,16 +385,16 @@ export class EnhancedFileStorage {
 
       // 删除文件
       const filePath: any = path.join(this.config.localPath, metadata.fileName);
-      await fs.unlink(filePath).catch(() => {}); // 忽略文件不存在的错误
+      await fs.unlink(filePath).catch(() => { }); // 忽略文件不存在的错误
 
       // 删除缩略图
       if (metadata.thumbnailPath) {
-        await fs.unlink(metadata.thumbnailPath).catch(() => {});
+        await fs.unlink(metadata.thumbnailPath).catch(() => { });
       }
 
       // 删除压缩文件
       if (metadata.compressedPath) {
-        await fs.unlink(metadata.compressedPath).catch(() => {});
+        await fs.unlink(metadata.compressedPath).catch(() => { });
       }
 
       // 删除元数据
@@ -389,7 +411,6 @@ export class EnhancedFileStorage {
       });
 
       return true;
-
     } catch (error) {
       this.logger.error('File deletion failed', {
         fileId,
@@ -402,27 +423,22 @@ export class EnhancedFileStorage {
   /**
    * 列出文件
    */
-  async listFiles(options: {
-    userId?: string;
-    isPublic?: boolean;
-    tags?: string[];
-    mimeType?: string;
-    page?: number;
-    limit?: number;
-  } = {}): Promise<{
+  async listFiles(
+    options: {
+      userId?: string;
+      isPublic?: boolean;
+      tags?: string[];
+      mimeType?: string;
+      page?: number;
+      limit?: number;
+    } = {}
+  ): Promise<{
     files: FileMetadata[];
     total: number;
     page: number;
     limit: number;
   }> {
-    const {
-      userId,
-      isPublic,
-      tags,
-      mimeType,
-      page = 1,
-      limit = 20,
-    } = options;
+    const { userId, isPublic, tags, mimeType, page = 1, limit = 20 } = options;
 
     let files: any = Array.from(this.metadata.values());
 
@@ -470,14 +486,14 @@ export class EnhancedFileStorage {
     const totalSize: any = files.reduce((sum, f) => sum + f.size, 0);
     const publicFiles: any = files.filter(f => f.isPublic).length;
     const privateFiles: any = totalFiles - publicFiles;
-    const expiredFiles: any = files.filter(f => 
-      f.expiresAt && new Date(f.expiresAt) < now
-    ).length;
+    const expiredFiles: any = files.filter(f => f.expiresAt && new Date(f.expiresAt) < now).length;
 
     // 计算压缩比
     const compressedFiles: any = files.filter(f => f.compressedPath);
-    const compressionRatio: any = compressedFiles.length > 0 ? 
-      compressedFiles.reduce((sum, f) => sum + f.size, 0) / compressedFiles.length : 1;
+    const compressionRatio: any =
+      compressedFiles.length > 0
+        ? compressedFiles.reduce((sum, f) => sum + f.size, 0) / compressedFiles.length
+        : 1;
 
     const averageFileSize: any = totalFiles > 0 ? totalSize / totalFiles : 0;
 
@@ -538,11 +554,11 @@ export class EnhancedFileStorage {
    */
   private validateFileContent(buffer: Buffer, mimeType: string): boolean {
     const magicNumbers: Record<string, Buffer[]> = {
-      'image/jpeg': [Buffer.from([0xFF, 0xD8, 0xFF])],
-      'image/png': [Buffer.from([0x89, 0x50, 0x4E, 0x47])],
+      'image/jpeg': [Buffer.from([0xff, 0xd8, 0xff])],
+      'image/png': [Buffer.from([0x89, 0x50, 0x4e, 0x47])],
       'image/gif': [Buffer.from([0x47, 0x49, 0x46, 0x38])],
       'application/pdf': [Buffer.from([0x25, 0x50, 0x44, 0x46])],
-      'application/zip': [Buffer.from([0x50, 0x4B, 0x03, 0x04])],
+      'application/zip': [Buffer.from([0x50, 0x4b, 0x03, 0x04])],
     };
 
     const expectedMagic: any = magicNumbers[mimeType];
@@ -550,9 +566,7 @@ export class EnhancedFileStorage {
       return true; // 如果没有定义魔数，跳过检查
     }
 
-    return expectedMagic.some(magic => 
-      buffer.subarray(0, magic.length).equals(magic)
-    );
+    return expectedMagic.some(magic => buffer.subarray(0, magic.length).equals(magic));
   }
 
   /**
@@ -610,12 +624,8 @@ export class EnhancedFileStorage {
     const key: any = crypto.randomBytes(32).toString('hex');
     const iv: any = crypto.randomBytes(16);
     const cipher: any = crypto.createCipher('aes-256-cbc', key);
-    
-    const encrypted: any = Buffer.concat([
-      iv,
-      cipher.update(buffer),
-      cipher.final(),
-    ]);
+
+    const encrypted: any = Buffer.concat([iv, cipher.update(buffer), cipher.final()]);
 
     return {
       data: encrypted,
@@ -630,11 +640,8 @@ export class EnhancedFileStorage {
     const iv: any = buffer.subarray(0, 16);
     const encrypted: any = buffer.subarray(16);
     const decipher: any = crypto.createDecipher('aes-256-cbc', key);
-    
-    return Buffer.concat([
-      decipher.update(encrypted),
-      decipher.final(),
-    ]);
+
+    return Buffer.concat([decipher.update(encrypted), decipher.final()]);
   }
 
   /**
@@ -643,7 +650,11 @@ export class EnhancedFileStorage {
   private async generateThumbnail(filePath: string, fileId: string): Promise<string> {
     // 这里应该使用图像处理库（如 sharp）生成缩略图
     // 为了简化，我们只是复制原文件
-    const thumbnailPath: any = path.join(this.config.localPath, 'thumbnails', `${fileId}_thumb.jpg`);
+    const thumbnailPath: any = path.join(
+      this.config.localPath,
+      'thumbnails',
+      `${fileId}_thumb.jpg`
+    );
     await fs.copyFile(filePath, thumbnailPath);
     return thumbnailPath;
   }
@@ -654,7 +665,11 @@ export class EnhancedFileStorage {
   private async compressFile(filePath: string, fileId: string): Promise<string> {
     // 这里应该使用压缩算法
     // 为了简化，我们只是复制原文件
-    const compressedPath: any = path.join(this.config.localPath, 'compressed', `${fileId}_compressed`);
+    const compressedPath: any = path.join(
+      this.config.localPath,
+      'compressed',
+      `${fileId}_compressed`
+    );
     await fs.copyFile(filePath, compressedPath);
     return compressedPath;
   }
@@ -682,7 +697,7 @@ export class EnhancedFileStorage {
       const metadataPath: any = path.join(this.config.localPath, 'metadata.json');
       const data: any = await fs.readFile(metadataPath, 'utf8');
       const metadataArray: any = JSON.parse(data);
-      
+
       this.metadata.clear();
       metadataArray.forEach((item: FileMetadata) => {
         this.metadata.set(item.id, item);
@@ -715,10 +730,13 @@ export class EnhancedFileStorage {
    * 启动清理进程
    */
   private startCleanupProcess(): void {
-    this.cleanupInterval = setInterval(async () => {
-      await this.cleanupExpiredFiles();
-      await this.cleanupOrphanedFiles();
-    }, 24 * 60 * 60 * 1000); // 每天清理一次
+    this.cleanupInterval = setInterval(
+      async () => {
+        await this.cleanupExpiredFiles();
+        await this.cleanupOrphanedFiles();
+      },
+      24 * 60 * 60 * 1000
+    ); // 每天清理一次
 
     this.logger.info('File cleanup process started');
   }
@@ -751,7 +769,12 @@ export class EnhancedFileStorage {
       let cleanedCount: any = 0;
 
       for (const file of files) {
-        if (file === 'metadata.json' || file === 'thumbnails' || file === 'compressed' || file === 'temp') {
+        if (
+          file === 'metadata.json' ||
+          file === 'thumbnails' ||
+          file === 'compressed' ||
+          file === 'temp'
+        ) {
           continue;
         }
 
@@ -796,4 +819,4 @@ export const uploadFile: any = enhancedFileStorage.uploadFile.bind(enhancedFileS
 export const downloadFile: any = enhancedFileStorage.downloadFile.bind(enhancedFileStorage);
 export const deleteFile: any = enhancedFileStorage.deleteFile.bind(enhancedFileStorage);
 export const getFileMetadata: any = enhancedFileStorage.getFileMetadata.bind(enhancedFileStorage);
-export const listFiles: any = enhancedFileStorage.listFiles.bind(enhancedFileStorage); 
+export const listFiles: any = enhancedFileStorage.listFiles.bind(enhancedFileStorage);

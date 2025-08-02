@@ -1,0 +1,478 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://zk-agent.com/schemas/token-limits.json",
+  "title": "Token Limits Configuration Schema",
+  "description": "Schema for token limits configuration file",
+  "type": "object",
+  "required": ["version", "providers", "chunkingStrategies"],
+  
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "JSON Schema reference"
+    },
+    
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Configuration version in semver format"
+    },
+    
+    "description": {
+      "type": "string",
+      "description": "Configuration description"
+    },
+    
+    "lastUpdated": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last update timestamp"
+    },
+    
+    "providers": {
+      "type": "object",
+      "description": "AI provider configurations",
+      "patternProperties": {
+        "^[a-z0-9-]+$": {
+          "type": "object",
+          "required": ["name", "limits"],
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Provider display name"
+            },
+            
+            "description": {
+              "type": "string",
+              "description": "Provider description"
+            },
+            
+            "limits": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "required": ["maxInputTokens", "maxOutputTokens"],
+                  "properties": {
+                    "maxInputTokens": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "description": "Maximum input tokens"
+                    },
+                    "maxOutputTokens": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "description": "Maximum output tokens"
+                    },
+                    "maxContextWindow": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "description": "Maximum context window"
+                    },
+                    "recommendedChunkSize": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "description": "Recommended chunk size"
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "description": "Model-specific limits",
+                  "patternProperties": {
+                    "^[a-z0-9.-]+$": {
+                      "type": "object",
+                      "required": ["maxInputTokens", "maxOutputTokens"],
+                      "properties": {
+                        "maxInputTokens": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "maxOutputTokens": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "maxContextWindow": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "recommendedChunkSize": {
+                          "type": "integer",
+                          "minimum": 1
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            
+            "endpoints": {
+              "type": "object",
+              "properties": {
+                "api": {
+                  "type": "string",
+                  "format": "uri",
+                  "description": "API endpoint URL"
+                },
+                "streaming": {
+                  "type": "string",
+                  "format": "uri",
+                  "description": "Streaming endpoint URL"
+                }
+              }
+            },
+            
+            "errorPatterns": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "description": "Regex pattern for error detection"
+              },
+              "description": "Error patterns for token limit detection"
+            }
+          }
+        }
+      }
+    },
+    
+    "chunkingStrategies": {
+      "type": "object",
+      "description": "Available chunking strategies",
+      "patternProperties": {
+        "^[a-z0-9-]+$": {
+          "type": "object",
+          "required": ["name", "priority", "config"],
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Strategy display name"
+            },
+            
+            "description": {
+              "type": "string",
+              "description": "Strategy description"
+            },
+            
+            "priority": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Strategy priority (lower = higher priority)"
+            },
+            
+            "config": {
+              "type": "object",
+              "description": "Strategy-specific configuration"
+            }
+          }
+        }
+      }
+    },
+    
+    "fileTypeConfigs": {
+      "type": "object",
+      "description": "File type specific configurations",
+      "patternProperties": {
+        "^[a-z0-9-]+$": {
+          "type": "object",
+          "required": ["extensions", "tokenMultiplier", "chunkingStrategy"],
+          "properties": {
+            "extensions": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^\\.[a-z0-9]+$"
+              },
+              "description": "File extensions"
+            },
+            
+            "tokenMultiplier": {
+              "type": "number",
+              "minimum": 0.1,
+              "maximum": 10,
+              "description": "Token estimation multiplier"
+            },
+            
+            "chunkingStrategy": {
+              "type": "string",
+              "description": "Preferred chunking strategy"
+            }
+          },
+          "additionalProperties": {
+            "type": "boolean",
+            "description": "Additional file type options"
+          }
+        }
+      }
+    },
+    
+    "optimizationRules": {
+      "type": "object",
+      "description": "Content optimization rules",
+      "properties": {
+        "excludePatterns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "File patterns to exclude"
+        },
+        
+        "priorityFiles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "High priority file patterns"
+        },
+        
+        "compressionRules": {
+          "type": "object",
+          "properties": {
+            "removeComments": {
+              "type": "boolean",
+              "description": "Remove code comments"
+            },
+            "removeEmptyLines": {
+              "type": "boolean",
+              "description": "Remove empty lines"
+            },
+            "minifyWhitespace": {
+              "type": "boolean",
+              "description": "Minify whitespace"
+            },
+            "preserveFormatting": {
+              "type": "boolean",
+              "description": "Preserve code formatting"
+            }
+          }
+        },
+        
+        "cachingRules": {
+          "type": "object",
+          "properties": {
+            "enableCaching": {
+              "type": "boolean",
+              "description": "Enable result caching"
+            },
+            "cacheDirectory": {
+              "type": "string",
+              "description": "Cache directory path"
+            },
+            "cacheTTL": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Cache TTL in seconds"
+            },
+            "cacheKey": {
+              "type": "string",
+              "enum": ["file-hash", "content-hash", "timestamp"],
+              "description": "Cache key strategy"
+            }
+          }
+        }
+      }
+    },
+    
+    "monitoring": {
+      "type": "object",
+      "description": "Monitoring and reporting configuration",
+      "properties": {
+        "enableMetrics": {
+          "type": "boolean",
+          "description": "Enable metrics collection"
+        },
+        
+        "metricsFile": {
+          "type": "string",
+          "description": "Metrics output file"
+        },
+        
+        "alertThresholds": {
+          "type": "object",
+          "properties": {
+            "warningPercentage": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100,
+              "description": "Warning threshold percentage"
+            },
+            "errorPercentage": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100,
+              "description": "Error threshold percentage"
+            }
+          }
+        },
+        
+        "reportingConfig": {
+          "type": "object",
+          "properties": {
+            "generateReports": {
+              "type": "boolean",
+              "description": "Generate analysis reports"
+            },
+            "reportFormat": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["json", "html", "csv", "xml"]
+              },
+              "description": "Report output formats"
+            },
+            "reportDirectory": {
+              "type": "string",
+              "description": "Report output directory"
+            },
+            "includeChunkDetails": {
+              "type": "boolean",
+              "description": "Include chunk details in reports"
+            },
+            "includeOptimizationSuggestions": {
+              "type": "boolean",
+              "description": "Include optimization suggestions"
+            }
+          }
+        }
+      }
+    },
+    
+    "cicdIntegration": {
+      "type": "object",
+      "description": "CI/CD integration configuration",
+      "properties": {
+        "enablePreCommitCheck": {
+          "type": "boolean",
+          "description": "Enable pre-commit token checks"
+        },
+        
+        "enableCICheck": {
+          "type": "boolean",
+          "description": "Enable CI token checks"
+        },
+        
+        "failOnExceed": {
+          "type": "boolean",
+          "description": "Fail build on token limit exceed"
+        },
+        
+        "warningOnExceed": {
+          "type": "boolean",
+          "description": "Show warning on token limit exceed"
+        },
+        
+        "githubActions": {
+          "type": "object",
+          "properties": {
+            "enableAnnotations": {
+              "type": "boolean",
+              "description": "Enable GitHub annotations"
+            },
+            "uploadReports": {
+              "type": "boolean",
+              "description": "Upload reports as artifacts"
+            },
+            "commentOnPR": {
+              "type": "boolean",
+              "description": "Comment on pull requests"
+            }
+          }
+        },
+        
+        "hooks": {
+          "type": "object",
+          "properties": {
+            "preCommit": {
+              "type": "string",
+              "description": "Pre-commit hook command"
+            },
+            "prePush": {
+              "type": "string",
+              "description": "Pre-push hook command"
+            },
+            "ciPipeline": {
+              "type": "string",
+              "description": "CI pipeline command"
+            }
+          }
+        }
+      }
+    },
+    
+    "emergencyFallbacks": {
+      "type": "object",
+      "description": "Emergency fallback configurations",
+      "properties": {
+        "autoChunking": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable automatic chunking"
+            },
+            "maxRetries": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Maximum retry attempts"
+            },
+            "fallbackChunkSize": {
+              "type": "integer",
+              "minimum": 1000,
+              "description": "Fallback chunk size"
+            },
+            "emergencyChunkSize": {
+              "type": "integer",
+              "minimum": 500,
+              "description": "Emergency chunk size"
+            }
+          }
+        },
+        
+        "contentFiltering": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable content filtering"
+            },
+            "removeNonEssential": {
+              "type": "boolean",
+              "description": "Remove non-essential content"
+            },
+            "prioritizeCore": {
+              "type": "boolean",
+              "description": "Prioritize core functionality"
+            },
+            "maxContentReduction": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100,
+              "description": "Maximum content reduction percentage"
+            }
+          }
+        },
+        
+        "providerSwitching": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable provider switching"
+            },
+            "fallbackProviders": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Fallback provider list"
+            },
+            "autoSwitch": {
+              "type": "boolean",
+              "description": "Automatically switch providers"
+            }
+          }
+        }
+      }
+    }
+  }
+}

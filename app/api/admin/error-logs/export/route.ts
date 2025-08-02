@@ -9,11 +9,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createApiRoute, RouteConfigs } from '../../../../../lib/middleware/api-route-wrapper';
 import { ApiResponseWrapper } from '../../../../../lib/utils/api-helper';
 import { verifyAdminAuth } from '../../../../../lib/auth/middleware';
-import { productionDatabaseManager } from '../../../../../lib/database/production-database-manager';
+import enhancedDb from '../../../../../lib/database/enhanced-connection';
 import { ErrorCode } from '../../../../../types/core';
-import { Logger } from '../../../../../lib/utils/logger';
+import { getLogger } from '@/lib/utils/logger';
 
-const logger = new Logger('ExportErrorLogs');
+const logger = getLogger();
 
 export const GET = createApiRoute(
   RouteConfigs.protectedGet(),
@@ -21,7 +21,8 @@ export const GET = createApiRoute(
     // 验证管理员权限
     const authResult = await verifyAdminAuth(req);
     if (!authResult.success) {
-      return ApiResponseWrapper.error(ErrorCode.AUTHORIZATION_ERROR,
+      return ApiResponseWrapper.error(
+        ErrorCode.AUTHORIZATION_ERROR,
         'Unauthorized access',
         null,
         403
@@ -42,7 +43,16 @@ export const GET = createApiRoute(
 
     try {
       // 从数据库获取错误日志
-      const prisma = enhancedDb.prisma;
+      const prisma = enhancedDb.getClient();
+      if (!prisma) {
+        return ApiResponseWrapper.error(
+          ErrorCode.INTERNAL_SERVER_ERROR,
+          'Database connection not available',
+          null,
+          500
+        );
+      }
+      
       const errorLogs = await prisma.errorLog.findMany({
         orderBy: {
           createdAt: 'desc',
@@ -78,7 +88,8 @@ export const GET = createApiRoute(
       });
     } catch (error) {
       logger.error('Error exporting error logs:', error);
-      return ApiResponseWrapper.error(ErrorCode.INTERNAL_SERVER_ERROR,
+      return ApiResponseWrapper.error(
+        ErrorCode.INTERNAL_SERVER_ERROR,
         'Failed to export error logs',
         error,
         500

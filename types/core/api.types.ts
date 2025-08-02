@@ -10,69 +10,72 @@ import { ApiResponse, PaginationParams } from './core-interfaces';
 
 // 搜索参数
 export interface SearchParams {
-  query?: string
-  filters?: Record<string, any>
+  query?: string;
+  filters?: Record<string, any>;
 }
 
 // HTTP方法类型
-export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
 
 // API请求配置
 export interface ApiRequestConfig {
-  method: HttpMethod
-  url: string
-  data?: any
-  params?: Record<string, any>
-  headers?: Record<string, string>
-  timeout?: number
+  method: HttpMethod;
+  url: string;
+  data?: any;
+  params?: Record<string, any>;
+  headers?: Record<string, string>;
+  timeout?: number;
 }
 
 // API客户端接口
 export interface ApiClient {
-  get<T>(url: string, config?: Partial<ApiRequestConfig>): Promise<ApiResponse<T>>
-  post<T>(url: string, data?: any, config?: Partial<ApiRequestConfig>): Promise<ApiResponse<T>>
-  put<T>(url: string, data?: any, config?: Partial<ApiRequestConfig>): Promise<ApiResponse<T>>
-  delete<T>(url: string, config?: Partial<ApiRequestConfig>): Promise<ApiResponse<T>>
-  patch<T>(url: string, data?: any, config?: Partial<ApiRequestConfig>): Promise<ApiResponse<T>>
+  get<T>(url: string, config?: Partial<ApiRequestConfig>): Promise<ApiResponse<T>>;
+  post<T>(url: string, data?: any, config?: Partial<ApiRequestConfig>): Promise<ApiResponse<T>>;
+  put<T>(url: string, data?: any, config?: Partial<ApiRequestConfig>): Promise<ApiResponse<T>>;
+  delete<T>(url: string, config?: Partial<ApiRequestConfig>): Promise<ApiResponse<T>>;
+  patch<T>(url: string, data?: any, config?: Partial<ApiRequestConfig>): Promise<ApiResponse<T>>;
 }
 
 // 文件上传响应
 export interface FileUploadResponse {
-  id: string
-  filename: string
-  originalName: string
-  mimetype: string
-  size: number
-  url: string
-  uploadedAt: string
+  id: string;
+  filename: string;
+  originalName: string;
+  mimetype: string;
+  size: number;
+  url: string;
+  uploadedAt: string;
 }
 
 // 批量操作响应
 export interface BatchOperationResponse {
-  total: number
-  successful: number
-  failed: number
+  total: number;
+  successful: number;
+  failed: number;
   errors?: Array<{
-    id: string
-    error: string
-  }>
+    id: string;
+    error: string;
+  }>;
 }
 
 // 健康检查响应
 export interface HealthCheckResponse {
-  status: 'healthy' | 'unhealthy'
-  timestamp: string
-  services: Record<string, {
-    status: 'up' | 'down'
-    responseTime?: number
-    error?: string
-  }>
+  status: 'healthy' | 'unhealthy';
+  timestamp: string;
+  services: Record<
+    string,
+    {
+      status: 'up' | 'down';
+      responseTime?: number;
+      error?: string;
+    }
+  >;
 }
 
 // 版本信息响应
 export interface VersionResponse {
-  version: string
-  buildDate: string
-  gitCommit?: string
-  environment: string
+  version: string;
+  buildDate: string;
+  gitCommit?: string;
+  environment: string;
 }

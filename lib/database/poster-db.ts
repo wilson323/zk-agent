@@ -4,8 +4,17 @@
  * 严格按照设计文档的数据结构要求
  */
 
-import { enhancedDb, dbTransaction } from "@/lib/database"
-import type { PosterStyle, PosterSize, ColorPalette, PosterTask, PosterGenerationResult } from "@/types/poster"
+import { enhancedDb, dbTransaction } from '@/lib/database';
+import type {
+  PosterStyle,
+  PosterSize,
+  ColorPalette,
+  PosterTask,
+  PosterGenerationResult,
+} from '@/types/poster';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
 
 export class PosterDatabase {
   /**
@@ -13,21 +22,22 @@ export class PosterDatabase {
    */
   static async getStyles(): Promise<PosterStyle[]> {
     try {
+      const prisma = enhancedDb.getClient();
       const styles = await prisma.posterStyle.findMany({
         where: { isActive: true },
-        orderBy: { order: "asc" },
-      })
+        orderBy: { order: 'asc' },
+      });
 
-      return styles.map((style) => ({
+      return styles.map(style => ({
         id: style.id,
         name: style.name,
         description: style.description,
         category: style.category,
         previewUrl: style.previewUrl,
-      }))
+      }));
     } catch (error) {
-      console.error("Failed to get poster styles:", error)
-      throw new Error("获取海报风格失败")
+      logger.error('Failed to get poster styles:', error);
+      throw new Error('获取海报风格失败');
     }
   }
 
@@ -36,22 +46,23 @@ export class PosterDatabase {
    */
   static async getSizes(): Promise<PosterSize[]> {
     try {
+      const prisma = enhancedDb.getClient();
       const sizes = await prisma.posterSize.findMany({
         where: { isActive: true },
-        orderBy: { order: "asc" },
-      })
+        orderBy: { order: 'asc' },
+      });
 
-      return sizes.map((size) => ({
+      return sizes.map(size => ({
         id: size.id,
         name: size.name,
         dimensions: size.dimensions,
         ratio: size.ratio,
         width: size.width,
         height: size.height,
-      }))
+      }));
     } catch (error) {
-      console.error("Failed to get poster sizes:", error)
-      throw new Error("获取海报尺寸失败")
+      logger.error('Failed to get poster sizes:', error);
+      throw new Error('获取海报尺寸失败');
     }
   }
 
@@ -60,20 +71,21 @@ export class PosterDatabase {
    */
   static async getColorPalettes(): Promise<ColorPalette[]> {
     try {
+      const prisma = enhancedDb.getClient();
       const palettes = await prisma.colorPalette.findMany({
         where: { isActive: true },
-        orderBy: { order: "asc" },
-      })
+        orderBy: { order: 'asc' },
+      });
 
-      return palettes.map((palette) => ({
+      return palettes.map(palette => ({
         id: palette.id,
         name: palette.name,
         colors: palette.colors,
         description: palette.description,
-      }))
+      }));
     } catch (error) {
-      console.error("Failed to get color palettes:", error)
-      throw new Error("获取配色方案失败")
+      logger.error('Failed to get color palettes:', error);
+      throw new Error('获取配色方案失败');
     }
   }
 
@@ -81,15 +93,16 @@ export class PosterDatabase {
    * 创建海报任务
    */
   static async createPosterTask(data: {
-    userId: string
-    description: string
-    style: string
-    size: string
-    palette: string
-    referenceImageUrl?: string
-    templateId?: string
+    userId: string;
+    description: string;
+    style: string;
+    size: string;
+    palette: string;
+    referenceImageUrl?: string;
+    templateId?: string;
   }): Promise<PosterTask> {
     try {
+      const prisma = enhancedDb.getClient();
       const task = await prisma.posterTask.create({
         data: {
           userId: data.userId,
@@ -99,10 +112,10 @@ export class PosterDatabase {
           palette: data.palette,
           referenceImageUrl: data.referenceImageUrl,
           templateId: data.templateId,
-          resultImageUrl: "", // 初始为空，生成后更新
-          status: "pending",
+          resultImageUrl: '', // 初始为空，生成后更新
+          status: 'pending',
         },
-      })
+      });
 
       return {
         id: task.id,
@@ -114,10 +127,10 @@ export class PosterDatabase {
         referenceImageUrl: task.referenceImageUrl,
         resultImageUrl: task.resultImageUrl,
         createdAt: task.createdAt,
-      }
+      };
     } catch (error) {
-      console.error("Failed to create poster task:", error)
-      throw new Error("创建海报任务失败")
+      logger.error('Failed to create poster task:', error);
+      throw new Error('创建海报任务失败');
     }
   }
 
@@ -126,17 +139,18 @@ export class PosterDatabase {
    */
   static async updatePosterTaskResult(taskId: string, resultImageUrl: string): Promise<void> {
     try {
+      const prisma = enhancedDb.getClient();
       await prisma.posterTask.update({
         where: { id: taskId },
         data: {
           resultImageUrl,
-          status: "completed",
+          status: 'completed',
           updatedAt: new Date(),
         },
-      })
+      });
     } catch (error) {
-      console.error("Failed to update poster task result:", error)
-      throw new Error("更新海报任务结果失败")
+      logger.error('Failed to update poster task result:', error);
+      throw new Error('更新海报任务结果失败');
     }
   }
 
@@ -144,18 +158,19 @@ export class PosterDatabase {
    * 保存生成历史
    */
   static async saveGenerationHistory(data: {
-    userId: string
-    prompt: string
-    style: string
-    size: string
-    palette: string
-    templateId?: string
-    imageUrl: string
-    thumbnailUrl?: string
-    settings: any
-    metadata?: any
+    userId: string;
+    prompt: string;
+    style: string;
+    size: string;
+    palette: string;
+    templateId?: string;
+    imageUrl: string;
+    thumbnailUrl?: string;
+    settings: any;
+    metadata?: any;
   }): Promise<PosterGenerationResult> {
     try {
+      const prisma = enhancedDb.getClient();
       const generation = await prisma.posterGeneration.create({
         data: {
           userId: data.userId,
@@ -169,7 +184,7 @@ export class PosterDatabase {
           settings: data.settings,
           metadata: data.metadata,
         },
-      })
+      });
 
       return {
         id: generation.id,
@@ -182,10 +197,10 @@ export class PosterDatabase {
           palette: data.palette,
         },
         createdAt: generation.createdAt,
-      }
+      };
     } catch (error) {
-      console.error("Failed to save generation history:", error)
-      throw new Error("保存生成历史失败")
+      logger.error('Failed to save generation history:', error);
+      throw new Error('保存生成历史失败');
     }
   }
 
@@ -194,6 +209,7 @@ export class PosterDatabase {
    */
   static async getUserGenerationHistory(userId: string, limit = 20) {
     try {
+      const prisma = enhancedDb.getClient();
       const history = await prisma.posterGeneration.findMany({
         where: { userId },
         include: {
@@ -202,11 +218,11 @@ export class PosterDatabase {
           paletteRef: true,
           templateRef: true,
         },
-        orderBy: { createdAt: "desc" },
+        orderBy: { createdAt: 'desc' },
         take: limit,
-      })
+      });
 
-      return history.map((item) => ({
+      return history.map(item => ({
         id: item.id,
         prompt: item.prompt,
         style: item.styleRef.name,
@@ -220,10 +236,10 @@ export class PosterDatabase {
         rating: item.rating,
         feedback: item.feedback,
         createdAt: item.createdAt,
-      }))
+      }));
     } catch (error) {
-      console.error("Failed to get user generation history:", error)
-      throw new Error("获取用户生成历史失败")
+      logger.error('Failed to get user generation history:', error);
+      throw new Error('获取用户生成历史失败');
     }
   }
 
@@ -231,26 +247,33 @@ export class PosterDatabase {
    * 获取模板列表
    */
   static async getTemplates(filters?: {
-    category?: string
-    industry?: string
-    productType?: string
+    category?: string;
+    industry?: string;
+    productType?: string;
   }) {
     try {
-      const where: any = { isActive: true }
+      const prisma = enhancedDb.getClient();
+      const where: any = { isActive: true };
 
-      if (filters?.category) {where.category = filters.category}
-      if (filters?.industry) {where.industry = filters.industry}
-      if (filters?.productType) {where.productType = filters.productType}
+      if (filters?.category) {
+        where.category = filters.category;
+      }
+      if (filters?.industry) {
+        where.industry = filters.industry;
+      }
+      if (filters?.productType) {
+        where.productType = filters.productType;
+      }
 
       const templates = await prisma.posterTemplate.findMany({
         where,
         include: {
           tags: true,
         },
-        orderBy: { popularity: "desc" },
-      })
+        orderBy: { popularity: 'desc' },
+      });
 
-      return templates.map((template) => ({
+      return templates.map(template => ({
         id: template.id,
         name: template.name,
         description: template.description,
@@ -259,15 +282,15 @@ export class PosterDatabase {
         industry: template.industry,
         productType: template.productType,
         useCase: template.useCase,
-        tags: template.tags.map((tag) => tag.name),
+        tags: template.tags.map(tag => tag.name),
         popularity: template.popularity,
         usageCount: template.usageCount,
         isNew: template.isNew,
         isPremium: template.isPremium,
-      }))
+      }));
     } catch (error) {
-      console.error("Failed to get templates:", error)
-      throw new Error("获取模板列表失败")
+      logger.error('Failed to get templates:', error);
+      throw new Error('获取模板列表失败');
     }
   }
 
@@ -276,6 +299,7 @@ export class PosterDatabase {
    */
   static async updateTemplateUsage(templateId: string): Promise<void> {
     try {
+      const prisma = enhancedDb.getClient();
       await prisma.posterTemplate.update({
         where: { id: templateId },
         data: {
@@ -283,9 +307,9 @@ export class PosterDatabase {
           popularity: { increment: 1 },
           lastUsed: new Date(),
         },
-      })
+      });
     } catch (error) {
-      console.error("Failed to update template usage:", error)
+      logger.error('Failed to update template usage:', error);
       // 不抛出错误，统计失败不影响主流程
     }
   }
@@ -294,12 +318,12 @@ export class PosterDatabase {
    * 记录使用统计
    */
   static async recordUsageStats(data: {
-    userId?: string
-    agentType: string
-    action: string
-    metadata?: any
+    userId?: string;
+    agentType: string;
+    action: string;
+    metadata?: any;
   }): Promise<void> {
-    return dbTransaction(async (prisma) => {
+    return dbTransaction(async prisma => {
       await prisma.usageStats.create({
         data: {
           userId: data.userId,
@@ -307,7 +331,7 @@ export class PosterDatabase {
           action: data.action,
           metadata: data.metadata,
         },
-      })
-    })
+      });
+    });
   }
 }

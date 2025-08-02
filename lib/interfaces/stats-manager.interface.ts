@@ -16,9 +16,5 @@ export interface IStatsService {
     req?: NextRequest;
   }): Promise<any>;
   getUserStats(userId: string): Promise<any>;
-  getStatsSummary(options: {
-    startDate?: Date;
-    endDate?: Date;
-    agentType?: string;
-  }): Promise<any>;
+  getStatsSummary(options: { startDate?: Date; endDate?: Date; agentType?: string }): Promise<any>;
 }

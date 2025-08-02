@@ -7,10 +7,14 @@
  * @features 真实AWS S3和阿里云OSS集成
  */
 
-import { Logger } from '@/lib/utils/logger';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
+
+const logger = getLogger();
 import { enhancedCacheManager } from '@/lib/cache/enhanced-cache-manager';
 
-const logger = new Logger('RealCloudStorageAdapter');
+const logger = getLogger();
 
 // 导入统一的云存储提供商枚举
 import { CloudProvider } from '@/lib/types/enums';
@@ -86,7 +90,7 @@ class LocalStorageClient implements StorageClient {
   private ensureDirectoryExists(): void {
     const fs = require('fs');
     const path = require('path');
-    
+
     if (!fs.existsSync(this.basePath)) {
       fs.mkdirSync(this.basePath, { recursive: true });
     }
@@ -119,7 +123,6 @@ class LocalStorageClient implements StorageClient {
 
       logger.info('File uploaded to local storage successfully', result);
       return result;
-
     } catch (error) {
       logger.error('Local storage upload failed', {
         key: options.key,
@@ -143,7 +146,6 @@ class LocalStorageClient implements StorageClient {
       });
 
       return buffer;
-
     } catch (error) {
       logger.error('Local storage download failed', {
         key: options.key,
@@ -162,7 +164,6 @@ class LocalStorageClient implements StorageClient {
       await fs.unlink(filePath);
 
       logger.info('File deleted from local storage successfully', { key });
-
     } catch (error) {
       if (error.code !== 'ENOENT') {
         logger.error('Local storage delete failed', {
@@ -182,7 +183,6 @@ class LocalStorageClient implements StorageClient {
       const filePath = path.join(this.basePath, key);
       await fs.access(filePath);
       return true;
-
     } catch (error) {
       return false;
     }
@@ -206,7 +206,6 @@ class LocalStorageClient implements StorageClient {
         etag,
         url: `file://${filePath}`,
       };
-
     } catch (error) {
       logger.error('Local storage getFileInfo failed', {
         key,
@@ -221,49 +220,52 @@ class LocalStorageClient implements StorageClient {
       const fs = require('fs').promises;
       const path = require('path');
 
-             const searchPath = this.basePath;
+      const searchPath = this.basePath;
       const files: FileInfo[] = [];
 
-             const scanDirectory = async (dirPath: string, currentPrefix: string = ''): Promise<void> => {
-         try {
-           const entries = await fs.readdir(dirPath, { withFileTypes: true });
+      const scanDirectory = async (dirPath: string, currentPrefix: string = ''): Promise<void> => {
+        try {
+          const entries = await fs.readdir(dirPath, { withFileTypes: true });
 
-           for (const entry of entries) {
-             if (files.length >= maxKeys) {break;}
+          for (const entry of entries) {
+            if (files.length >= maxKeys) {
+              break;
+            }
 
-             const fullPath = path.join(dirPath, entry.name);
-             const relativePath = currentPrefix ? path.join(currentPrefix, entry.name).replace(/\\/g, '/') : entry.name;
+            const fullPath = path.join(dirPath, entry.name);
+            const relativePath = currentPrefix
+              ? path.join(currentPrefix, entry.name).replace(/\\/g, '/')
+              : entry.name;
 
-             if (entry.isDirectory()) {
-               await scanDirectory(fullPath, relativePath);
-             } else if (entry.isFile()) {
-               // 如果有前缀过滤，检查文件是否匹配
-               if (prefix && !relativePath.startsWith(prefix)) {
-                 continue;
-               }
+            if (entry.isDirectory()) {
+              await scanDirectory(fullPath, relativePath);
+            } else if (entry.isFile()) {
+              // 如果有前缀过滤，检查文件是否匹配
+              if (prefix && !relativePath.startsWith(prefix)) {
+                continue;
+              }
 
-               const stats = await fs.stat(fullPath);
-               const buffer = await fs.readFile(fullPath);
-               const crypto = require('crypto');
-               const etag = crypto.createHash('md5').update(buffer).digest('hex');
+              const stats = await fs.stat(fullPath);
+              const buffer = await fs.readFile(fullPath);
+              const crypto = require('crypto');
+              const etag = crypto.createHash('md5').update(buffer).digest('hex');
 
-               files.push({
-                 key: relativePath,
-                 size: stats.size,
-                 lastModified: stats.mtime,
-                 etag,
-                 url: `file://${fullPath}`,
-               });
-             }
-           }
-         } catch (error) {
-           // 忽略无法访问的目录
-         }
-       };
+              files.push({
+                key: relativePath,
+                size: stats.size,
+                lastModified: stats.mtime,
+                etag,
+                url: `file://${fullPath}`,
+              });
+            }
+          }
+        } catch (error) {
+          // 忽略无法访问的目录
+        }
+      };
 
       await scanDirectory(searchPath);
       return files;
-
     } catch (error) {
       logger.error('Local storage listFiles failed', {
         prefix,
@@ -274,10 +276,14 @@ class LocalStorageClient implements StorageClient {
     }
   }
 
-  async getSignedUrl(key: string, operation: 'get' | 'put', expiresIn: number = 3600): Promise<string> {
+  async getSignedUrl(
+    key: string,
+    operation: 'get' | 'put',
+    expiresIn: number = 3600
+  ): Promise<string> {
     const path = require('path');
     const filePath = path.join(this.basePath, key);
-    
+
     // 本地存储不需要签名URL，直接返回文件路径
     return `file://${filePath}`;
   }
@@ -318,7 +324,6 @@ class LocalStorageClient implements StorageClient {
         usedQuota: totalSize,
         availableQuota: Number.MAX_SAFE_INTEGER, // 本地存储假设无限制
       };
-
     } catch (error) {
       logger.error('Local storage getStats failed', {
         error: error.message,
@@ -342,7 +347,7 @@ class AWSS3Client implements StorageClient {
     try {
       // 检查是否有AWS SDK
       const AWS = require('aws-sdk');
-      
+
       this.s3Client = new AWS.S3({
         accessKeyId: this.config.accessKeyId,
         secretAccessKey: this.config.secretAccessKey,
@@ -353,7 +358,6 @@ class AWSS3Client implements StorageClient {
         region: this.config.region,
         bucket: this.config.bucket,
       });
-
     } catch (error) {
       logger.error('Failed to initialize AWS S3 client', {
         error: error.message,
@@ -381,7 +385,6 @@ class AWSS3Client implements StorageClient {
         etag: result.ETag.replace(/"/g, ''),
         size: buffer.length,
       };
-
     } catch (error) {
       logger.error('AWS S3 upload failed', {
         key: options.key,
@@ -408,7 +411,6 @@ class AWSS3Client implements StorageClient {
 
       const result = await this.s3Client.getObject(downloadParams).promise();
       return result.Body as Buffer;
-
     } catch (error) {
       logger.error('AWS S3 download failed', {
         key: options.key,
@@ -420,11 +422,12 @@ class AWSS3Client implements StorageClient {
 
   async delete(key: string): Promise<void> {
     try {
-      await this.s3Client.deleteObject({
-        Bucket: this.config.bucket,
-        Key: key,
-      }).promise();
-
+      await this.s3Client
+        .deleteObject({
+          Bucket: this.config.bucket,
+          Key: key,
+        })
+        .promise();
     } catch (error) {
       logger.error('AWS S3 delete failed', {
         key,
@@ -436,12 +439,13 @@ class AWSS3Client implements StorageClient {
 
   async exists(key: string): Promise<boolean> {
     try {
-      await this.s3Client.headObject({
-        Bucket: this.config.bucket,
-        Key: key,
-      }).promise();
+      await this.s3Client
+        .headObject({
+          Bucket: this.config.bucket,
+          Key: key,
+        })
+        .promise();
       return true;
-
     } catch (error) {
       if (error.statusCode === 404) {
         return false;
@@ -452,10 +456,12 @@ class AWSS3Client implements StorageClient {
 
   async getFileInfo(key: string): Promise<FileInfo> {
     try {
-      const result = await this.s3Client.headObject({
-        Bucket: this.config.bucket,
-        Key: key,
-      }).promise();
+      const result = await this.s3Client
+        .headObject({
+          Bucket: this.config.bucket,
+          Key: key,
+        })
+        .promise();
 
       return {
         key,
@@ -465,7 +471,6 @@ class AWSS3Client implements StorageClient {
         contentType: result.ContentType,
         url: `https://${this.config.bucket}.s3.${this.config.region}.amazonaws.com/${key}`,
       };
-
     } catch (error) {
       logger.error('AWS S3 getFileInfo failed', {
         key,
@@ -487,15 +492,16 @@ class AWSS3Client implements StorageClient {
       }
 
       const result = await this.s3Client.listObjectsV2(params).promise();
-      
-      return result.Contents?.map((obj: any) => ({
-        key: obj.Key,
-        size: obj.Size,
-        lastModified: obj.LastModified,
-        etag: obj.ETag.replace(/"/g, ''),
-        url: `https://${this.config.bucket}.s3.${this.config.region}.amazonaws.com/${obj.Key}`,
-      })) || [];
 
+      return (
+        result.Contents?.map((obj: any) => ({
+          key: obj.Key,
+          size: obj.Size,
+          lastModified: obj.LastModified,
+          etag: obj.ETag.replace(/"/g, ''),
+          url: `https://${this.config.bucket}.s3.${this.config.region}.amazonaws.com/${obj.Key}`,
+        })) || []
+      );
     } catch (error) {
       logger.error('AWS S3 listFiles failed', {
         prefix,
@@ -506,7 +512,11 @@ class AWSS3Client implements StorageClient {
     }
   }
 
-  async getSignedUrl(key: string, operation: 'get' | 'put', expiresIn: number = 3600): Promise<string> {
+  async getSignedUrl(
+    key: string,
+    operation: 'get' | 'put',
+    expiresIn: number = 3600
+  ): Promise<string> {
     try {
       const operation_map = {
         get: 'getObject',
@@ -518,7 +528,6 @@ class AWSS3Client implements StorageClient {
         Key: key,
         Expires: expiresIn,
       });
-
     } catch (error) {
       logger.error('AWS S3 getSignedUrl failed', {
         key,
@@ -533,12 +542,15 @@ class AWSS3Client implements StorageClient {
     try {
       // AWS S3 不直接提供存储统计，需要通过CloudWatch或其他方式获取
       // 这里提供基础实现
-      const listResult = await this.s3Client.listObjectsV2({
-        Bucket: this.config.bucket,
-      }).promise();
+      const listResult = await this.s3Client
+        .listObjectsV2({
+          Bucket: this.config.bucket,
+        })
+        .promise();
 
       const totalFiles = listResult.KeyCount || 0;
-      const totalSize = listResult.Contents?.reduce((sum: number, obj: any) => sum + obj.Size, 0) || 0;
+      const totalSize =
+        listResult.Contents?.reduce((sum: number, obj: any) => sum + obj.Size, 0) || 0;
 
       return {
         totalFiles,
@@ -546,7 +558,6 @@ class AWSS3Client implements StorageClient {
         usedQuota: totalSize,
         availableQuota: Number.MAX_SAFE_INTEGER, // AWS S3 假设无限制
       };
-
     } catch (error) {
       logger.error('AWS S3 getStats failed', {
         error: error.message,
@@ -593,7 +604,7 @@ export class RealCloudStorageAdapter {
       }
 
       this.clients.set(provider, client);
-      
+
       if (configs[0].provider === provider) {
         this.primaryProvider = provider;
       } else {
@@ -618,16 +629,14 @@ export class RealCloudStorageAdapter {
 
     try {
       const result = await client.upload(buffer, options);
-      
+
       // 缓存上传结果
-      await enhancedCacheManager.set(
-        `file:${options.key}`,
-        result,
-        { ttl: 3600000, tags: ['file-upload'] }
-      );
+      await enhancedCacheManager.set(`file:${options.key}`, result, {
+        ttl: 3600000,
+        tags: ['file-upload'],
+      });
 
       return result;
-
     } catch (error) {
       logger.error('Upload failed', {
         provider: this.primaryProvider,
@@ -649,7 +658,6 @@ export class RealCloudStorageAdapter {
 
     try {
       return await client.download(options);
-
     } catch (error) {
       logger.error('Download failed', {
         provider: this.primaryProvider,
@@ -671,10 +679,9 @@ export class RealCloudStorageAdapter {
 
     try {
       await client.delete(key);
-      
+
       // 清除相关缓存
       await enhancedCacheManager.delete(`file:${key}`);
-
     } catch (error) {
       logger.error('Delete failed', {
         provider: this.primaryProvider,
@@ -778,7 +785,6 @@ export class RealCloudStorageAdapter {
 
         this.configure([{ provider: CloudProvider.AWS_S3, config: awsConfig }]);
         this.primaryProvider = CloudProvider.AWS_S3;
-
       } catch (error) {
         logger.warn('Failed to initialize AWS S3, falling back to local storage', {
           error: error.message,

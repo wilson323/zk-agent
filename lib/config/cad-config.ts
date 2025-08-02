@@ -1,24 +1,30 @@
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
+
+const logger = getLogger();
+
 // @ts-nocheck
 export const CAD_CONFIG = {
   // 文件处理配置
   fileProcessing: {
     maxFileSize: 500 * 1024 * 1024, // 500MB
     supportedFormats: [
-      "dwg",
-      "dxf",
-      "step",
-      "stp",
-      "iges",
-      "igs",
-      "stl",
-      "obj",
-      "3ds",
-      "ply",
-      "x3d",
-      "collada",
-      "fbx",
-      "dae",
-      "3mf",
+      'dwg',
+      'dxf',
+      'step',
+      'stp',
+      'iges',
+      'igs',
+      'stl',
+      'obj',
+      '3ds',
+      'ply',
+      'x3d',
+      'collada',
+      'fbx',
+      'dae',
+      '3mf',
     ],
     timeout: 300000, // 5分钟
     maxConcurrentFiles: 5,
@@ -58,13 +64,19 @@ export const CAD_CONFIG = {
       medium: 0.4,
       low: 0.0,
     },
-    categories: ["security", "safety", "compliance", "performance", "maintenance"],
+    categories: ['security', 'safety', 'compliance', 'performance', 'maintenance'],
     maxRisksPerAnalysis: 1000,
   },
 
   // 合规性检查配置
   compliance: {
-    enabledStandards: ["GB50348-2018", "GA/T75-1994", "GB50116-2013", "GB50057-2010", "GB50394-2007"],
+    enabledStandards: [
+      'GB50348-2018',
+      'GA/T75-1994',
+      'GB50116-2013',
+      'GB50057-2010',
+      'GB50394-2007',
+    ],
     strictMode: false,
     autoUpdate: true,
     customRules: [],
@@ -90,7 +102,7 @@ export const CAD_CONFIG = {
 
   // 报告配置
   reporting: {
-    defaultFormat: "pdf",
+    defaultFormat: 'pdf',
     enableImages: true,
     enableCharts: true,
     maxReportSize: 50 * 1024 * 1024, // 50MB
@@ -133,7 +145,7 @@ export const CAD_CONFIG = {
 
   // 日志配置
   logging: {
-    level: "info",
+    level: 'info',
     enableFileLogging: true,
     enableConsoleLogging: true,
     maxFileSize: 10 * 1024 * 1024, // 10MB
@@ -143,8 +155,8 @@ export const CAD_CONFIG = {
 
   // 国际化配置
   i18n: {
-    defaultLanguage: "zh-CN",
-    supportedLanguages: ["zh-CN", "en-US"],
+    defaultLanguage: 'zh-CN',
+    supportedLanguages: ['zh-CN', 'en-US'],
     enableAutoDetection: true,
   },
 
@@ -158,56 +170,56 @@ export const CAD_CONFIG = {
     enableExport: true,
     enableSharing: true,
   },
-}
+};
 
 // 环境特定配置
 export const getEnvironmentConfig = () => {
-  const env = process.env.NODE_ENV || "development"
+  const env = process.env.NODE_ENV || 'development';
 
   const envConfigs = {
     development: {
-      logging: { level: "debug" },
+      logging: { level: 'debug' },
       cache: { persistToDisk: false },
       security: { enableEncryption: false },
       performance: { enableProfiling: true },
     },
 
     production: {
-      logging: { level: "warn" },
+      logging: { level: 'warn' },
       cache: { persistToDisk: true },
       security: { enableEncryption: true },
       performance: { enableProfiling: false },
     },
 
     test: {
-      logging: { level: "error" },
+      logging: { level: 'error' },
       cache: { enabled: false },
       database: { connectionPool: { max: 5 } },
     },
-  }
+  };
 
   return {
     ...CAD_CONFIG,
     ...envConfigs[env],
-  }
-}
+  };
+};
 
 // 配置验证
 export const validateConfig = (config: any): boolean => {
   const required = [
-    "fileProcessing.maxFileSize",
-    "deviceRecognition.confidenceThreshold",
-    "riskAssessment.riskThresholds",
-    "compliance.enabledStandards",
-  ]
+    'fileProcessing.maxFileSize',
+    'deviceRecognition.confidenceThreshold',
+    'riskAssessment.riskThresholds',
+    'compliance.enabledStandards',
+  ];
 
   for (const path of required) {
-    const value = path.split(".").reduce((obj, key) => obj?.[key], config)
+    const value = path.split('.').reduce((obj, key) => obj?.[key], config);
     if (value === undefined || value === null) {
-      console.error(`配置项缺失: ${path}`)
-      return false
+      logger.error(`配置项缺失: ${path}`);
+      return false;
     }
   }
 
-  return true
-}
+  return true;
+};

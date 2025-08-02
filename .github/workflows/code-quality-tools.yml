@@ -1,0 +1,601 @@
+name: 🔧 Code Quality Tools
+'on':
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - src/**
+      - package*.json
+      - .github/workflows/**
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - src/**
+      - package*.json
+      - .github/workflows/**
+  schedule:
+    - cron: 0 9 * * *
+  workflow_dispatch:
+    inputs:
+      tools:
+        description: 要运行的工具 (all, ts-prune, depcheck, madge, etc.)
+        required: false
+        default: all
+        type: choice
+        options:
+          - all
+          - ts-prune
+          - depcheck
+          - madge
+          - unimported
+          - dependency-cruiser
+          - eslint-unused-imports
+          - ts-unused-exports
+          - npm-check
+jobs:
+  code-quality-analysis:
+    name: 📊 代码质量分析
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        node-version:
+          - 18.x
+          - 20.x
+      fail-fast: false
+    steps:
+      - name: 📥 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: 缓存依赖和工具
+        uses: actions/cache@v3
+        with:
+          path: |-
+            ~/.npm
+            ~/.cache
+            node_modules
+            .next/cache
+            reports/cache
+          key: >-
+            ${{ runner.os }}-deps-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}-${{
+            hashFiles('scripts/**/*.js') }}
+          restore-keys: |-
+            ${{ runner.os }}-deps-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}-
+            ${{ runner.os }}-deps-
+      - name: 🟢 设置 Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+      - name: 📦 安装依赖
+        run: |-
+          set +e
+          for i in {1..3}; do
+            echo "🔄 尝试第 $i 次..."
+            npm ci
+          # 全局安装一些工具
+          npm install -g depcheck madge unimported npm-check
+
+            if [ $? -eq 0 ]; then
+              echo "✅ 成功"
+              break
+            else
+              echo "❌ 失败，等待重试..."
+              sleep $((i * 5))
+            fi
+          done
+          set -e
+        env:
+          NODE_OPTIONS: '--max-old-space-size=4096'
+      - name: 智能分块处理
+        run: |-
+          # 安装智能分块工具
+          npm install -g js-yaml
+
+          # 运行智能分块处理
+          node scripts/tools/intelligent-chunking.js ./src --max-tokens 800000 --output reports/chunks.json
+
+          # 检查分块结果
+          if [ -f reports/chunks.json ]; then
+            echo "✅ 智能分块处理完成"
+            cat reports/chunks.json | jq '.metadata.stats'
+          else
+            echo "❌ 智能分块处理失败"
+            exit 1
+          fi
+      - name: 🔍 验证工具安装
+        run: |-
+          set +e
+          for i in {1..3}; do
+            echo "🔄 尝试第 $i 次..."
+            echo "验证工具安装状态..."
+          npx ts-prune --version || echo "ts-prune 未安装"
+          depcheck --version || echo "depcheck 未安装"
+          madge --version || echo "madge 未安装"
+          unimported --version || echo "unimported 未安装"
+          npx depcruise --version || echo "dependency-cruiser 未安装"
+          npm-check --version || echo "npm-check 未安装"
+
+            if [ $? -eq 0 ]; then
+              echo "✅ 成功"
+              break
+            else
+              echo "❌ 失败，等待重试..."
+              sleep $((i * 5))
+            fi
+          done
+          set -e
+      - name: 🧹 ESLint 未使用导入检查
+        run: |
+          echo "🔍 检查未使用的导入..."
+          npm run lint:unused || true
+        continue-on-error: true
+      - name: 🌲 TypeScript 未使用导出检查
+        run: |
+          echo "🔍 检查未使用的导出..."
+          npm run deps:prune || true
+        continue-on-error: true
+      - name: 📦 依赖项检查
+        run: |
+          echo "🔍 检查未使用的依赖..."
+          npm run deps:check || true
+        continue-on-error: true
+      - name: 🔄 循环依赖检查
+        run: |
+          echo "🔍 检查循环依赖..."
+          npm run deps:circular || true
+        continue-on-error: true
+      - name: 📁 未引用文件检查
+        run: |
+          echo "🔍 检查未引用的文件..."
+          unimported || true
+        continue-on-error: true
+      - name: 🕸️ 高级依赖分析
+        run: |
+          echo "🔍 运行高级依赖分析..."
+          npx depcruise --validate .dependency-cruiser.js src || true
+        continue-on-error: true
+      - name: 📊 运行所有工具
+        run: |
+          echo "🚀 运行所有代码质量工具..."
+          npm run tools:run || true
+        env:
+          TOOLS_TARGET: ${{ github.event.inputs.tools || 'all' }}
+        continue-on-error: true
+      - name: 📈 生成工具状态报告
+        run: |
+          echo "📊 生成工具状态报告..."
+          npm run tools:status
+          npm run tools:config
+        continue-on-error: true
+      - name: 📋 收集报告
+        run: >
+          echo "📋 收集所有报告..."
+
+          mkdir -p artifacts/reports
+
+
+          # 复制所有报告文件
+
+          find . -name "*-report*.json" -not -path "./node_modules/*" -not -path "./.next/*" | head -20 | xargs -I {} cp
+          {} artifacts/reports/ || true
+
+          find . -name "*-report*.html" -not -path "./node_modules/*" -not -path "./.next/*" | head -10 | xargs -I {} cp
+          {} artifacts/reports/ || true
+
+
+          # 复制工具管理器报告
+
+          cp -r reports/tool-manager/* artifacts/reports/ 2>/dev/null || true
+
+
+          # 生成摘要
+
+          echo "# 🔧 代码质量工具执行摘要" > artifacts/reports/summary.md
+
+          echo "" >> artifacts/reports/summary.md
+
+          echo "**执行时间:** $(date)" >> artifacts/reports/summary.md
+
+          echo "**Node.js 版本:** ${{ matrix.node-version }}" >> artifacts/reports/summary.md
+
+          echo "**分支:** ${{ github.ref_name }}" >> artifacts/reports/summary.md
+
+          echo "**提交:** ${{ github.sha }}" >> artifacts/reports/summary.md
+
+          echo "" >> artifacts/reports/summary.md
+
+
+          # 列出生成的报告文件
+
+          echo "## 📁 生成的报告文件" >> artifacts/reports/summary.md
+
+          echo "" >> artifacts/reports/summary.md
+
+          ls -la artifacts/reports/ >> artifacts/reports/summary.md || true
+      - name: 📤 上传报告
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: code-quality-reports-node-${{ matrix.node-version }}
+          path: artifacts/reports/
+          retention-days: 30
+      - name: 💬 评论 PR (仅限 PR)
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            try {
+              // 读取摘要文件
+              const summaryPath = 'artifacts/reports/summary.md';
+              if (fs.existsSync(summaryPath)) {
+                const summary = fs.readFileSync(summaryPath, 'utf8');
+                
+                // 创建或更新评论
+                const { data: comments } = await github.rest.issues.listComments({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                });
+                
+                const botComment = comments.find(comment => 
+                  comment.user.type === 'Bot' && 
+                  comment.body.includes('🔧 代码质量工具执行摘要')
+                );
+                
+                const commentBody = `${summary}\n\n---\n*🤖 此评论由 GitHub Actions 自动生成*`;
+                
+                if (botComment) {
+                  await github.rest.issues.updateComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    comment_id: botComment.id,
+                    body: commentBody
+                  });
+                } else {
+                  await github.rest.issues.createComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: context.issue.number,
+                    body: commentBody
+                  });
+                }
+              }
+            } catch (error) {
+              console.log('评论创建失败:', error.message);
+            }
+        continue-on-error: true
+      - name: Token 限制检查
+        run: |-
+          echo "🔍 检查 token 使用情况..."
+
+          # 检查文件大小和复杂度
+          find . -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" | \
+            head -20 | \
+            xargs wc -l | \
+            sort -nr | \
+            head -10
+
+          # 检查是否有超大文件
+          find . -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" | \
+            xargs ls -la | \
+            awk '$5 > 100000 {print "⚠️  大文件:", $9, "(" $5 " bytes)"}'
+          # 运行智能分块检查
+          if [ -f scripts/tools/intelligent-chunking.js ]; then
+            node scripts/tools/intelligent-chunking.js ./src --max-tokens 1000000 --output /tmp/token-check.json
+            if [ -f /tmp/token-check.json ]; then
+              echo "✅ Token 检查完成"
+              cat /tmp/token-check.json | jq '.metadata.stats'
+            fi
+          fi
+      - name: 失败诊断
+        if: failure()
+        run: |-
+          echo "🔍 收集失败诊断信息..."
+
+          # 系统信息
+          echo "📊 系统信息:"
+          uname -a
+          df -h
+          free -h
+
+          # Node.js 环境
+          echo "📦 Node.js 环境:"
+          node --version
+          npm --version
+          npm config list
+
+          # 项目状态
+          echo "📁 项目状态:"
+          ls -la
+          if [ -f package.json ]; then
+            echo "📄 package.json 存在"
+            cat package.json | jq '.scripts' || echo "无法解析 scripts"
+          fi
+
+          # 日志文件
+          echo "📋 查找日志文件:"
+          find . -name "*.log" -type f -exec echo "发现日志: {}" \; -exec tail -20 {} \;
+
+          # 错误报告
+          echo "📊 生成错误报告..."
+          mkdir -p reports/diagnostics
+          echo "$(date): CI/CD 流程失败" > reports/diagnostics/failure-$(date +%Y%m%d-%H%M%S).log
+  dependency-security-check:
+    name: 🔒 依赖安全检查
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - name: 📥 检出代码
+        uses: actions/checkout@v4
+      - name: 缓存依赖和工具
+        uses: actions/cache@v3
+        with:
+          path: |-
+            ~/.npm
+            ~/.cache
+            node_modules
+            .next/cache
+            reports/cache
+          key: >-
+            ${{ runner.os }}-deps-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}-${{
+            hashFiles('scripts/**/*.js') }}
+          restore-keys: |-
+            ${{ runner.os }}-deps-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}-
+            ${{ runner.os }}-deps-
+      - name: 🟢 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: npm
+      - name: 📦 安装依赖
+        run: |-
+          set +e
+          for i in {1..3}; do
+            echo "🔄 尝试第 $i 次..."
+            npm ci
+            if [ $? -eq 0 ]; then
+              echo "✅ 成功"
+              break
+            else
+              echo "❌ 失败，等待重试..."
+              sleep $((i * 5))
+            fi
+          done
+          set -e
+      - name: 🔍 npm 审计
+        run: |
+          echo "🔍 运行 npm 安全审计..."
+          npm audit --audit-level=moderate || true
+        continue-on-error: true
+      - name: 📊 依赖健康检查
+        run: |
+          echo "📊 检查依赖健康状况..."
+          npm-check || true
+        continue-on-error: true
+      - name: 失败诊断
+        if: failure()
+        run: |-
+          echo "🔍 收集失败诊断信息..."
+
+          # 系统信息
+          echo "📊 系统信息:"
+          uname -a
+          df -h
+          free -h
+
+          # Node.js 环境
+          echo "📦 Node.js 环境:"
+          node --version
+          npm --version
+          npm config list
+
+          # 项目状态
+          echo "📁 项目状态:"
+          ls -la
+          if [ -f package.json ]; then
+            echo "📄 package.json 存在"
+            cat package.json | jq '.scripts' || echo "无法解析 scripts"
+          fi
+
+          # 日志文件
+          echo "📋 查找日志文件:"
+          find . -name "*.log" -type f -exec echo "发现日志: {}" \; -exec tail -20 {} \;
+
+          # 错误报告
+          echo "📊 生成错误报告..."
+          mkdir -p reports/diagnostics
+          echo "$(date): CI/CD 流程失败" > reports/diagnostics/failure-$(date +%Y%m%d-%H%M%S).log
+    strategy:
+      matrix:
+        node-version:
+          - 18.x
+          - 20.x
+          - 22.x
+        os:
+          - ubuntu-latest
+      fail-fast: false
+  performance-analysis:
+    name: ⚡ 性能分析
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    if: github.event_name == 'schedule' || github.event.inputs.tools == 'all'
+    steps:
+      - name: 📥 检出代码
+        uses: actions/checkout@v4
+      - name: 缓存依赖和工具
+        uses: actions/cache@v3
+        with:
+          path: |-
+            ~/.npm
+            ~/.cache
+            node_modules
+            .next/cache
+            reports/cache
+          key: >-
+            ${{ runner.os }}-deps-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}-${{
+            hashFiles('scripts/**/*.js') }}
+          restore-keys: |-
+            ${{ runner.os }}-deps-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}-
+            ${{ runner.os }}-deps-
+      - name: 🟢 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: npm
+      - name: 📦 安装依赖
+        run: |-
+          set +e
+          for i in {1..3}; do
+            echo "🔄 尝试第 $i 次..."
+            npm ci
+            if [ $? -eq 0 ]; then
+              echo "✅ 成功"
+              break
+            else
+              echo "❌ 失败，等待重试..."
+              sleep $((i * 5))
+            fi
+          done
+          set -e
+      - name: 🏗️ 构建项目
+        run: |-
+          set +e
+          for i in {1..3}; do
+            echo "🔄 尝试第 $i 次..."
+            echo "🏗️ 构建项目以进行性能分析..."
+          npm run build || true
+
+            if [ $? -eq 0 ]; then
+              echo "✅ 成功"
+              break
+            else
+              echo "❌ 失败，等待重试..."
+              sleep $((i * 5))
+            fi
+          done
+          set -e
+        continue-on-error: true
+      - name: 📊 Bundle 分析
+        run: |
+          echo "📊 分析 Bundle 大小..."
+          # 这里可以添加 bundle 分析工具
+          du -sh .next/ || true
+          find .next -name "*.js" -type f -exec wc -c {} + | sort -n | tail -10 || true
+        continue-on-error: true
+      - name: 失败诊断
+        if: failure()
+        run: |-
+          echo "🔍 收集失败诊断信息..."
+
+          # 系统信息
+          echo "📊 系统信息:"
+          uname -a
+          df -h
+          free -h
+
+          # Node.js 环境
+          echo "📦 Node.js 环境:"
+          node --version
+          npm --version
+          npm config list
+
+          # 项目状态
+          echo "📁 项目状态:"
+          ls -la
+          if [ -f package.json ]; then
+            echo "📄 package.json 存在"
+            cat package.json | jq '.scripts' || echo "无法解析 scripts"
+          fi
+
+          # 日志文件
+          echo "📋 查找日志文件:"
+          find . -name "*.log" -type f -exec echo "发现日志: {}" \; -exec tail -20 {} \;
+
+          # 错误报告
+          echo "📊 生成错误报告..."
+          mkdir -p reports/diagnostics
+          echo "$(date): CI/CD 流程失败" > reports/diagnostics/failure-$(date +%Y%m%d-%H%M%S).log
+    strategy:
+      matrix:
+        node-version:
+          - 18.x
+          - 20.x
+          - 22.x
+        os:
+          - ubuntu-latest
+      fail-fast: false
+  summary:
+    name: 📋 执行摘要
+    runs-on: ubuntu-latest
+    needs:
+      - code-quality-analysis
+      - dependency-security-check
+    if: always()
+    steps:
+      - name: 📊 生成执行摘要
+        run: |
+          echo "# 🔧 代码质量工具执行完成"
+          echo ""
+          echo "## 📊 执行状态"
+          echo "- 代码质量分析: ${{ needs.code-quality-analysis.result }}"
+          echo "- 依赖安全检查: ${{ needs.dependency-security-check.result }}"
+          echo ""
+          echo "## 📁 报告"
+          echo "请查看 Actions 页面下载详细报告。"
+          echo ""
+          echo "---"
+          echo "*执行时间: $(date)*"
+      - name: 失败诊断
+        if: failure()
+        run: |-
+          echo "🔍 收集失败诊断信息..."
+
+          # 系统信息
+          echo "📊 系统信息:"
+          uname -a
+          df -h
+          free -h
+
+          # Node.js 环境
+          echo "📦 Node.js 环境:"
+          node --version
+          npm --version
+          npm config list
+
+          # 项目状态
+          echo "📁 项目状态:"
+          ls -la
+          if [ -f package.json ]; then
+            echo "📄 package.json 存在"
+            cat package.json | jq '.scripts' || echo "无法解析 scripts"
+          fi
+
+          # 日志文件
+          echo "📋 查找日志文件:"
+          find . -name "*.log" -type f -exec echo "发现日志: {}" \; -exec tail -20 {} \;
+
+          # 错误报告
+          echo "📊 生成错误报告..."
+          mkdir -p reports/diagnostics
+          echo "$(date): CI/CD 流程失败" > reports/diagnostics/failure-$(date +%Y%m%d-%H%M%S).log
+env:
+  OPTIMIZED_BY: ZK-Agent Pipeline Optimizer
+  OPTIMIZED_AT: '2025-07-22T05:22:52.014Z'
+  TOKEN_LIMIT_AWARE: 'true'
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+  checks: write
+  pull-requests: write
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true

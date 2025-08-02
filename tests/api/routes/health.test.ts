@@ -11,22 +11,22 @@ import { AgentError, AgentErrorType, ErrorSeverity } from '@/lib/errors/agent-er
 // Mock dependencies
 jest.mock('../../../lib/database/connection', () => ({
   testConnection: jest.fn(),
-  getConnectionStatus: jest.fn()
+  getConnectionStatus: jest.fn(),
 }));
 
 jest.mock('../../../lib/cache/redis', () => ({
   ping: jest.fn(),
-  isConnected: jest.fn()
+  isConnected: jest.fn(),
 }));
 
 jest.mock('../../../lib/api/fastgpt', () => ({
   testConnection: jest.fn(),
-  getHealthStatus: jest.fn()
+  getHealthStatus: jest.fn(),
 }));
 
 jest.mock('fs/promises', () => ({
   access: jest.fn(),
-  stat: jest.fn()
+  stat: jest.fn(),
 }));
 
 describe('Health Check API Error Handling', () => {
@@ -277,12 +277,11 @@ describe('Health Check API Error Handling', () => {
 
     it('should handle timeout scenarios gracefully', async () => {
       const { testConnection } = require('../../../lib/database/connection');
-      
+
       // Simulate a long-running operation
-      testConnection.mockImplementation(() => 
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Operation timeout')), 100)
-        )
+      testConnection.mockImplementation(
+        () =>
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Operation timeout')), 100))
       );
 
       const response = await GET(mockRequest);

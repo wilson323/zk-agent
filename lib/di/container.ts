@@ -6,10 +6,14 @@
  */
 
 import 'reflect-metadata';
-import { PrismaClient } from '@prisma/client'
-import { AgentService } from '../services/agent-service'
-import { AgUIAgentManager } from '../ag-ui/protocol/agent-manager'
-import { IAgentManager, IAgentService } from '../interfaces/agent-manager.interface'
+import { PrismaClient } from '@prisma/client';
+import { AgentService } from '../services/agent-service';
+import { IAgentManager, IAgentService } from '../interfaces/agent-manager.interface';
+
+/**
+ * 服务标识符类型
+ */
+export type ServiceIdentifier = symbol;
 
 /**
  * 服务标识符
@@ -20,9 +24,7 @@ export const TYPES = {
   AgentManager: Symbol.for('AgentManager'),
   Logger: Symbol.for('Logger'),
   Config: Symbol.for('Config'),
-  ExampleService: Symbol.for('ExampleService'),
-  ExampleController: Symbol.for('ExampleController')
-} as const
+} as const;
 
 /**
  * 服务生命周期
@@ -30,25 +32,35 @@ export const TYPES = {
 export enum ServiceLifetime {
   Singleton = 'singleton',
   Transient = 'transient',
-  Scoped = 'scoped'
+  Scoped = 'scoped',
 }
 
 /**
  * 服务描述符
  */
 export interface ServiceDescriptor<T = any> {
-  token: symbol
-  factory: (container: Container) => T
-  lifetime: ServiceLifetime
-  instance?: T
+  token: symbol;
+  factory: (container: Container) => T;
+  lifetime: ServiceLifetime;
+  instance?: T;
+}
+
+/**
+ * Injectable装饰器
+ * 用于标记可注入的类
+ */
+export function injectable<T extends new (...args: any[]) => any>(constructor: T): T {
+  // 标记类为可注入
+  Reflect.defineMetadata('injectable', true, constructor);
+  return constructor;
 }
 
 /**
  * 依赖注入容器
  */
 export class Container {
-  private services = new Map<symbol, ServiceDescriptor>()
-  private singletons = new Map<symbol, any>()
+  private services = new Map<symbol, ServiceDescriptor>();
+  private singletons = new Map<symbol, any>();
 
   /**
    * 注册服务
@@ -61,58 +73,52 @@ export class Container {
     this.services.set(token, {
       token,
       factory,
-      lifetime
-    })
+      lifetime,
+    });
   }
 
   /**
    * 注册单例服务
    */
-  registerSingleton<T>(
-    token: symbol,
-    factory: (container: Container) => T
-  ): void {
-    this.register(token, factory, ServiceLifetime.Singleton)
+  registerSingleton<T>(token: symbol, factory: (container: Container) => T): void {
+    this.register(token, factory, ServiceLifetime.Singleton);
   }
 
   /**
    * 注册瞬态服务
    */
-  registerTransient<T>(
-    token: symbol,
-    factory: (container: Container) => T
-  ): void {
-    this.register(token, factory, ServiceLifetime.Transient)
+  registerTransient<T>(token: symbol, factory: (container: Container) => T): void {
+    this.register(token, factory, ServiceLifetime.Transient);
   }
 
   /**
    * 解析服务
    */
   resolve<T>(token: symbol): T {
-    const descriptor = this.services.get(token)
+    const descriptor = this.services.get(token);
     if (!descriptor) {
-      throw new Error(`Service not registered: ${token.toString()}`)
+      throw new Error(`Service not registered: ${token.toString()}`);
     }
 
     switch (descriptor.lifetime) {
       case ServiceLifetime.Singleton:
         if (!this.singletons.has(token)) {
-          this.singletons.set(token, descriptor.factory(this))
+          this.singletons.set(token, descriptor.factory(this));
         }
-        return this.singletons.get(token)
+        return this.singletons.get(token);
 
       case ServiceLifetime.Transient:
-        return descriptor.factory(this)
+        return descriptor.factory(this);
 
       case ServiceLifetime.Scoped:
         // 简化实现，暂时按单例处理
         if (!this.singletons.has(token)) {
-          this.singletons.set(token, descriptor.factory(this))
+          this.singletons.set(token, descriptor.factory(this));
         }
-        return this.singletons.get(token)
+        return this.singletons.get(token);
 
       default:
-        throw new Error(`Unknown service lifetime: ${descriptor.lifetime}`)
+        throw new Error(`Unknown service lifetime: ${descriptor.lifetime}`);
     }
   }
 
@@ -120,20 +126,19 @@ export class Container {
    * 检查服务是否已注册
    */
   isRegistered(token: symbol): boolean {
-    return this.services.has(token)
+    return this.services.has(token);
   }
 
   /**
    * 清理容器
    */
   dispose(): void {
-    this.singletons.clear()
-    this.services.clear()
+    this.singletons.clear();
+    this.services.clear();
   }
 }
 
 /**
  * 默认容器实例
  */
-export const container = new Container()
-
+export const container = new Container();

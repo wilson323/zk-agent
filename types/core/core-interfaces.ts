@@ -6,7 +6,7 @@
  */
 
 // API响应接口
-export interface ApiResponse<T = any> {  
+export interface ApiResponse<T = any> {
   success: boolean;
   data?: T;
   error?: {

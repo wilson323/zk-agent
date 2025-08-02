@@ -1,78 +1,94 @@
 /**
- * @file 示例控制器
- * @description 展示如何在控制器中使用依赖注入
+ * @file example.controller.ts
+ * @description 示例控制器实现
  * @author ZK-Agent Team
- * @date 2024-12-20
+ * @date 2025-01-27
  */
 
-import { injectable, inject, TYPES } from '../di/container';
-import { PrismaClient } from '@prisma/client';
-import { ILogger } from '../interfaces/logger.interface';
-import { IExampleService } from '../services/example-service';
+import { NextRequest, NextResponse } from 'next/server';
+import { injectable } from '../di/container';
+import { IExampleService, ExampleService } from '../services/example-service';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
+import { ErrorCode } from '@/types/core';
+import { ApiResponseWrapper } from '@/lib/middleware/api-route-wrapper';
 
 /**
  * 示例控制器接口
  */
 export interface IExampleController {
   /**
-   * 获取示例数据
-   * @returns 示例数据
+   * 处理GET请求
+   * @param request NextRequest对象
+   * @returns Promise<NextResponse> 响应结果
    */
-  getData(): Promise<any>;
+  handleGet(request: NextRequest): Promise<NextResponse>;
 
   /**
-   * 创建示例数据
-   * @param data 要创建的数据
-   * @returns 创建的数据
+   * 处理POST请求
+   * @param request NextRequest对象
+   * @returns Promise<NextResponse> 响应结果
    */
-  createData(data: any): Promise<any>;
+  handlePost(request: NextRequest): Promise<NextResponse>;
 }
 
 /**
- * 示例控制器
- * 
- * 使用依赖注入装饰器自动注入依赖
+ * 示例控制器实现
  */
-@injectable(TYPES.ExampleController)
+@injectable
 export class ExampleController implements IExampleController {
-  /**
-   * 构造函数
-   * @param prisma Prisma客户端
-   * @param logger 日志服务
-   * @param exampleService 示例服务
-   */
-  constructor(
-    @inject(TYPES.PrismaClient) private prisma: PrismaClient,
-    @inject(TYPES.Logger) private logger: ILogger,
-    @inject(TYPES.ExampleService) private exampleService: IExampleService
-  ) {}
+  private exampleService: IExampleService;
+  private logger: ILogger;
+
+  constructor() {
+    this.exampleService = new ExampleService();
+    this.logger = logger;
+  }
 
   /**
-   * 获取示例数据
-   * @returns 示例数据
+   * 处理GET请求
+   * @param request NextRequest对象
+   * @returns Promise<NextResponse> 响应结果
    */
-  async getData(): Promise<any> {
+  async handleGet(request: NextRequest): Promise<NextResponse> {
     try {
-      this.logger.info('ExampleController: 获取示例数据');
-      return await this.exampleService.getExampleData();
+      this.logger.info('处理示例GET请求');
+
+      const data = await this.exampleService.getExampleData();
+
+      return ApiResponseWrapper.success(data);
     } catch (error) {
-      this.logger.error('ExampleController: 获取示例数据失败', error);
-      throw error;
+      this.logger.error('处理GET请求失败:', error);
+      return ApiResponseWrapper.error(
+        ErrorCode.INTERNAL_SERVER_ERROR,
+        '获取数据失败'
+      );
     }
   }
 
   /**
-   * 创建示例数据
-   * @param data 要创建的数据
-   * @returns 创建的数据
+   * 处理POST请求
+   * @param request NextRequest对象
+   * @returns Promise<NextResponse> 响应结果
    */
-  async createData(data: any): Promise<any> {
+  async handlePost(request: NextRequest): Promise<NextResponse> {
     try {
-      this.logger.info('ExampleController: 创建示例数据', { data });
-      return await this.exampleService.createExampleData(data);
+      this.logger.info('处理示例POST请求');
+
+      const body = await request.json();
+      const result = await this.exampleService.processExample(body);
+
+      return ApiResponseWrapper.success(result);
     } catch (error) {
-      this.logger.error('ExampleController: 创建示例数据失败', error);
-      throw error;
+      this.logger.error('处理POST请求失败:', error);
+      return ApiResponseWrapper.error(
+        ErrorCode.INTERNAL_SERVER_ERROR,
+        '处理请求失败'
+      );
     }
   }
 }
+
+// 导出控制器实例
+export const exampleController = new ExampleController();

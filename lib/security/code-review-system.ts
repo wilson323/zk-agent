@@ -6,12 +6,12 @@
  * @security Production-level security code review implementation
  */
 
-import { Logger } from '@/lib/utils/logger';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
 import { enhancedCacheManager } from '@/lib/cache/enhanced-cache-manager';
 import { securityAuditSystem, SecurityEventType, SecuritySeverity } from './security-audit-system';
 import { getErrorMessage } from '@/lib/utils/error-handler';
-
-const logger = new Logger('CodeReviewSystem');
 
 // Security Rule Categories
 export enum SecurityRuleCategory {
@@ -110,9 +110,11 @@ export class CodeReviewSystem {
   /**
    * Submit code for security review
    */
-  async submitForReview(request: Omit<ReviewRequest, 'id' | 'submittedAt' | 'status'>): Promise<string> {
+  async submitForReview(
+    request: Omit<ReviewRequest, 'id' | 'submittedAt' | 'status'>
+  ): Promise<string> {
     const reviewId = this.generateReviewId();
-    
+
     const reviewRequest: ReviewRequest = {
       id: reviewId,
       submittedAt: new Date(),
@@ -172,15 +174,23 @@ export class CodeReviewSystem {
       return null;
     }
 
-    const results = Array.from(this.reviewResults.values())
-      .filter(result => result.fileId.startsWith(reviewId));
+    const results = Array.from(this.reviewResults.values()).filter(result =>
+      result.fileId.startsWith(reviewId)
+    );
 
     const totalViolations = results.reduce((sum, result) => sum + result.violations.length, 0);
-    const criticalViolations = results.reduce((sum, result) => 
-      sum + result.violations.filter(v => v.severity === SecurityRuleSeverity.CRITICAL).length, 0);
-    const highViolations = results.reduce((sum, result) => 
-      sum + result.violations.filter(v => v.severity === SecurityRuleSeverity.HIGH).length, 0);
-    const riskScore = results.reduce((sum, result) => sum + result.riskScore, 0) / results.length || 0;
+    const criticalViolations = results.reduce(
+      (sum, result) =>
+        sum + result.violations.filter(v => v.severity === SecurityRuleSeverity.CRITICAL).length,
+      0
+    );
+    const highViolations = results.reduce(
+      (sum, result) =>
+        sum + result.violations.filter(v => v.severity === SecurityRuleSeverity.HIGH).length,
+      0
+    );
+    const riskScore =
+      results.reduce((sum, result) => sum + result.riskScore, 0) / results.length || 0;
 
     return {
       request,
@@ -198,13 +208,17 @@ export class CodeReviewSystem {
   /**
    * Scan single file for security issues
    */
-  async scanFile(filePath: string, content: string, options: {
-    rules?: string[];
-    excludeRules?: string[];
-  } = {}): Promise<CodeReviewResult> {
+  async scanFile(
+    filePath: string,
+    content: string,
+    options: {
+      rules?: string[];
+      excludeRules?: string[];
+    } = {}
+  ): Promise<CodeReviewResult> {
     const startTime = Date.now();
     const fileId = this.generateFileId(filePath);
-    
+
     const result: CodeReviewResult = {
       fileId,
       filePath,
@@ -219,7 +233,7 @@ export class CodeReviewSystem {
     try {
       // Get applicable rules
       const applicableRules = this.getApplicableRules(filePath, options);
-      
+
       // Scan for violations
       for (const rule of applicableRules) {
         const violations = this.scanForRule(content, rule);
@@ -235,11 +249,10 @@ export class CodeReviewSystem {
 
       // Cache high-risk results
       if (result.riskScore >= 7) {
-        await enhancedCacheManager.set(
-          `security:code-review:high-risk:${fileId}`,
-          result,
-          { ttl: 86400000, tags: ['security', 'code-review', 'high-risk'] }
-        );
+        await enhancedCacheManager.set(`security:code-review:high-risk:${fileId}`, result, {
+          ttl: 86400000,
+          tags: ['security', 'code-review', 'high-risk'],
+        });
       }
 
       // Log security event for high-risk findings
@@ -252,7 +265,9 @@ export class CodeReviewSystem {
             fileId,
             filePath,
             violationCount: result.violations.length,
-            criticalViolations: result.violations.filter(v => v.severity === SecurityRuleSeverity.CRITICAL).length,
+            criticalViolations: result.violations.filter(
+              v => v.severity === SecurityRuleSeverity.CRITICAL
+            ).length,
             riskScore: result.riskScore,
           },
           riskScore: result.riskScore,
@@ -268,7 +283,6 @@ export class CodeReviewSystem {
       });
 
       return result;
-
     } catch (error) {
       logger.error('File security scan failed', {
         fileId,
@@ -300,11 +314,13 @@ export class CodeReviewSystem {
   /**
    * Get security rules
    */
-  getSecurityRules(options: {
-    category?: SecurityRuleCategory;
-    severity?: SecurityRuleSeverity;
-    enabled?: boolean;
-  } = {}): SecurityRule[] {
+  getSecurityRules(
+    options: {
+      category?: SecurityRuleCategory;
+      severity?: SecurityRuleSeverity;
+      enabled?: boolean;
+    } = {}
+  ): SecurityRule[] {
     let rules = Array.from(this.securityRules.values());
 
     if (options.category) {
@@ -352,11 +368,13 @@ export class CodeReviewSystem {
   /**
    * Generate security report
    */
-  async generateSecurityReport(options: {
-    timeRange?: { start: Date; end: Date };
-    filePattern?: string;
-    severity?: SecurityRuleSeverity;
-  } = {}): Promise<{
+  async generateSecurityReport(
+    options: {
+      timeRange?: { start: Date; end: Date };
+      filePattern?: string;
+      severity?: SecurityRuleSeverity;
+    } = {}
+  ): Promise<{
     summary: {
       totalScans: number;
       totalViolations: number;
@@ -382,9 +400,10 @@ export class CodeReviewSystem {
 
     // Apply filters
     if (options.timeRange) {
-      results = results.filter(result => 
-        result.reviewedAt >= options.timeRange!.start && 
-        result.reviewedAt <= options.timeRange!.end
+      results = results.filter(
+        result =>
+          result.reviewedAt >= options.timeRange!.start &&
+          result.reviewedAt <= options.timeRange!.end
       );
     }
 
@@ -396,11 +415,18 @@ export class CodeReviewSystem {
     // Calculate summary
     const totalScans = results.length;
     const totalViolations = results.reduce((sum, result) => sum + result.violations.length, 0);
-    const criticalViolations = results.reduce((sum, result) => 
-      sum + result.violations.filter(v => v.severity === SecurityRuleSeverity.CRITICAL).length, 0);
-    const highViolations = results.reduce((sum, result) => 
-      sum + result.violations.filter(v => v.severity === SecurityRuleSeverity.HIGH).length, 0);
-    const averageRiskScore = results.reduce((sum, result) => sum + result.riskScore, 0) / totalScans || 0;
+    const criticalViolations = results.reduce(
+      (sum, result) =>
+        sum + result.violations.filter(v => v.severity === SecurityRuleSeverity.CRITICAL).length,
+      0
+    );
+    const highViolations = results.reduce(
+      (sum, result) =>
+        sum + result.violations.filter(v => v.severity === SecurityRuleSeverity.HIGH).length,
+      0
+    );
+    const averageRiskScore =
+      results.reduce((sum, result) => sum + result.riskScore, 0) / totalScans || 0;
 
     // Top violations
     const violationCounts = new Map<string, { count: number; rule: SecurityViolation }>();
@@ -470,7 +496,6 @@ export class CodeReviewSystem {
         reviewId,
         fileCount: request.files.length,
       });
-
     } catch (error) {
       request.status = 'failed';
       this.activeReviews.set(reviewId, request);
@@ -497,7 +522,8 @@ export class CodeReviewSystem {
         pattern: /\beval\s*\(/gi,
         fileExtensions: ['.js', '.ts', '.jsx', '.tsx'],
         enabled: true,
-        remediation: 'Replace eval() with safer alternatives like JSON.parse() or Function constructor',
+        remediation:
+          'Replace eval() with safer alternatives like JSON.parse() or Function constructor',
         references: ['https://owasp.org/www-community/attacks/Code_Injection'],
       },
       {
@@ -558,7 +584,9 @@ export class CodeReviewSystem {
         fileExtensions: ['.js', '.ts', '.jsx', '.tsx'],
         enabled: true,
         remediation: 'Use proper logging framework and remove console logs in production',
-        references: ['https://owasp.org/www-project-top-ten/2017/A10_2017-Insufficient_Logging%2526Monitoring'],
+        references: [
+          'https://owasp.org/www-project-top-ten/2017/A10_2017-Insufficient_Logging%2526Monitoring',
+        ],
       },
       {
         id: 'unsafe-file-upload',
@@ -596,17 +624,18 @@ export class CodeReviewSystem {
   /**
    * Private: Get applicable rules for file
    */
-  private getApplicableRules(filePath: string, options: {
-    rules?: string[];
-    excludeRules?: string[];
-  }): SecurityRule[] {
+  private getApplicableRules(
+    filePath: string,
+    options: {
+      rules?: string[];
+      excludeRules?: string[];
+    }
+  ): SecurityRule[] {
     const fileExtension = this.getFileExtension(filePath);
     let rules = Array.from(this.securityRules.values());
 
     // Filter by file extension
-    rules = rules.filter(rule => 
-      rule.fileExtensions.includes(fileExtension) && rule.enabled
-    );
+    rules = rules.filter(rule => rule.fileExtensions.includes(fileExtension) && rule.enabled);
 
     // Include only specific rules if provided
     if (options.rules && options.rules.length > 0) {
@@ -630,7 +659,7 @@ export class CodeReviewSystem {
 
     lines.forEach((line, lineIndex) => {
       const matches = line.matchAll(rule.pattern);
-      
+
       for (const match of matches) {
         violations.push({
           ruleId: rule.id,
@@ -695,11 +724,11 @@ export class CodeReviewSystem {
     if (rule.severity === SecurityRuleSeverity.CRITICAL) {
       return 'high';
     }
-    
+
     if (match.length > 20 || rule.severity === SecurityRuleSeverity.HIGH) {
       return 'medium';
     }
-    
+
     return 'low';
   }
 
@@ -708,24 +737,31 @@ export class CodeReviewSystem {
    */
   private generateRecommendations(results: CodeReviewResult[]): string[] {
     const recommendations: string[] = [];
-    
-    const criticalCount = results.reduce((sum, result) => 
-      sum + result.violations.filter(v => v.severity === SecurityRuleSeverity.CRITICAL).length, 0);
-    
+
+    const criticalCount = results.reduce(
+      (sum, result) =>
+        sum + result.violations.filter(v => v.severity === SecurityRuleSeverity.CRITICAL).length,
+      0
+    );
+
     if (criticalCount > 0) {
-      recommendations.push(`Address ${criticalCount} critical security vulnerabilities immediately`);
+      recommendations.push(
+        `Address ${criticalCount} critical security vulnerabilities immediately`
+      );
     }
 
-    const highCount = results.reduce((sum, result) => 
-      sum + result.violations.filter(v => v.severity === SecurityRuleSeverity.HIGH).length, 0);
-    
+    const highCount = results.reduce(
+      (sum, result) =>
+        sum + result.violations.filter(v => v.severity === SecurityRuleSeverity.HIGH).length,
+      0
+    );
+
     if (highCount > 5) {
       recommendations.push('Implement comprehensive input validation across the application');
     }
 
-    const evalUsage = results.some(result => 
-      result.violations.some(v => v.ruleId === 'no-eval'));
-    
+    const evalUsage = results.some(result => result.violations.some(v => v.ruleId === 'no-eval'));
+
     if (evalUsage) {
       recommendations.push('Eliminate all eval() usage and implement safer alternatives');
     }
@@ -757,4 +793,5 @@ export const submitForReview = codeReviewSystem.submitForReview.bind(codeReviewS
 export const getReviewResults = codeReviewSystem.getReviewResults.bind(codeReviewSystem);
 export const scanFile = codeReviewSystem.scanFile.bind(codeReviewSystem);
 export const getSecurityRules = codeReviewSystem.getSecurityRules.bind(codeReviewSystem);
-export const generateSecurityReport = codeReviewSystem.generateSecurityReport.bind(codeReviewSystem);
+export const generateSecurityReport =
+  codeReviewSystem.generateSecurityReport.bind(codeReviewSystem);

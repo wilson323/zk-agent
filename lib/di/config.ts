@@ -7,12 +7,14 @@
 
 import { PrismaClient } from '@prisma/client';
 import { container, TYPES } from './container';
-import { AgentService } from '../services/agent.service';
-import { AgentManager } from '../services/agent-manager.service';
-import { Config } from '../config';
-import { Logger } from '../logger';
-import { ExampleService } from '../services/example-service';
-import { ExampleController } from '../controllers/example.controller';
+import { AgentService } from '../services/agent-service';
+import { AgUIAgentManager } from '../ag-ui/protocol/agent-manager';
+import { UnifiedConfigManager } from '../config/core/manager';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
+import { enhancedDb } from '../database/enhanced-connection';
+
 
 /**
  * 配置依赖注入容器
@@ -25,37 +27,21 @@ export function configureServices(): void {
   }
 
   // 注册基础服务
-  container.registerSingleton(TYPES.PrismaClient, () => enhancedDb.prisma);
+  container.registerSingleton(TYPES.PrismaClient, () => enhancedDb.getClient());
   container.registerSingleton(TYPES.Logger, () => new Logger());
-  container.registerSingleton(TYPES.Config, () => new Config());
+  container.registerSingleton(TYPES.Config, () => new UnifiedConfigManager());
 
   // 注册业务服务
-  container.registerSingleton(TYPES.AgentService, (container) => {
-    const prisma = container.resolve<PrismaClient>(TYPES.PrismaClient);
-    const logger = container.resolve<Logger>(TYPES.Logger);
-    return new AgentService(prisma, logger);
+  container.registerSingleton(TYPES.AgentService, container => {
+    return new AgentService();
   });
 
-  container.registerSingleton(TYPES.AgentManager, (container) => {
-    const agentService = container.resolve<AgentService>(TYPES.AgentService);
-    const logger = container.resolve<Logger>(TYPES.Logger);
-    return new AgentManager(agentService, logger);
+  container.registerSingleton(TYPES.AgentManager, container => {
+    return new AgUIAgentManager();
   });
 
-  // 注册示例服务
-  container.registerSingleton(TYPES.ExampleService, (container) => {
-    const prisma = container.resolve<PrismaClient>(TYPES.PrismaClient);
-    const logger = container.resolve<Logger>(TYPES.Logger);
-    return new ExampleService(prisma, logger);
-  });
 
-  // 注册示例控制器
-  container.registerSingleton(TYPES.ExampleController, (container) => {
-    const prisma = container.resolve<PrismaClient>(TYPES.PrismaClient);
-    const logger = container.resolve<Logger>(TYPES.Logger);
-    const exampleService = container.resolve<ExampleService>(TYPES.ExampleService);
-    return new ExampleController(prisma, logger, exampleService);
-  });
+
 }
 
 /**

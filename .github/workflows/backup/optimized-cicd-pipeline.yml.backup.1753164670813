@@ -1,0 +1,359 @@
+name: 🚀 优化的CI/CD流程
+
+on:
+  push:
+    branches: [ main, develop, 'feature/*', 'hotfix/*' ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: '部署环境'
+        required: false
+        default: 'staging'
+        type: choice
+        options:
+          - development
+          - staging
+          - production
+      skip-tests:
+        description: '跳过测试'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '8'
+  REGISTRY_URL: 'https://registry.npmjs.org/'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # 代码质量检查
+  quality-check:
+    name: 🔍 代码质量检查
+    uses: ./.github/workflows/templates/reusable-quality-check.yml
+    with:
+      node-version: ${{ env.NODE_VERSION }}
+      skip-tests: ${{ github.event.inputs.skip-tests == 'true' }}
+      cache-dependency-path: 'package-lock.json'
+
+  # 安全扫描
+  security-scan:
+    name: 🔒 安全扫描
+    uses: ./.github/workflows/templates/reusable-security-scan.yml
+    with:
+      node-version: ${{ env.NODE_VERSION }}
+      scan-level: ${{ github.ref == 'refs/heads/main' && 'comprehensive' || 'standard' }}
+      upload-sarif: true
+    secrets:
+      SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+
+  # 构建和测试
+  build-and-test:
+    name: 🏗️ 构建和测试
+    runs-on: ubuntu-latest
+    needs: [quality-check]
+    if: ${{ needs.quality-check.outputs.quality-score >= 70 }}
+    
+    strategy:
+      matrix:
+        node-version: [18, 20]
+        test-type: [unit, integration]
+    
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: 安装依赖
+        run: |
+          if [ -f pnpm-lock.yaml ]; then
+            npm install -g pnpm@${{ env.PNPM_VERSION }}
+            pnpm install --frozen-lockfile
+          else
+            npm ci
+          fi
+
+      - name: 运行 ${{ matrix.test-type }} 测试
+        run: |
+          case "${{ matrix.test-type }}" in
+            "unit")
+              npm run test:unit
+              ;;
+            "integration")
+              npm run test:integration
+              ;;
+          esac
+
+      - name: 构建应用
+        if: ${{ matrix.test-type == 'unit' && matrix.node-version == env.NODE_VERSION }}
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      - name: 上传构建产物
+        if: ${{ matrix.test-type == 'unit' && matrix.node-version == env.NODE_VERSION }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: |
+            dist/
+            .next/
+            build/
+          retention-days: 7
+
+  # E2E测试
+  e2e-tests:
+    name: 🧪 E2E测试
+    runs-on: ubuntu-latest
+    needs: [build-and-test]
+    if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop') }}
+    
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 下载构建产物
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+
+      - name: 启动应用
+        run: |
+          npm start &
+          sleep 30
+        env:
+          NODE_ENV: production
+          PORT: 3000
+
+      - name: 运行E2E测试
+        run: npm run test:e2e
+
+      - name: 上传E2E测试报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-test-results
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7
+
+  # 性能测试
+  performance-tests:
+    name: ⚡ 性能测试
+    runs-on: ubuntu-latest
+    needs: [build-and-test]
+    if: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' }}
+    
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 下载构建产物
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+
+      - name: 运行性能测试
+        run: |
+          npm run test:performance
+          npm run lighthouse:ci || true
+
+      - name: 上传性能报告
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-reports
+          path: |
+            reports/performance/
+            lighthouse-reports/
+          retention-days: 14
+
+  # 部署到开发环境
+  deploy-development:
+    name: 🚀 部署到开发环境
+    needs: [quality-check, security-scan, build-and-test]
+    if: ${{ github.ref == 'refs/heads/develop' && needs.security-scan.outputs.vulnerabilities-found < 5 }}
+    uses: ./.github/workflows/templates/reusable-deploy.yml
+    with:
+      environment: development
+      node-version: ${{ env.NODE_VERSION }}
+      deploy-strategy: docker
+      health-check-url: ''
+      rollback-on-failure: true
+    secrets:
+      DEPLOY_TOKEN: ${{ secrets.DEV_DEPLOY_TOKEN }}
+      DOCKER_REGISTRY_URL: ${{ secrets.DOCKER_REGISTRY_URL }}
+      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+
+  # 部署到预发布环境
+  deploy-staging:
+    name: 🚀 部署到预发布环境
+    needs: [quality-check, security-scan, build-and-test, e2e-tests]
+    if: ${{ github.ref == 'refs/heads/main' && needs.security-scan.outputs.vulnerabilities-found < 3 }}
+    uses: ./.github/workflows/templates/reusable-deploy.yml
+    with:
+      environment: staging
+      node-version: ${{ env.NODE_VERSION }}
+      deploy-strategy: docker
+      health-check-url: ''
+      rollback-on-failure: true
+    secrets:
+      DEPLOY_TOKEN: ${{ secrets.STAGING_DEPLOY_TOKEN }}
+      DOCKER_REGISTRY_URL: ${{ secrets.DOCKER_REGISTRY_URL }}
+      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+
+  # 部署到生产环境
+  deploy-production:
+    name: 🚀 部署到生产环境
+    needs: [deploy-staging, performance-tests]
+    if: ${{ github.ref == 'refs/heads/main' && github.event.inputs.environment == 'production' }}
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.deployment-url }}
+    uses: ./.github/workflows/templates/reusable-deploy.yml
+    with:
+      environment: production
+      node-version: ${{ env.NODE_VERSION }}
+      deploy-strategy: docker
+      health-check-url: ''
+      rollback-on-failure: true
+    secrets:
+      DEPLOY_TOKEN: ${{ secrets.PROD_DEPLOY_TOKEN }}
+      DOCKER_REGISTRY_URL: ${{ secrets.DOCKER_REGISTRY_URL }}
+      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+
+  # 通知和报告
+  notify-and-report:
+    name: 📊 通知和报告
+    runs-on: ubuntu-latest
+    needs: [quality-check, security-scan, build-and-test]
+    if: always()
+    
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 生成流程摘要
+        run: |
+          echo "## 🚀 CI/CD 流程摘要" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**分支**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**提交**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**触发事件**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          echo "### 📋 作业状态" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- 代码质量检查: ${{ needs.quality-check.result == 'success' && '✅' || '❌' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- 安全扫描: ${{ needs.security-scan.result == 'success' && '✅' || '❌' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- 构建和测试: ${{ needs.build-and-test.result == 'success' && '✅' || '❌' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ needs.quality-check.outputs.quality-score }}" != "" ]; then
+            echo "### 📊 质量指标" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "- 代码质量评分: ${{ needs.quality-check.outputs.quality-score }}/100" >> $GITHUB_STEP_SUMMARY
+            echo "- 测试覆盖率: ${{ needs.quality-check.outputs.test-coverage }}%" >> $GITHUB_STEP_SUMMARY
+            echo "- 安全漏洞: ${{ needs.security-scan.outputs.vulnerabilities-found }}" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: 发送通知
+        if: ${{ github.ref == 'refs/heads/main' }}
+        run: |
+          echo "发送部署通知..."
+          # 这里可以集成Slack、Teams、邮件等通知服务
+
+  # 清理和维护
+  cleanup:
+    name: 🧹 清理和维护
+    runs-on: ubuntu-latest
+    needs: [notify-and-report]
+    if: always()
+    
+    steps:
+      - name: 清理旧的工作流运行
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: runs } = await github.rest.actions.listWorkflowRuns({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: context.workflow,
+              status: 'completed',
+              per_page: 100
+            });
+            
+            // 保留最近30个运行记录，删除其余的
+            const runsToDelete = runs.workflow_runs.slice(30);
+            
+            for (const run of runsToDelete) {
+              try {
+                await github.rest.actions.deleteWorkflowRun({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  run_id: run.id
+                });
+                console.log(`已删除工作流运行: ${run.id}`);
+              } catch (error) {
+                console.log(`删除工作流运行失败: ${run.id}, 错误: ${error.message}`);
+              }
+            }
+
+      - name: 清理旧的构件
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: artifacts } = await github.rest.actions.listArtifactsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100
+            });
+            
+            const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+            
+            for (const artifact of artifacts.artifacts) {
+              const createdAt = new Date(artifact.created_at);
+              if (createdAt < oneWeekAgo) {
+                try {
+                  await github.rest.actions.deleteArtifact({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    artifact_id: artifact.id
+                  });
+                  console.log(`已删除构件: ${artifact.name}`);
+                } catch (error) {
+                  console.log(`删除构件失败: ${artifact.name}, 错误: ${error.message}`);
+                }
+              }
+            }

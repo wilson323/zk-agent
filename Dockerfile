@@ -1,101 +1,63 @@
-# ZK-Agent 生产级 Dockerfile
-# 多阶段构建，优化镜像大小和安全性
+# 多智能体系统 Docker 镜像
+# 基于 Python 3.11 官方镜像构建
 
-# 阶段1：依赖安装和构建
-FROM node:20-alpine AS builder
+FROM python:3.11-slim
+
+# 设置维护者信息
+LABEL maintainer="ZK-Agent Team <team@zk-agent.com>"
+LABEL version="1.0.0"
+LABEL description="Multi-Agent System with AutoGen, CrewAI, and LangGraph"
+
+# 设置环境变量
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    DEBIAN_FRONTEND=noninteractive
 
 # 设置工作目录
 WORKDIR /app
 
 # 安装系统依赖
-RUN apk add --no-cache \
-    libc6-compat \
-    python3 \
-    make \
-    g++ \
-    cairo-dev \
-    jpeg-dev \
-    pango-dev \
-    musl-dev \
-    giflib-dev \
-    pixman-dev \
-    pangomm-dev \
-    libjpeg-turbo-dev \
-    freetype-dev
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    curl \
+    git \
+    libpq-dev \
+    libssl-dev \
+    libffi-dev \
+    pkg-config \
+    && rm -rf /var/lib/apt/lists/*
 
-# 复制包管理文件
-COPY package.json pnpm-lock.yaml ./
+# 升级 pip
+RUN pip install --upgrade pip setuptools wheel
 
-# 安装 pnpm
-RUN npm install -g pnpm@latest
+# 复制依赖文件
+COPY requirements.txt .
 
-# 安装依赖
-RUN pnpm install --frozen-lockfile --prod=false
+# 安装 Python 依赖
+RUN pip install --no-cache-dir -r requirements.txt
 
-# 复制源代码
+# 复制应用代码
 COPY . .
 
-# 生成 Prisma 客户端
-RUN pnpm db:generate
-
-# 构建应用
-RUN pnpm build
-
-# 阶段2：生产运行时
-FROM node:20-alpine AS runner
-
-# 设置环境变量
-ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
-ENV PORT=3000
-
-# 创建非root用户
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-
-# 安装运行时依赖
-RUN apk add --no-cache \
-    libc6-compat \
-    cairo \
-    jpeg \
-    pango \
-    musl \
-    giflib \
-    pixman \
-    pangomm \
-    libjpeg-turbo \
-    freetype \
-    dumb-init
-
-# 设置工作目录
-WORKDIR /app
-
-# 复制构建产物
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
-
-# 复制必要的配置文件
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/prisma ./prisma
-
 # 创建必要的目录
-RUN mkdir -p /app/uploads /app/logs /app/temp
+RUN mkdir -p logs data temp
 
-# 设置文件权限
-RUN chown -R nextjs:nodejs /app
-RUN chmod -R 755 /app
-RUN chmod -R 777 /app/uploads /app/logs /app/temp
+# 设置权限
+RUN chmod +x *.py
 
-# 切换到非root用户
-USER nextjs
-
-# 暴露端口
-EXPOSE 3000
+# 创建非 root 用户
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+RUN chown -R appuser:appuser /app
+USER appuser
 
 # 健康检查
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD node healthcheck.js || exit 1
+    CMD python -c "import requests; requests.get('http://localhost:8000/health')" || exit 1
 
-# 启动应用
-CMD ["dumb-init", "node", "server.js"]
+# 暴露端口
+EXPOSE 8000
+
+# 设置启动命令
+CMD ["python", "multi_agent_system_complete_example.py"]

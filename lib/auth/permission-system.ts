@@ -5,16 +5,24 @@
  * @date 2024-12-27
  */
 
-import { z } from 'zod';
 
-import { Logger } from '@/lib/utils/logger';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
+
+const logger = getLogger();
 import { AppError } from '@/lib/errors/app-error';
-import { ErrorCode, ErrorType, ErrorSeverity, UserRole, Permission, ResourceType } from '@/lib/types/enums';
+import {
+  ErrorCode,
+  ErrorType,
+  ErrorSeverity,
+  UserRole,
+  Permission,
+  ResourceType,
+} from '@/lib/types/enums';
 // import { ERROR_CODES } from '@/config/constants';
 
-const logger = new Logger('PermissionSystem');
-
-
+const logger = getLogger();
 
 // 权限上下文接口
 interface PermissionContext {
@@ -73,10 +81,7 @@ interface PermissionResult {
 
 // 角色权限配置
 const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
-  [UserRole.GUEST]: [
-    Permission.READ,
-    Permission.AGENT_READ
-  ],
+  [UserRole.GUEST]: [Permission.READ, Permission.AGENT_READ],
   [UserRole.USER]: [
     Permission.READ,
     Permission.WRITE,
@@ -91,7 +96,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.POSTER_DELETE,
     Permission.FILE_UPLOAD,
     Permission.FILE_READ,
-    Permission.REPORT_VIEW
+    Permission.REPORT_VIEW,
   ],
   [UserRole.MODERATOR]: [
     Permission.READ,
@@ -112,7 +117,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.USER_LIST,
     Permission.AGENT_CREATE,
     Permission.AGENT_UPDATE,
-    Permission.SYSTEM_LOGS
+    Permission.SYSTEM_LOGS,
   ],
   [UserRole.ADMIN]: [
     Permission.READ,
@@ -143,14 +148,10 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.SYSTEM_MONITOR,
     Permission.SECURITY_AUDIT,
     Permission.SECURITY_SCAN,
-    Permission.FILE_DELETE
+    Permission.FILE_DELETE,
   ],
-  [UserRole.SUPER_ADMIN]: [
-    ...Object.values(Permission)
-  ],
-  [UserRole.SYSTEM]: [
-    ...Object.values(Permission)
-  ],
+  [UserRole.SUPER_ADMIN]: [...Object.values(Permission)],
+  [UserRole.SYSTEM]: [...Object.values(Permission)],
   [UserRole.DEVELOPER]: [
     Permission.READ,
     Permission.WRITE,
@@ -168,8 +169,8 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.REPORT_VIEW,
     Permission.CODE_REVIEW,
     Permission.DEBUG_TOOLS,
-    Permission.SYSTEM_LOGS
-  ]
+    Permission.SYSTEM_LOGS,
+  ],
 };
 
 export class PermissionSystem {
@@ -195,9 +196,9 @@ export class PermissionSystem {
       enabled: true,
       conditions: {},
       effect: 'ALLOW',
-      validator: async (context) => {
+      validator: async context => {
         return context.resource?.ownerId === context.user.id;
-      }
+      },
     });
 
     // 管理员全权限规则
@@ -208,9 +209,9 @@ export class PermissionSystem {
       priority: 200,
       enabled: true,
       conditions: {
-        roles: [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.SYSTEM]
+        roles: [UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.SYSTEM],
       },
-      effect: 'ALLOW'
+      effect: 'ALLOW',
     });
 
     // 时间限制规则
@@ -225,35 +226,37 @@ export class PermissionSystem {
         timeConstraints: {
           startTime: '09:00',
           endTime: '18:00',
-          allowedDays: [1, 2, 3, 4, 5] // 周一到周五
-        }
+          allowedDays: [1, 2, 3, 4, 5], // 周一到周五
+        },
       },
       effect: 'DENY',
-      validator: async (context) => {
+      validator: async context => {
         const now = new Date();
         const currentHour = now.getHours();
         const currentDay = now.getDay();
-        
+
         const rule = this.rules.get('business-hours-only');
-        if (!rule?.conditions.timeConstraints) {return false;}
-        
+        if (!rule?.conditions.timeConstraints) {
+          return false;
+        }
+
         const { startTime, endTime, allowedDays } = rule.conditions.timeConstraints;
-        
+
         if (allowedDays && !allowedDays.includes(currentDay)) {
           return true; // 非工作日，拒绝访问
         }
-        
+
         if (startTime && endTime) {
           const start = parseInt(startTime.split(':')[0]);
           const end = parseInt(endTime.split(':')[0]);
-          
+
           if (currentHour < start || currentHour >= end) {
             return true; // 非工作时间，拒绝访问
           }
         }
-        
+
         return false; // 工作时间，允许访问
-      }
+      },
     });
 
     // 敏感操作IP限制
@@ -268,26 +271,22 @@ export class PermissionSystem {
           Permission.USER_DELETE,
           Permission.SYSTEM_CONFIG,
           Permission.SECURITY_AUDIT,
-          Permission.SECURITY_SCAN
+          Permission.SECURITY_SCAN,
         ],
-        ipWhitelist: [
-          '127.0.0.1',
-          '::1',
-          '10.0.0.0/8',
-          '172.16.0.0/12',
-          '192.168.0.0/16'
-        ]
+        ipWhitelist: ['127.0.0.1', '::1', '10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16'],
       },
       effect: 'DENY',
-      validator: async (context) => {
+      validator: async context => {
         const clientIp = context.environment?.ipAddress;
-        if (!clientIp) {return true;} // 无IP信息，拒绝访问
-        
+        if (!clientIp) {
+          return true;
+        } // 无IP信息，拒绝访问
+
         const rule = this.rules.get('sensitive-operation-ip-restriction');
         const allowedIps = rule?.conditions.ipWhitelist || [];
-        
+
         return !this.isIpInWhitelist(clientIp, allowedIps);
-      }
+      },
     });
 
     // 文件大小限制规则
@@ -298,13 +297,15 @@ export class PermissionSystem {
       priority: 75,
       enabled: true,
       conditions: {
-        permissions: [Permission.FILE_UPLOAD, Permission.CAD_UPLOAD]
+        permissions: [Permission.FILE_UPLOAD, Permission.CAD_UPLOAD],
       },
       effect: 'DENY',
-      validator: async (context) => {
+      validator: async context => {
         const fileSize = context.resource?.attributes?.fileSize as number;
-        if (!fileSize) {return false;}
-        
+        if (!fileSize) {
+          return false;
+        }
+
         const maxSizes: Record<UserRole, number> = {
           [UserRole.GUEST]: 5 * 1024 * 1024, // 5MB
           [UserRole.USER]: 50 * 1024 * 1024, // 50MB
@@ -312,12 +313,12 @@ export class PermissionSystem {
           [UserRole.ADMIN]: 1024 * 1024 * 1024, // 1GB
           [UserRole.SUPER_ADMIN]: Infinity,
           [UserRole.SYSTEM]: Infinity,
-          [UserRole.DEVELOPER]: 2 * 1024 * 1024 * 1024 // 2GB
+          [UserRole.DEVELOPER]: 2 * 1024 * 1024 * 1024, // 2GB
         };
-        
+
         const maxSize = maxSizes[context.user.role] || maxSizes[UserRole.USER];
         return fileSize > maxSize;
-      }
+      },
     });
 
     logger.info(`已初始化 ${this.rules.size} 个权限规则`);
@@ -337,27 +338,27 @@ export class PermissionSystem {
    */
   async checkPermission(context: PermissionContext): Promise<PermissionResult> {
     const cacheKey = this.generateCacheKey(context);
-    
+
     // 检查缓存
     if (this.cacheEnabled) {
       const cached = this.permissionCache.get(cacheKey);
       if (cached && cached.expiry > Date.now()) {
-        logger.debug('权限检查命中缓存', { 
+        logger.debug('权限检查命中缓存', {
           userId: context.user.id,
           action: context.action,
-          granted: cached.result.granted 
+          granted: cached.result.granted,
         });
         return cached.result;
       }
     }
 
     const result = await this.evaluatePermission(context);
-    
+
     // 缓存结果
     if (this.cacheEnabled) {
       this.permissionCache.set(cacheKey, {
         result,
-        expiry: Date.now() + this.cacheExpireTime
+        expiry: Date.now() + this.cacheExpireTime,
       });
     }
 
@@ -368,7 +369,7 @@ export class PermissionSystem {
       resourceType: context.resource?.type,
       granted: result.granted,
       reason: result.reason,
-      appliedRules: result.appliedRules
+      appliedRules: result.appliedRules,
     });
 
     return result;
@@ -391,7 +392,7 @@ export class PermissionSystem {
           granted: false,
           reason: `用户角色 ${context.user.role} 不具有权限 ${context.action}`,
           appliedRules: ['role-based-check'],
-          suggestions: ['请联系管理员提升您的权限级别']
+          suggestions: ['请联系管理员提升您的权限级别'],
         };
       }
 
@@ -403,10 +404,10 @@ export class PermissionSystem {
       // 3. 逐个评估规则
       for (const rule of sortedRules) {
         const isApplicable = await this.isRuleApplicable(rule, context);
-        
+
         if (isApplicable) {
           appliedRules.push(rule.id);
-          
+
           if (rule.effect === 'DENY') {
             return {
               granted: false,
@@ -416,8 +417,8 @@ export class PermissionSystem {
               details: {
                 ruleId: rule.id,
                 ruleName: rule.name,
-                ruleDescription: rule.description
-              }
+                ruleDescription: rule.description,
+              },
             };
           } else if (rule.effect === 'ALLOW') {
             finalDecision = true;
@@ -438,24 +439,23 @@ export class PermissionSystem {
         granted: finalDecision,
         reason,
         appliedRules,
-        suggestions
+        suggestions,
       };
-
     } catch (error) {
       logger.error('权限评估过程出错', {
         error: error instanceof Error ? error.message : String(error),
         context: {
           userId: context.user.id,
           action: context.action,
-          resourceType: context.resource?.type
-        }
+          resourceType: context.resource?.type,
+        },
       });
 
       return {
         granted: false,
         reason: '权限评估失败',
         appliedRules: ['error-handler'],
-        suggestions: ['请稍后重试或联系系统管理员']
+        suggestions: ['请稍后重试或联系系统管理员'],
       };
     }
   }
@@ -463,7 +463,10 @@ export class PermissionSystem {
   /**
    * 检查规则是否适用
    */
-  private async isRuleApplicable(rule: PermissionRule, context: PermissionContext): Promise<boolean> {
+  private async isRuleApplicable(
+    rule: PermissionRule,
+    context: PermissionContext
+  ): Promise<boolean> {
     const { conditions } = rule;
 
     // 检查角色条件
@@ -477,8 +480,11 @@ export class PermissionSystem {
     }
 
     // 检查资源类型条件
-    if (conditions.resourceTypes && context.resource && 
-        !conditions.resourceTypes.includes(context.resource.type)) {
+    if (
+      conditions.resourceTypes &&
+      context.resource &&
+      !conditions.resourceTypes.includes(context.resource.type)
+    ) {
       return false;
     }
 
@@ -499,7 +505,7 @@ export class PermissionSystem {
         return await rule.validator(context);
       } catch (error) {
         logger.error(`规则验证器执行失败: ${rule.id}`, {
-          error: error instanceof Error ? error.message : String(error)
+          error: error instanceof Error ? error.message : String(error),
         });
         return false;
       }
@@ -524,7 +530,12 @@ export class PermissionSystem {
       if (allowedIp.includes('/')) {
         // CIDR格式处理 (简化实现)
         const [network, mask] = allowedIp.split('/');
-        return ip.startsWith(network.split('.').slice(0, parseInt(mask) / 8).join('.'));
+        return ip.startsWith(
+          network
+            .split('.')
+            .slice(0, parseInt(mask) / 8)
+            .join('.')
+        );
       }
       return ip === allowedIp;
     });
@@ -562,9 +573,9 @@ export class PermissionSystem {
       context.action,
       context.resource?.type || 'none',
       context.resource?.id || 'none',
-      context.resource?.ownerId || 'none'
+      context.resource?.ownerId || 'none',
     ].join(':');
-    
+
     return Buffer.from(key).toString('base64');
   }
 
@@ -583,7 +594,7 @@ export class PermissionSystem {
     contexts: PermissionContext[]
   ): Promise<Map<string, PermissionResult>> {
     const results = new Map<string, PermissionResult>();
-    
+
     const promises = contexts.map(async (context, index) => {
       const result = await this.checkPermission(context);
       results.set(index.toString(), result);
@@ -607,7 +618,7 @@ export class PermissionSystem {
     const enabledRules = Array.from(this.rules.values()).filter(r => r.enabled);
     const rulesByEffect = {
       allow: enabledRules.filter(r => r.effect === 'ALLOW').length,
-      deny: enabledRules.filter(r => r.effect === 'DENY').length
+      deny: enabledRules.filter(r => r.effect === 'DENY').length,
     };
 
     return {
@@ -615,7 +626,7 @@ export class PermissionSystem {
       enabledRules: enabledRules.length,
       rulesByEffect,
       cacheSize: this.permissionCache.size,
-      cacheEnabled: this.cacheEnabled
+      cacheEnabled: this.cacheEnabled,
     };
   }
 }
@@ -634,11 +645,12 @@ export function requirePermission(permission: Permission, resourceType?: Resourc
 
       if (!user) {
         throw new AppError(
-          ErrorType.AUTHENTICATION,
-          ErrorCode.UNAUTHORIZED,
           '用户未认证',
-          401,
-          ErrorSeverity.MEDIUM
+          ErrorCode.UNAUTHORIZED,
+          ErrorType.AUTHENTICATION,
+          ErrorSeverity.MEDIUM,
+          null,
+          401
         );
       }
 
@@ -646,14 +658,14 @@ export function requirePermission(permission: Permission, resourceType?: Resourc
         user: {
           id: user.id,
           role: user.role,
-          permissions: permissionSystem.getUserAllPermissions(user.role)
+          permissions: permissionSystem.getUserAllPermissions(user.role),
         },
         action: permission,
         environment: {
           ipAddress: req.ip || req.headers?.['x-forwarded-for'] || req.connection?.remoteAddress,
           userAgent: req.headers?.['user-agent'],
-          timestamp: new Date().toISOString()
-        }
+          timestamp: new Date().toISOString(),
+        },
       };
 
       if (resourceType) {
@@ -664,11 +676,12 @@ export function requirePermission(permission: Permission, resourceType?: Resourc
 
       if (!result.granted) {
         throw new AppError(
-          ErrorType.AUTHORIZATION,
-          ErrorCode.FORBIDDEN,
           result.reason,
-          403,
-          ErrorSeverity.MEDIUM
+          ErrorCode.FORBIDDEN,
+          ErrorType.AUTHORIZATION,
+          ErrorSeverity.MEDIUM,
+          null,
+          403
         );
       }
 

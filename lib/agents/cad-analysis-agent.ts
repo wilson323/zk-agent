@@ -1,3 +1,9 @@
+import { getLogger } from '@/lib/utils/logger';
+
+// 删除重复声明的logger变量
+
+const logger = getLogger();
+
 /**
  * CAD分析智能体 - 容错机制实现
  * 提供文件解析容错、超时处理、备用解析器等功能
@@ -7,9 +13,9 @@ import {
   CADParseError,
   CADAnalysisTimeout,
   CADAnalysisResult,
-  delay,
-  calculateBackoffDelay
+  calculateBackoffDelay,
 } from '../errors/agent-errors';
+import { delay } from '../utils';
 
 // CAD文件解析器接口
 interface CADParser {
@@ -28,13 +34,13 @@ class PrimaryCADParser implements CADParser {
     try {
       // 模拟CAD文件解析
       const analysisData = await this.performAnalysis(file);
-      
+
       return {
         fileName: file.name,
         fileSize: file.size,
         format: this.detectFormat(file),
         status: 'success',
-        analysisData
+        analysisData,
       };
     } catch (error) {
       throw new CADParseError(
@@ -47,7 +53,7 @@ class PrimaryCADParser implements CADParser {
   private async performAnalysis(file: File): Promise<Record<string, any>> {
     // 模拟分析过程
     await delay(Math.random() * 2000 + 1000);
-    
+
     // 模拟可能的解析失败
     if (Math.random() < 0.3) {
       throw new Error(`解析文件 ${file.name} 时遇到格式错误`);
@@ -61,8 +67,8 @@ class PrimaryCADParser implements CADParser {
       materials: Math.floor(Math.random() * 10),
       boundingBox: {
         min: { x: -10, y: -10, z: -10 },
-        max: { x: 10, y: 10, z: 10 }
-      }
+        max: { x: 10, y: 10, z: 10 },
+      },
     };
   }
 
@@ -83,14 +89,14 @@ class FallbackCADParser implements CADParser {
     try {
       // 使用更简单的解析策略
       const basicData = await this.performBasicAnalysis(file);
-      
+
       return {
         fileName: file.name,
         fileSize: file.size,
         format: this.detectFormat(file),
         status: 'partial_analysis',
         message: '使用备用解析器，部分功能可能受限',
-        analysisData: basicData
+        analysisData: basicData,
       };
     } catch (error) {
       throw new CADParseError(
@@ -103,17 +109,17 @@ class FallbackCADParser implements CADParser {
   private async performBasicAnalysis(file: File): Promise<Record<string, any>> {
     // 模拟基础分析
     await delay(500);
-    
+
     return {
       fileInfo: {
         name: file.name,
         size: file.size,
-        type: file.type
+        type: file.type,
       },
       basicMetrics: {
         estimatedComplexity: 'medium',
-        processingTime: Date.now()
-      }
+        processingTime: Date.now(),
+      },
     };
   }
 
@@ -137,18 +143,14 @@ class CADTimeoutHandler {
   ): Promise<CADAnalysisResult> {
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(() => {
-        reject(new CADAnalysisTimeout(
-          `CAD分析超时 (${timeout}ms)`,
-          { fileName: file.name, timeout }
-        ));
+        reject(
+          new CADAnalysisTimeout(`CAD分析超时 (${timeout}ms)`, { fileName: file.name, timeout })
+        );
       }, timeout);
     });
 
     try {
-      return await Promise.race([
-        analyzer.analyzeCADFile(file),
-        timeoutPromise
-      ]);
+      return await Promise.race([analyzer.analyzeCADFile(file), timeoutPromise]);
     } catch (error) {
       if (error instanceof CADAnalysisTimeout) {
         // 返回快速分析结果
@@ -173,9 +175,9 @@ class CADTimeoutHandler {
         fileInfo: {
           name: file.name,
           size: file.size,
-          uploadTime: new Date().toISOString()
-        }
-      }
+          uploadTime: new Date().toISOString(),
+        },
+      },
     };
   }
 
@@ -205,10 +207,10 @@ export class CADAnalysisAgent {
     // 文件验证
     const validationResult = this.validateFile(file);
     if (!validationResult.isValid) {
-      throw new CADParseError(
-        validationResult.error || '文件验证失败',
-        { fileName: file.name, fileSize: file.size }
-      );
+      throw new CADParseError(validationResult.error || '文件验证失败', {
+        fileName: file.name,
+        fileSize: file.size,
+      });
     }
 
     try {
@@ -216,14 +218,14 @@ export class CADAnalysisAgent {
       return await this.primaryParser.parse(file);
     } catch (error) {
       if (error instanceof CADParseError) {
-        console.warn('主解析器失败，尝试备用解析器:', error.message);
-        
+        logger.warn('主解析器失败，尝试备用解析器', { error: error.message });
+
         try {
           // 尝试备用解析器
           return await this.fallbackParser.parse(file);
         } catch (fallbackError) {
-          console.warn('备用解析器也失败，生成基础信息:', fallbackError);
-          
+          logger.warn('备用解析器也失败，生成基础信息', { error: fallbackError });
+
           // 提供基础信息
           return this.generateBasicInfo(file);
         }
@@ -237,25 +239,25 @@ export class CADAnalysisAgent {
    */
   async analyzeWithRetry(file: File): Promise<CADAnalysisResult> {
     let lastError: Error = new Error('未知错误');
-    
+
     for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
       try {
         return await this.timeoutHandler.analyzeWithTimeout(file, this);
       } catch (error) {
         lastError = error as Error;
-        
+
         if (attempt < this.maxRetries) {
           const delay = calculateBackoffDelay(attempt);
-          console.warn(`CAD分析失败，${delay}ms后重试 (${attempt}/${this.maxRetries}):`, error);
+          logger.warn(`CAD分析失败，${delay}ms后重试 (${attempt}/${this.maxRetries})`, { error });
           await this.delay(delay);
         }
       }
     }
-    
-    throw new CADParseError(
-      `CAD分析失败，已重试${this.maxRetries}次: ${lastError.message}`,
-      { fileName: file.name, attempts: this.maxRetries }
-    );
+
+    throw new CADParseError(`CAD分析失败，已重试${this.maxRetries}次: ${lastError.message}`, {
+      fileName: file.name,
+      attempts: this.maxRetries,
+    });
   }
 
   /**
@@ -267,18 +269,21 @@ export class CADAnalysisAgent {
     if (file.size > maxSize) {
       return {
         isValid: false,
-        error: `文件过大，最大支持${maxSize / 1024 / 1024}MB`
+        error: `文件过大，最大支持${maxSize / 1024 / 1024}MB`,
       };
     }
 
     // 检查文件格式
-    const supportedFormats = [...this.primaryParser.supportedFormats, ...this.fallbackParser.supportedFormats];
+    const supportedFormats = [
+      ...this.primaryParser.supportedFormats,
+      ...this.fallbackParser.supportedFormats,
+    ];
     const fileExtension = '.' + file.name.toLowerCase().split('.').pop();
-    
+
     if (!supportedFormats.includes(fileExtension)) {
       return {
         isValid: false,
-        error: `不支持的文件格式: ${fileExtension}`
+        error: `不支持的文件格式: ${fileExtension}`,
       };
     }
 
@@ -300,11 +305,11 @@ export class CADAnalysisAgent {
           name: file.name,
           size: file.size,
           type: file.type,
-          lastModified: file.lastModified
+          lastModified: file.lastModified,
         },
         fallbackMode: true,
-        timestamp: new Date().toISOString()
-      }
+        timestamp: new Date().toISOString(),
+      },
     };
   }
 
@@ -329,7 +334,7 @@ export class CADAnalysisAgent {
   getSupportedFormats(): string[] {
     const allFormats = new Set([
       ...this.primaryParser.supportedFormats,
-      ...this.fallbackParser.supportedFormats
+      ...this.fallbackParser.supportedFormats,
     ]);
     return Array.from(allFormats);
   }
@@ -342,7 +347,7 @@ export class CADAnalysisAgent {
       supportedFormats: this.getSupportedFormats(),
       maxRetries: this.maxRetries,
       defaultTimeout: 30000,
-      maxFileSize: '100MB'
+      maxFileSize: '100MB',
     };
   }
 }

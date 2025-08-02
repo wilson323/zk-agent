@@ -1,213 +1,252 @@
-// @ts-nocheck
-"use client"
+import { secureStorage } from '@/lib/utils/secure-storage';
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
-import type { User, LoginResponse, RegisterRequest } from "@/types/auth"
+// @ts-nocheck
+'use client';
+
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import type { User, LoginResponse, RegisterRequest } from '@/types/auth';
+import { isSecureTokenExpiringSoon } from '@/lib/auth/enhanced-jwt-security';
 
 interface AuthContextType {
-  user: User | null
-  isLoading: boolean
-  isAuthenticated: boolean
-  login: (email: string, password: string, rememberMe?: boolean) => Promise<LoginResponse>
-  register: (data: RegisterRequest) => Promise<LoginResponse>
-  logout: () => Promise<void>
-  updateProfile: (data: Partial<User>) => Promise<{ success: boolean; error?: string }>
-  refreshToken: () => Promise<boolean>
+  user: User | null;
+  isLoading: boolean;
+  isAuthenticated: boolean;
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<LoginResponse>;
+  register: (data: RegisterRequest) => Promise<LoginResponse>;
+  logout: () => Promise<void>;
+  updateProfile: (data: Partial<User>) => Promise<{ success: boolean; error?: string }>;
+  refreshToken: () => Promise<boolean>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 interface AuthProviderProps {
-  children: ReactNode
+  children: ReactNode;
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   // 检查本地存储的token并验证用户
   useEffect(() => {
     const initAuth = async () => {
       try {
-        const token = localStorage.getItem("accessToken")
-        if (token) {
-          const response = await fetch("/api/auth/profile", {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          })
+        const token = secureStorage.getItem('accessToken');
+        if (!token) {
+          setIsLoading(false);
+          return;
+        }
 
-          if (response.ok) {
-            const data = await response.json()
-            if (data.success) {
-              setUser(data.data)
-            } else {
-              // Token无效，清除本地存储
-              localStorage.removeItem("accessToken")
-              localStorage.removeItem("refreshToken")
-            }
+        // 检查令牌是否即将过期
+        if (isSecureTokenExpiringSoon(token)) {
+          // 尝试刷新令牌
+          const refreshed = await refreshToken();
+          if (!refreshed) {
+            // 刷新失败，清除本地存储
+            secureStorage.removeItem('accessToken');
+            secureStorage.removeItem('refreshToken');
+            setIsLoading(false);
+            return;
+          }
+        }
+
+        // 使用有效的令牌获取用户信息
+        const currentToken = secureStorage.getItem('accessToken');
+        const response = await fetch('/api/auth/profile', {
+          headers: {
+            Authorization: `Bearer ${currentToken}`,
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            setUser(data.data);
+          } else {
+            // Token无效，清除本地存储
+            secureStorage.removeItem('accessToken');
+            secureStorage.removeItem('refreshToken');
+          }
+        } else if (response.status === 401) {
+          // 认证失败，尝试刷新令牌
+          const refreshed = await refreshToken();
+          if (!refreshed) {
+            // 刷新失败，清除本地存储
+            secureStorage.removeItem('accessToken');
+            secureStorage.removeItem('refreshToken');
+          } else {
+            // 刷新成功，重新获取用户信息
+            await initAuth();
+            return;
           }
         }
       } catch (error) {
-        console.error("初始化认证失败:", error)
-        localStorage.removeItem("accessToken")
-        localStorage.removeItem("refreshToken")
+        console.error('初始化认证失败:', error);
+        secureStorage.removeItem('accessToken');
+        secureStorage.removeItem('refreshToken');
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
-    }
+    };
 
-    initAuth()
-  }, [])
+    initAuth();
+  }, []);
 
-  const login = async (email: string, password: string, rememberMe = false): Promise<LoginResponse> => {
+  const login = async (
+    email: string,
+    password: string,
+    rememberMe = false
+  ): Promise<LoginResponse> => {
     try {
-      setIsLoading(true)
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
+      setIsLoading(true);
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email, password, rememberMe }),
-      })
+      });
 
-      const data: LoginResponse = await response.json()
+      const data: LoginResponse = await response.json();
 
       if (data.success && data.user && data.tokens) {
-        setUser(data.user)
-        localStorage.setItem("accessToken", data.tokens.accessToken)
-        localStorage.setItem("refreshToken", data.tokens.refreshToken)
+        setUser(data.user);
+        secureStorage.setItem('accessToken', data.tokens.accessToken);
+        secureStorage.setItem('refreshToken', data.tokens.refreshToken);
 
         // 如果选择记住我，设置更长的过期时间
         if (rememberMe) {
-          const expiryDate = new Date()
-          expiryDate.setDate(expiryDate.getDate() + 30) // 30天
-          localStorage.setItem("tokenExpiry", expiryDate.toISOString())
+          const expiryDate = new Date();
+          expiryDate.setDate(expiryDate.getDate() + 30); // 30天
+          secureStorage.setItem('tokenExpiry', expiryDate.toISOString());
         }
       }
 
-      return data
+      return data;
     } catch (error) {
-      console.error("登录失败:", error)
+      console.error('登录失败:', error);
       return {
         success: false,
-        error: "网络错误，请稍后重试",
-      }
+        error: '网络错误，请稍后重试',
+      };
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const register = async (data: RegisterRequest): Promise<LoginResponse> => {
     try {
-      setIsLoading(true)
-      const response = await fetch("/api/auth/register", {
-        method: "POST",
+      setIsLoading(true);
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify(data),
-      })
+      });
 
-      const result: LoginResponse = await response.json()
+      const result: LoginResponse = await response.json();
 
       if (result.success && result.user && result.tokens) {
-        setUser(result.user)
-        localStorage.setItem("accessToken", result.tokens.accessToken)
-        localStorage.setItem("refreshToken", result.tokens.refreshToken)
+        setUser(result.user);
+        secureStorage.setItem('accessToken', result.tokens.accessToken);
+        secureStorage.setItem('refreshToken', result.tokens.refreshToken);
       }
 
-      return result
+      return result;
     } catch (error) {
-      console.error("注册失败:", error)
+      console.error('注册失败:', error);
       return {
         success: false,
-        error: "网络错误，请稍后重试",
-      }
+        error: '网络错误，请稍后重试',
+      };
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const logout = async (): Promise<void> => {
     try {
-      const token = localStorage.getItem("accessToken")
+      const token = secureStorage.getItem('accessToken');
       if (token) {
-        await fetch("/api/auth/logout", {
-          method: "POST",
+        await fetch('/api/auth/logout', {
+          method: 'POST',
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        })
+        });
       }
     } catch (error) {
-      console.error("登出失败:", error)
+      console.error('登出失败:', error);
     } finally {
-      setUser(null)
-      localStorage.removeItem("accessToken")
-      localStorage.removeItem("refreshToken")
-      localStorage.removeItem("tokenExpiry")
+      setUser(null);
+      secureStorage.removeItem('accessToken');
+      secureStorage.removeItem('refreshToken');
+      secureStorage.removeItem('tokenExpiry');
     }
-  }
+  };
 
-  const updateProfile = async (data: Partial<User>): Promise<{ success: boolean; error?: string }> => {
+  const updateProfile = async (
+    data: Partial<User>
+  ): Promise<{ success: boolean; error?: string }> => {
     try {
-      const token = localStorage.getItem("accessToken")
+      const token = secureStorage.getItem('accessToken');
       if (!token) {
-        return { success: false, error: "未登录" }
+        return { success: false, error: '未登录' };
       }
 
-      const response = await fetch("/api/auth/profile", {
-        method: "PUT",
+      const response = await fetch('/api/auth/profile', {
+        method: 'PUT',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(data),
-      })
+      });
 
-      const result = await response.json()
+      const result = await response.json();
 
       if (result.success) {
-        setUser(result.data)
+        setUser(result.data);
       }
 
-      return result
+      return result;
     } catch (error) {
-      console.error("更新资料失败:", error)
-      return { success: false, error: "网络错误，请稍后重试" }
+      console.error('更新资料失败:', error);
+      return { success: false, error: '网络错误，请稍后重试' };
     }
-  }
+  };
 
   const refreshToken = async (): Promise<boolean> => {
     try {
-      const refreshTokenValue = localStorage.getItem("refreshToken")
+      const refreshTokenValue = secureStorage.getItem('refreshToken');
       if (!refreshTokenValue) {
-        return false
+        return false;
       }
 
-      const response = await fetch("/api/auth/refresh", {
-        method: "POST",
+      const response = await fetch('/api/auth/refresh', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({ refreshToken: refreshTokenValue }),
-      })
+      });
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (data.success && data.tokens) {
-        localStorage.setItem("accessToken", data.tokens.accessToken)
-        localStorage.setItem("refreshToken", data.tokens.refreshToken)
-        return true
+        secureStorage.setItem('accessToken', data.tokens.accessToken);
+        secureStorage.setItem('refreshToken', data.tokens.refreshToken);
+        return true;
       }
 
-      return false
+      return false;
     } catch (error) {
-      console.error("刷新token失败:", error)
-      return false
+      console.error('刷新token失败:', error);
+      return false;
     }
-  }
+  };
 
   const value: AuthContextType = {
     user,
@@ -218,15 +257,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
     logout,
     updateProfile,
     refreshToken,
-  }
+  };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
-  const context = useContext(AuthContext)
+  const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider")
+    throw new Error('useAuth must be used within an AuthProvider');
   }
-  return context
+  return context;
 }

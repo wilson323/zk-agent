@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { getService, ServiceIdentifier } from '../di/container';
+import { container, ServiceIdentifier } from '../di/container';
 import { isDIInitialized, getDIInitializationStatus } from '../di/initialization';
 import { DIInitializationStatus } from '../di/initialization';
 
@@ -14,21 +14,21 @@ import { DIInitializationStatus } from '../di/initialization';
  * 使用依赖注入服务的钩子返回类型
  */
 export type UseDIServiceResult<T> = {
-  service: T | null;        // 服务实例，如果DI未初始化则为null
-  isInitialized: boolean;   // DI系统是否已初始化
+  service: T | null; // 服务实例，如果DI未初始化则为null
+  isInitialized: boolean; // DI系统是否已初始化
   status: DIInitializationStatus; // DI系统初始化状态
-  error: Error | null;      // 获取服务时的错误
+  error: Error | null; // 获取服务时的错误
 };
 
 /**
  * 使用依赖注入服务的钩子
  * @param serviceId 服务标识符
  * @returns 包含服务实例和状态的对象
- * 
+ *
  * @example
  * // 在组件中使用
  * const { service: logger, isInitialized } = useDIService<ILogger>(TYPES.Logger);
- * 
+ *
  * // 使用服务（确保检查是否已初始化）
  * useEffect(() => {
  *   if (isInitialized && logger) {
@@ -41,7 +41,7 @@ export function useDIService<T>(serviceId: ServiceIdentifier): UseDIServiceResul
     service: null,
     isInitialized: isDIInitialized(),
     status: getDIInitializationStatus(),
-    error: null
+    error: null,
   });
 
   useEffect(() => {
@@ -49,16 +49,16 @@ export function useDIService<T>(serviceId: ServiceIdentifier): UseDIServiceResul
     const checkAndGetService = () => {
       const initialized = isDIInitialized();
       const status = getDIInitializationStatus();
-      
+
       if (initialized) {
         try {
           // 尝试获取服务
-          const serviceInstance = getService<T>(serviceId);
+          const serviceInstance = container.resolve<T>(serviceId);
           setResult({
             service: serviceInstance,
             isInitialized: true,
             status,
-            error: null
+            error: null,
           });
         } catch (err) {
           // 处理获取服务时的错误
@@ -66,7 +66,7 @@ export function useDIService<T>(serviceId: ServiceIdentifier): UseDIServiceResul
             service: null,
             isInitialized: true,
             status,
-            error: err instanceof Error ? err : new Error('获取服务失败')
+            error: err instanceof Error ? err : new Error('获取服务失败'),
           });
         }
       } else {
@@ -75,31 +75,31 @@ export function useDIService<T>(serviceId: ServiceIdentifier): UseDIServiceResul
           service: null,
           isInitialized: false,
           status,
-          error: null
+          error: null,
         });
       }
     };
 
     // 立即检查一次
     checkAndGetService();
-    
+
     // 如果DI系统尚未初始化，设置轮询检查
     if (!result.isInitialized) {
       const interval = setInterval(() => {
         const currentStatus = getDIInitializationStatus();
-        
+
         // 如果状态已更改，重新检查服务
         if (currentStatus !== result.status) {
           checkAndGetService();
         }
-        
+
         // 如果已初始化，停止轮询
         if (isDIInitialized()) {
           clearInterval(interval);
           checkAndGetService();
         }
       }, 500);
-      
+
       return () => clearInterval(interval);
     }
   }, [serviceId, result.status, result.isInitialized]);
@@ -110,11 +110,11 @@ export function useDIService<T>(serviceId: ServiceIdentifier): UseDIServiceResul
 /**
  * 等待DI系统初始化的钩子
  * @returns DI系统的初始化状态
- * 
+ *
  * @example
  * // 在组件中使用
  * const { isInitialized, status } = useDIInitialization();
- * 
+ *
  * if (!isInitialized) {
  *   return <div>正在初始化依赖注入系统...</div>;
  * }
@@ -122,7 +122,7 @@ export function useDIService<T>(serviceId: ServiceIdentifier): UseDIServiceResul
 export function useDIInitialization() {
   const [state, setState] = useState({
     isInitialized: isDIInitialized(),
-    status: getDIInitializationStatus()
+    status: getDIInitializationStatus(),
   });
 
   useEffect(() => {
@@ -133,14 +133,14 @@ export function useDIInitialization() {
     const checkStatus = () => {
       const currentInitialized = isDIInitialized();
       const currentStatus = getDIInitializationStatus();
-      
+
       if (currentInitialized !== state.isInitialized || currentStatus !== state.status) {
         setState({
           isInitialized: currentInitialized,
-          status: currentStatus
+          status: currentStatus,
         });
       }
-      
+
       return currentInitialized;
     };
 
@@ -150,7 +150,7 @@ export function useDIInitialization() {
         clearInterval(interval);
       }
     }, 500);
-    
+
     return () => clearInterval(interval);
   }, [state.isInitialized, state.status]);
 

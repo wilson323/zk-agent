@@ -6,7 +6,7 @@
  * @lastUpdate 2024-12-19
  * @updateLog
  *   - 2024-12-19 优化进度反馈、异常健壮性、结果缓存、批量分析
- * 
+ *
  * 🔤 命名规范说明：
  * - 类名：PascalCase（如：CADAnalyzer）
  * - 分析方法：analyze + 具体功能（如：analyzeStructure）
@@ -14,61 +14,81 @@
  * - 评估方法：assess + 类型（如：assessRisks）
  * - 配置变量：config + 描述（如：analysisConfig）
  * - 结果变量：result + 类型（如：analysisResult）
- * 
+ *
  * ⚠️ 本文件依赖Node.js Buffer类型，仅限服务端调用。如需前端兼容请用ArrayBuffer。
  */
 
-import type { CADAnalysisConfig, AnalysisResult, DeviceInfo, RiskAssessment, AnalysisProgress } from "@/types/cad"
+import type {
+  CADAnalysisConfig,
+  AnalysisResult,
+  DeviceInfo,
+  RiskAssessment,
+  AnalysisProgress,
+} from '@/types/cad';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
 
 // Node.js 全局变量声明
 declare global {
-  var process: {
-    memoryUsage(): { heapUsed: number; heapTotal: number; rss: number; external: number }
-    cpuUsage(): { user: number; system: number }
-    versions?: { node: string }
-  } | undefined
+  var process:
+    | {
+      memoryUsage(): { heapUsed: number; heapTotal: number; rss: number; external: number };
+      cpuUsage(): { user: number; system: number };
+      versions?: { node: string };
+    }
+    | undefined;
 }
 
 // Node.js 类型定义（仅服务端使用）
-type NodeBuffer = ArrayBuffer | Uint8Array
+type NodeBuffer = ArrayBuffer | Uint8Array;
 
 // 简易LRU缓存实现（与file-processor一致）
 class LRUCache<K, V> {
-  private max: number
-  private cache: Map<K, V>
+  private max: number;
+  private cache: Map<K, V>;
   constructor(max = 30) {
-    this.max = max
-    this.cache = new Map()
+    this.max = max;
+    this.cache = new Map();
   }
   get(key: K): V | undefined {
-    if (!this.cache.has(key)) {return undefined}
-    const value = this.cache.get(key)!
-    this.cache.delete(key as K)
-    this.cache.set(key, value)
-    return value
+    if (!this.cache.has(key)) {
+      return undefined;
+    }
+    const value = this.cache.get(key)!;
+    this.cache.delete(key as K);
+    this.cache.set(key, value);
+    return value;
   }
   set(key: K, value: V) {
-    if (this.cache.has(key)) {this.cache.delete(key as K)}
-    else if (this.cache.size >= this.max) {this.cache.delete(Array.from(this.cache.keys())[0] as K)}
-    this.cache.set(key, value)
+    if (this.cache.has(key)) {
+      this.cache.delete(key as K);
+    } else if (this.cache.size >= this.max) {
+      this.cache.delete(Array.from(this.cache.keys())[0] as K);
+    }
+    this.cache.set(key, value);
   }
-  has(key: K) { return this.cache.has(key) }
+  has(key: K) {
+    return this.cache.has(key);
+  }
 }
 
 // 扩展AnalysisProgress类型，兼容error阶段
-export type ExtendedAnalysisProgress = Omit<AnalysisProgress, 'stage'> & { stage: AnalysisProgress["stage"] | "error" }
+export type ExtendedAnalysisProgress = Omit<AnalysisProgress, 'stage'> & {
+  stage: AnalysisProgress['stage'] | 'error';
+};
 
 // 📝 命名规范：分析类使用PascalCase，体现核心功能
 export class CADAnalyzer {
   // 📝 命名规范：私有配置属性，camelCase + 描述性命名
-  private analysisConfig: CADAnalysisConfig
-  
+  private analysisConfig: CADAnalysisConfig;
+
   // 📝 命名规范：缓存相关属性使用cache前缀
-  private cacheEnabled: boolean = true
-  private resultCache = new LRUCache<string, AnalysisResult>(30)
+  private cacheEnabled: boolean = true;
+  private resultCache = new LRUCache<string, AnalysisResult>(30);
 
   constructor(config: CADAnalysisConfig) {
-    this.analysisConfig = config
+    this.analysisConfig = config;
   }
 
   /**
@@ -79,22 +99,28 @@ export class CADAnalyzer {
     fileName: string,
     onProgress?: (progress: ExtendedAnalysisProgress) => void
   ): Promise<AnalysisResult> {
-    const cacheKey = this.generateCacheKey(fileName, fileBuffer)
+    const cacheKey = this.generateCacheKey(fileName, fileBuffer);
     if (this.cacheEnabled && this.resultCache.has(cacheKey)) {
-      onProgress?.({ stage: "complete", progress: 100, message: "命中缓存，直接返回结果" })
-      return this.resultCache.get(cacheKey)!
+      onProgress?.({ stage: 'complete', progress: 100, message: '命中缓存，直接返回结果' });
+      return this.resultCache.get(cacheKey)!;
     }
     try {
-      onProgress?.({ stage: "parsing", progress: 10, message: "解析结构中..." })
-      const step1_parsedStructure = await this.analyzeStructure(fileBuffer)
-      onProgress?.({ stage: "structure", progress: 30, message: "结构分析完成，检测设备..." })
-      const step2_detectedDevices = await this.detectDevices(step1_parsedStructure)
-      onProgress?.({ stage: "devices", progress: 50, message: "设备检测完成，风险评估..." })
-      const step3_assessedRisks = await this.assessRisks(step2_detectedDevices, step1_parsedStructure)
-      onProgress?.({ stage: "risks", progress: 70, message: "风险评估完成，合规检查..." })
-      const step4_complianceCheck = await this.checkCompliance(step2_detectedDevices, step3_assessedRisks)
-      onProgress?.({ stage: "compliance", progress: 85, message: "合规检查完成，生成报告..." })
-      const recommendations = await this.generateRecommendations(step3_assessedRisks)
+      onProgress?.({ stage: 'parsing', progress: 10, message: '解析结构中...' });
+      const step1_parsedStructure = await this.analyzeStructure(fileBuffer);
+      onProgress?.({ stage: 'structure', progress: 30, message: '结构分析完成，检测设备...' });
+      const step2_detectedDevices = await this.detectDevices(step1_parsedStructure);
+      onProgress?.({ stage: 'devices', progress: 50, message: '设备检测完成，风险评估...' });
+      const step3_assessedRisks = await this.assessRisks(
+        step2_detectedDevices,
+        step1_parsedStructure
+      );
+      onProgress?.({ stage: 'risks', progress: 70, message: '风险评估完成，合规检查...' });
+      const step4_complianceCheck = await this.checkCompliance(
+        step2_detectedDevices,
+        step3_assessedRisks
+      );
+      onProgress?.({ stage: 'compliance', progress: 85, message: '合规检查完成，生成报告...' });
+      const recommendations = await this.generateRecommendations(step3_assessedRisks);
       const finalAnalysisResult: AnalysisResult = {
         id: this.generateAnalysisId(),
         fileInfo: {
@@ -114,21 +140,25 @@ export class CADAnalyzer {
         performance: this.collectPerformanceMetrics(),
         createdAt: new Date(),
         processingTime: 0,
-        version: "1.0.0",
-      }
+        version: '1.0.0',
+      };
       if (this.cacheEnabled) {
-        this.resultCache.set(cacheKey, finalAnalysisResult)
+        this.resultCache.set(cacheKey, finalAnalysisResult);
       }
-      onProgress?.({ stage: "complete", progress: 100, message: "分析完成" })
-      return finalAnalysisResult
+      onProgress?.({ stage: 'complete', progress: 100, message: '分析完成' });
+      return finalAnalysisResult;
     } catch (error) {
-      onProgress?.({ stage: "error", progress: 100, message: error instanceof Error ? error.message : String(error) })
+      onProgress?.({
+        stage: 'error',
+        progress: 100,
+        message: error instanceof Error ? error.message : String(error),
+      });
       if (typeof window === 'undefined') {
         // Node环境详细日志
         // eslint-disable-next-line no-console
-        console.error(`[CADAnalyzer] 分析失败:`, fileName, error)
+        logger.error(`[CADAnalyzer] 分析失败:`, fileName, error);
       }
-      throw new Error(`CAD分析失败: ${error instanceof Error ? error.message : "未知错误"}`)
+      throw new Error(`CAD分析失败: ${error instanceof Error ? error.message : '未知错误'}`);
     }
   }
 
@@ -139,32 +169,34 @@ export class CADAnalyzer {
     files: { buffer: NodeBuffer; name: string }[],
     onProgressMap?: Record<string, (progress: ExtendedAnalysisProgress) => void>
   ): Promise<Map<string, AnalysisResult | { error: string }>> {
-    const results = new Map<string, AnalysisResult | { error: string }>()
-    const MAX_CONCURRENT = 2
-    const chunks: { buffer: NodeBuffer; name: string }[][] = []
+    const results = new Map<string, AnalysisResult | { error: string }>();
+    const MAX_CONCURRENT = 2;
+    const chunks: { buffer: NodeBuffer; name: string }[][] = [];
     for (let i = 0; i < files.length; i += MAX_CONCURRENT) {
-      chunks.push(files.slice(i, i + MAX_CONCURRENT))
+      chunks.push(files.slice(i, i + MAX_CONCURRENT));
     }
     for (const chunk of chunks) {
-      await Promise.all(chunk.map(async (fileObj) => {
-        try {
-          const result = await this.analyze(
-            fileObj.buffer,
-            fileObj.name,
-            onProgressMap?.[fileObj.name]
-          )
-          results.set(fileObj.name, result)
-        } catch (err) {
-          const errorMsg = err instanceof Error ? err.message : String(err)
-          results.set(fileObj.name, { error: errorMsg })
-          if (typeof window === 'undefined') {
-            // eslint-disable-next-line no-console
-            console.error(`[CADAnalyzer] 批量分析失败:`, fileObj.name, errorMsg)
+      await Promise.all(
+        chunk.map(async fileObj => {
+          try {
+            const result = await this.analyze(
+              fileObj.buffer,
+              fileObj.name,
+              onProgressMap?.[fileObj.name]
+            );
+            results.set(fileObj.name, result);
+          } catch (err) {
+            const errorMsg = err instanceof Error ? err.message : String(err);
+            results.set(fileObj.name, { error: errorMsg });
+            if (typeof window === 'undefined') {
+              // eslint-disable-next-line no-console
+              logger.error(`[CADAnalyzer] 批量分析失败:`, fileObj.name, errorMsg);
+            }
           }
-        }
-      }))
+        })
+      );
     }
-    return results
+    return results;
   }
 
   /**
@@ -173,9 +205,9 @@ export class CADAnalyzer {
    */
   private async analyzeStructure(fileBuffer: NodeBuffer): Promise<any> {
     // 📝 命名规范：解析结果使用parsed前缀
-    const parsedGeometry = await this.parseCADGeometry(fileBuffer)
-    const extractedLayers = await this.extractLayers(parsedGeometry)
-    const identifiedBlocks = await this.identifyBlocks(parsedGeometry)
+    const parsedGeometry = await this.parseCADGeometry(fileBuffer);
+    const extractedLayers = await this.extractLayers(parsedGeometry);
+    const identifiedBlocks = await this.identifyBlocks(parsedGeometry);
 
     return {
       geometry: parsedGeometry,
@@ -188,7 +220,7 @@ export class CADAnalyzer {
         blockCount: identifiedBlocks.length,
         estimatedRenderTime: this.estimateRenderTime(parsedGeometry),
       },
-    }
+    };
   }
 
   /**
@@ -196,22 +228,22 @@ export class CADAnalyzer {
    * 📝 命名规范：检测类方法使用detect + 检测对象
    */
   private async detectDevices(structureData: any): Promise<DeviceInfo[]> {
-    const detectedDevices: DeviceInfo[] = []
+    const detectedDevices: DeviceInfo[] = [];
 
     // 📝 命名规范：检测器使用detector后缀
-    const surveillanceDetector = await this.detectSurveillanceDevices(structureData)
-    const accessControlDetector = await this.detectAccessControlDevices(structureData)
-    const fireSafetyDetector = await this.detectFireSafetyDevices(structureData)
+    const surveillanceDetector = await this.detectSurveillanceDevices(structureData);
+    const accessControlDetector = await this.detectAccessControlDevices(structureData);
+    const fireSafetyDetector = await this.detectFireSafetyDevices(structureData);
 
     // 📝 命名规范：合并操作使用combine/merge动词
-    detectedDevices.push(...surveillanceDetector)
-    detectedDevices.push(...accessControlDetector)
-    detectedDevices.push(...fireSafetyDetector)
+    detectedDevices.push(...surveillanceDetector);
+    detectedDevices.push(...accessControlDetector);
+    detectedDevices.push(...fireSafetyDetector);
 
     // 📝 命名规范：后处理使用post前缀
-    const postProcessedDevices = await this.postProcessDevices(detectedDevices)
-    
-    return postProcessedDevices
+    const postProcessedDevices = await this.postProcessDevices(detectedDevices);
+
+    return postProcessedDevices;
   }
 
   /**
@@ -219,21 +251,21 @@ export class CADAnalyzer {
    * 📝 命名规范：评估类方法使用assess + 评估对象
    */
   private async assessRisks(devices: DeviceInfo[], structure: any): Promise<RiskAssessment[]> {
-    const identifiedRisks: RiskAssessment[] = []
+    const identifiedRisks: RiskAssessment[] = [];
 
     // 📝 命名规范：风险类别使用risk + 类型
-    const securityRisks = await this.assessSecurityRisks(devices, structure)
-    const safetyRisks = await this.assessSafetyRisks(devices, structure)
-    const complianceRisks = await this.assessComplianceRisks(devices, structure)
-    const performanceRisks = await this.assessPerformanceRisks(devices, structure)
+    const securityRisks = await this.assessSecurityRisks(devices, structure);
+    const safetyRisks = await this.assessSafetyRisks(devices, structure);
+    const complianceRisks = await this.assessComplianceRisks(devices, structure);
+    const performanceRisks = await this.assessPerformanceRisks(devices, structure);
 
-    identifiedRisks.push(...securityRisks)
-    identifiedRisks.push(...safetyRisks)
-    identifiedRisks.push(...complianceRisks)
-    identifiedRisks.push(...performanceRisks)
+    identifiedRisks.push(...securityRisks);
+    identifiedRisks.push(...safetyRisks);
+    identifiedRisks.push(...complianceRisks);
+    identifiedRisks.push(...performanceRisks);
 
     // 📝 命名规范：排序操作使用sort + 排序条件
-    return this.sortRisksBySeverity(identifiedRisks)
+    return this.sortRisksBySeverity(identifiedRisks);
   }
 
   /**
@@ -241,28 +273,22 @@ export class CADAnalyzer {
    * 📝 命名规范：具体设备检测使用detect + 设备类型 + Devices
    */
   private async detectSurveillanceDevices(structure: any): Promise<DeviceInfo[]> {
-    const detectedDevices: DeviceInfo[] = []
+    const detectedDevices: DeviceInfo[] = [];
 
     // 📝 命名规范：模式匹配使用pattern + 匹配类型
-    const cameraPatterns = [
-      /camera/i, /监控/i, /摄像/i, /cam/i,
-      /surveillance/i, /CCTV/i, /视频/i
-    ]
+    const cameraPatterns = [/camera/i, /监控/i, /摄像/i, /cam/i, /surveillance/i, /CCTV/i, /视频/i];
 
-    const alarmPatterns = [
-      /alarm/i, /报警/i, /警报/i, /sensor/i,
-      /detector/i, /探测/i, /感应/i
-    ]
+    const alarmPatterns = [/alarm/i, /报警/i, /警报/i, /sensor/i, /detector/i, /探测/i, /感应/i];
 
     // 📝 命名规范：搜索结果使用found前缀
-    const foundCameras = await this.searchDevicesByPatterns(structure, cameraPatterns)
-    const foundAlarms = await this.searchDevicesByPatterns(structure, alarmPatterns)
+    const foundCameras = await this.searchDevicesByPatterns(structure, cameraPatterns);
+    const foundAlarms = await this.searchDevicesByPatterns(structure, alarmPatterns);
 
     // 📝 命名规范：处理函数使用process + 对象
-    detectedDevices.push(...this.processCameraDevices(foundCameras))
-    detectedDevices.push(...this.processAlarmDevices(foundAlarms))
+    detectedDevices.push(...this.processCameraDevices(foundCameras));
+    detectedDevices.push(...this.processAlarmDevices(foundAlarms));
 
-    return detectedDevices
+    return detectedDevices;
   }
 
   /**
@@ -271,11 +297,11 @@ export class CADAnalyzer {
    */
   private generateSummary(devices: DeviceInfo[], risks: RiskAssessment[]): any {
     // 📝 命名规范：统计数据使用stats前缀
-    const deviceStats = this.calculateDeviceStatistics(devices)
-    const riskStats = this.calculateRiskStatistics(risks)
-    
+    const deviceStats = this.calculateDeviceStatistics(devices);
+    const riskStats = this.calculateRiskStatistics(risks);
+
     // 📝 命名规范：评分使用score后缀
-    const overallScore = this.calculateOverallScore(deviceStats, riskStats)
+    const overallScore = this.calculateOverallScore(deviceStats, riskStats);
 
     return {
       totalDevices: devices.length,
@@ -287,7 +313,7 @@ export class CADAnalyzer {
       keyFindings: this.extractKeyFindings(devices, risks),
       criticalIssues: riskStats.critical,
       recommendationsCount: this.countRecommendations(risks),
-    }
+    };
   }
 
   /**
@@ -296,10 +322,10 @@ export class CADAnalyzer {
    */
   private generateCacheKey(fileName: string, buffer: NodeBuffer): string {
     // 📝 命名规范：哈希相关使用hash前缀
-    const fileHash = this.computeFileHash(buffer)
-    const configHash = this.computeConfigHash(this.analysisConfig)
-    
-    return `cad_analysis_${fileName}_${fileHash}_${configHash}`
+    const fileHash = this.computeFileHash(buffer);
+    const configHash = this.computeConfigHash(this.analysisConfig);
+
+    return `cad_analysis_${fileName}_${fileHash}_${configHash}`;
   }
 
   /**
@@ -308,7 +334,7 @@ export class CADAnalyzer {
    */
   private collectPerformanceMetrics(): any {
     // 仅Node.js服务端可用
-    const isNode = typeof process !== 'undefined' && process?.versions?.node
+    const isNode = typeof process !== 'undefined' && process?.versions?.node;
     return {
       processingTime: 0, // 将在调用处计算
       memoryUsage: isNode && process ? process.memoryUsage().heapUsed : 0,
@@ -316,7 +342,7 @@ export class CADAnalyzer {
       cacheHitRate: this.calculateCacheHitRate(),
       errorRate: 0, // 基于历史数据计算
       throughput: this.calculateThroughput(),
-    }
+    };
   }
 
   /**
@@ -325,7 +351,7 @@ export class CADAnalyzer {
    */
   private calculateCacheHitRate(): number {
     // 简化实现，实际应基于统计数据
-    return 0.85
+    return 0.85;
   }
 
   /**
@@ -334,45 +360,119 @@ export class CADAnalyzer {
    */
   private calculateThroughput(): number {
     // 简化实现，实际应基于处理历史
-    return 1.2 // 文件/分钟
+    return 1.2; // 文件/分钟
   }
 
   // 📝 命名规范：占位符方法，待具体实现
-  private async parseCADGeometry(buffer: NodeBuffer): Promise<any> { return {} }
-  private async extractLayers(geometry: any): Promise<any[]> { return [] }
-  private async identifyBlocks(geometry: any): Promise<any[]> { return [] }
-  private calculateComplexity(geometry: any): string { return "medium" }
-  private estimateRenderTime(geometry: any): number { return 0 }
-  private async detectAccessControlDevices(structure: any): Promise<DeviceInfo[]> { return [] }
-  private async detectFireSafetyDevices(structure: any): Promise<DeviceInfo[]> { return [] }
-  private async postProcessDevices(devices: DeviceInfo[]): Promise<DeviceInfo[]> { return devices }
-  private async assessSecurityRisks(devices: DeviceInfo[], structure: any): Promise<RiskAssessment[]> { return [] }
-  private async assessSafetyRisks(devices: DeviceInfo[], structure: any): Promise<RiskAssessment[]> { return [] }
-  private async assessComplianceRisks(devices: DeviceInfo[], structure: any): Promise<RiskAssessment[]> { return [] }
-  private async assessPerformanceRisks(devices: DeviceInfo[], structure: any): Promise<RiskAssessment[]> { return [] }
-  private sortRisksBySeverity(risks: RiskAssessment[]): RiskAssessment[] { return risks }
-  private async searchDevicesByPatterns(structure: any, patterns: RegExp[]): Promise<any[]> { return [] }
-  private processCameraDevices(devices: any[]): DeviceInfo[] { return [] }
-  private processAlarmDevices(devices: any[]): DeviceInfo[] { return [] }
-  private calculateDeviceStatistics(devices: DeviceInfo[]): any { return { byCategory: {}, total: devices.length } }
-  private calculateRiskStatistics(risks: RiskAssessment[]): any { return { bySeverity: {}, critical: 0 } }
-  private calculateOverallScore(deviceStats: any, riskStats: any): any { return { compliance: 85 } }
-  private determineOverallStatus(score: any): string { return "good" }
-  private extractKeyFindings(devices: DeviceInfo[], risks: RiskAssessment[]): string[] { return [] }
-  private countRecommendations(risks: RiskAssessment[]): number { return 0 }
-  private generateAnalysisId(): string { return Date.now().toString() }
-  private generateFileId(): string { return Date.now().toString() }
-  private detectFileType(fileName: string): string { return fileName.split('.').pop() || 'unknown' }
-  private async checkCompliance(devices: DeviceInfo[], risks: RiskAssessment[]): Promise<any> { return {} }
-  private async generateRecommendations(risks: RiskAssessment[]): Promise<any[]> { return [] }
-  private computeFileHash(buffer: NodeBuffer): string { 
-    if (buffer instanceof ArrayBuffer) {
-      return Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 16)
-    }
-    return Array.from(buffer).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 16)
+  private async parseCADGeometry(buffer: NodeBuffer): Promise<any> {
+    return {};
   }
-  private computeConfigHash(config: CADAnalysisConfig): string { return JSON.stringify(config).slice(0, 16) }
-  
+  private async extractLayers(geometry: any): Promise<any[]> {
+    return [];
+  }
+  private async identifyBlocks(geometry: any): Promise<any[]> {
+    return [];
+  }
+  private calculateComplexity(geometry: any): string {
+    return 'medium';
+  }
+  private estimateRenderTime(geometry: any): number {
+    return 0;
+  }
+  private async detectAccessControlDevices(structure: any): Promise<DeviceInfo[]> {
+    return [];
+  }
+  private async detectFireSafetyDevices(structure: any): Promise<DeviceInfo[]> {
+    return [];
+  }
+  private async postProcessDevices(devices: DeviceInfo[]): Promise<DeviceInfo[]> {
+    return devices;
+  }
+  private async assessSecurityRisks(
+    devices: DeviceInfo[],
+    structure: any
+  ): Promise<RiskAssessment[]> {
+    return [];
+  }
+  private async assessSafetyRisks(
+    devices: DeviceInfo[],
+    structure: any
+  ): Promise<RiskAssessment[]> {
+    return [];
+  }
+  private async assessComplianceRisks(
+    devices: DeviceInfo[],
+    structure: any
+  ): Promise<RiskAssessment[]> {
+    return [];
+  }
+  private async assessPerformanceRisks(
+    devices: DeviceInfo[],
+    structure: any
+  ): Promise<RiskAssessment[]> {
+    return [];
+  }
+  private sortRisksBySeverity(risks: RiskAssessment[]): RiskAssessment[] {
+    return risks;
+  }
+  private async searchDevicesByPatterns(structure: any, patterns: RegExp[]): Promise<any[]> {
+    return [];
+  }
+  private processCameraDevices(devices: any[]): DeviceInfo[] {
+    return [];
+  }
+  private processAlarmDevices(devices: any[]): DeviceInfo[] {
+    return [];
+  }
+  private calculateDeviceStatistics(devices: DeviceInfo[]): any {
+    return { byCategory: {}, total: devices.length };
+  }
+  private calculateRiskStatistics(risks: RiskAssessment[]): any {
+    return { bySeverity: {}, critical: 0 };
+  }
+  private calculateOverallScore(deviceStats: any, riskStats: any): any {
+    return { compliance: 85 };
+  }
+  private determineOverallStatus(score: any): string {
+    return 'good';
+  }
+  private extractKeyFindings(devices: DeviceInfo[], risks: RiskAssessment[]): string[] {
+    return [];
+  }
+  private countRecommendations(risks: RiskAssessment[]): number {
+    return 0;
+  }
+  private generateAnalysisId(): string {
+    return Date.now().toString();
+  }
+  private generateFileId(): string {
+    return Date.now().toString();
+  }
+  private detectFileType(fileName: string): string {
+    return fileName.split('.').pop() || 'unknown';
+  }
+  private async checkCompliance(devices: DeviceInfo[], risks: RiskAssessment[]): Promise<any> {
+    return {};
+  }
+  private async generateRecommendations(risks: RiskAssessment[]): Promise<any[]> {
+    return [];
+  }
+  private computeFileHash(buffer: NodeBuffer): string {
+    if (buffer instanceof ArrayBuffer) {
+      return Array.from(new Uint8Array(buffer))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('')
+        .slice(0, 16);
+    }
+    return Array.from(buffer)
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('')
+      .slice(0, 16);
+  }
+  private computeConfigHash(config: CADAnalysisConfig): string {
+    return JSON.stringify(config).slice(0, 16);
+  }
+
   /**
    * 获取当前用户ID
    * 在实际应用中，这应该从请求上下文或认证服务中获取
@@ -381,13 +481,13 @@ export class CADAnalyzer {
     // 在实际应用中，这里应该从请求上下文获取用户ID
     // 例如：从JWT token、session或请求头中获取
     // 这里提供一个默认实现，实际使用时需要根据具体的认证机制调整
-    
+
     // 如果在Node.js环境中，可以从AsyncLocalStorage或类似机制获取
     // 如果在API路由中，应该从请求对象获取
-    
+
     // 临时实现：生成一个基于时间的用户ID
     // 在生产环境中，这应该替换为真实的用户认证逻辑
-    return process?.env?.NODE_ENV === 'development' 
+    return process?.env?.NODE_ENV === 'development'
       ? 'dev-user-' + Date.now().toString().slice(-6)
       : 'authenticated-user';
   }

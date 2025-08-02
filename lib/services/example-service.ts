@@ -1,51 +1,88 @@
 /**
- * @file 示例服务
- * @description 展示如何使用依赖注入系统
+ * @file example-service.ts
+ * @description 示例服务实现
  * @author ZK-Agent Team
- * @date 2024-12-20
+ * @date 2025-01-27
  */
 
-import { injectable, inject, TYPES } from '../di/container';
-import { PrismaClient } from '@prisma/client';
-import { ILogger } from '../interfaces/logger.interface';
+import { injectable } from '../di/container';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
 
 /**
  * 示例服务接口
  */
 export interface IExampleService {
-  performTask(taskId: string): Promise<string>;
-  getStatus(): string;
+  /**
+   * 获取示例数据
+   * @returns Promise<any> 示例数据
+   */
+  getExampleData(): Promise<any>;
+
+  /**
+   * 处理示例请求
+   * @param data 输入数据
+   * @returns Promise<any> 处理结果
+   */
+  processExample(data: any): Promise<any>;
 }
 
 /**
  * 示例服务实现
  */
-@injectable()
+@injectable
 export class ExampleService implements IExampleService {
-  constructor(
-    @inject(TYPES.PrismaClient) private prisma: PrismaClient,
-    @inject(TYPES.Logger) private logger: ILogger
-  ) {}
-
   /**
-   * 执行任务
-   * @param taskId 任务ID
-   * @returns 任务结果
+   * 获取示例数据
+   * @returns Promise<any> 示例数据
    */
-  async performTask(taskId: string): Promise<string> {
-    this.logger.info(`执行任务: ${taskId}`);
-    
-    // 这里可以使用注入的 PrismaClient 进行数据库操作
-    // 例如: const task = await this.prisma.task.findUnique({ where: { id: taskId } });
-    
-    return `任务 ${taskId} 已完成`;
+  async getExampleData(): Promise<any> {
+    try {
+      logger.info('获取示例数据');
+
+      // 模拟异步操作
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      return {
+        id: '1',
+        name: 'Example Data',
+        timestamp: new Date().toISOString(),
+        status: 'active'
+      };
+    } catch (error) {
+      logger.error('获取示例数据失败:', error);
+      throw error;
+    }
   }
 
   /**
-   * 获取服务状态
-   * @returns 服务状态
+   * 处理示例请求
+   * @param data 输入数据
+   * @returns Promise<any> 处理结果
    */
-  getStatus(): string {
-    return '服务运行正常';
+  async processExample(data: any): Promise<any> {
+    try {
+      logger.info('处理示例请求:', data);
+
+      // 模拟数据处理
+      const processedData = {
+        ...data,
+        processed: true,
+        processedAt: new Date().toISOString()
+      };
+
+      return {
+        success: true,
+        data: processedData,
+        message: '处理成功'
+      };
+    } catch (error) {
+      logger.error('处理示例请求失败:', error);
+      throw error;
+    }
   }
 }
+
+// 导出服务实例
+export const exampleService = new ExampleService();

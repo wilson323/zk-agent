@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file fastgpt\batch-forward\route.ts
  * @description Migrated API route with global error handling
  * @author ZK-Agent Team
@@ -28,7 +28,7 @@ export const POST = createApiRoute(
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.FASTGPT_API_KEY}`,
+          Authorization: `Bearer ${process.env.FASTGPT_API_KEY}`,
         },
         body: JSON.stringify(validatedBody),
       });
@@ -45,7 +45,6 @@ export const POST = createApiRoute(
 
       return ApiResponseWrapper.success(data);
     } catch (error) {
-      console.error('FastGPT batch forward error:', error);
       return ApiResponseWrapper.error(
         ErrorCode.INTERNAL_SERVER_ERROR,
         'Internal server error',
@@ -54,4 +53,3 @@ export const POST = createApiRoute(
     }
   }
 );
-

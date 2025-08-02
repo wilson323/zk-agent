@@ -1,3 +1,7 @@
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
+
 /**
  * 加密和安全工具函数
  * 提供哈希、加密、签名等安全相关功能
@@ -44,14 +48,14 @@ export function md5(data: string): string {
   function rotateLeft(value: number, amount: number): number {
     return (value << amount) | (value >>> (32 - amount));
   }
-  
+
   function addUnsigned(x: number, y: number): number {
     const x4 = x & 0x40000000;
     const y4 = y & 0x40000000;
     const x8 = x & 0x80000000;
     const y8 = y & 0x80000000;
     const result = (x & 0x3fffffff) + (y & 0x3fffffff);
-    
+
     if (x4 & y4) {
       return result ^ 0x80000000 ^ x8 ^ y8;
     }
@@ -65,67 +69,99 @@ export function md5(data: string): string {
       return result ^ x8 ^ y8;
     }
   }
-  
+
   function f(x: number, y: number, z: number): number {
     return (x & y) | (~x & z);
   }
-  
+
   function g(x: number, y: number, z: number): number {
     return (x & z) | (y & ~z);
   }
-  
+
   function h(x: number, y: number, z: number): number {
     return x ^ y ^ z;
   }
-  
+
   function i(x: number, y: number, z: number): number {
     return y ^ (x | ~z);
   }
-  
-  function ff(a: number, b: number, c: number, d: number, x: number, s: number, ac: number): number {
+
+  function ff(
+    a: number,
+    b: number,
+    c: number,
+    d: number,
+    x: number,
+    s: number,
+    ac: number
+  ): number {
     a = addUnsigned(a, addUnsigned(addUnsigned(f(b, c, d), x), ac));
     return addUnsigned(rotateLeft(a, s), b);
   }
-  
-  function gg(a: number, b: number, c: number, d: number, x: number, s: number, ac: number): number {
+
+  function gg(
+    a: number,
+    b: number,
+    c: number,
+    d: number,
+    x: number,
+    s: number,
+    ac: number
+  ): number {
     a = addUnsigned(a, addUnsigned(addUnsigned(g(b, c, d), x), ac));
     return addUnsigned(rotateLeft(a, s), b);
   }
-  
-  function hh(a: number, b: number, c: number, d: number, x: number, s: number, ac: number): number {
+
+  function hh(
+    a: number,
+    b: number,
+    c: number,
+    d: number,
+    x: number,
+    s: number,
+    ac: number
+  ): number {
     a = addUnsigned(a, addUnsigned(addUnsigned(h(b, c, d), x), ac));
     return addUnsigned(rotateLeft(a, s), b);
   }
-  
-  function ii(a: number, b: number, c: number, d: number, x: number, s: number, ac: number): number {
+
+  function ii(
+    a: number,
+    b: number,
+    c: number,
+    d: number,
+    x: number,
+    s: number,
+    ac: number
+  ): number {
     a = addUnsigned(a, addUnsigned(addUnsigned(i(b, c, d), x), ac));
     return addUnsigned(rotateLeft(a, s), b);
   }
-  
+
   function convertToWordArray(str: string): number[] {
     const wordArray: number[] = [];
     const messageLength = str.length;
-    const numberOfWords = (((messageLength + 8) - ((messageLength + 8) % 64)) / 64 + 1) * 16;
-    
+    const numberOfWords = ((messageLength + 8 - ((messageLength + 8) % 64)) / 64 + 1) * 16;
+
     for (let i = 0; i < numberOfWords; i++) {
       wordArray[i] = 0;
     }
-    
+
     for (let i = 0; i < messageLength; i++) {
       const bytePosition = (i - (i % 4)) / 4;
       const byteOffset = (i % 4) * 8;
       wordArray[bytePosition] = wordArray[bytePosition] | (str.charCodeAt(i) << byteOffset);
     }
-    
+
     const bytePosition = (messageLength - (messageLength % 4)) / 4;
     const byteOffset = (messageLength % 4) * 8;
     wordArray[bytePosition] = wordArray[bytePosition] | (0x80 << byteOffset);
     wordArray[numberOfWords - 2] = messageLength << 3;
     wordArray[numberOfWords - 1] = messageLength >>> 29;
-    
+
     return wordArray;
   }
-  
+
   function wordToHex(value: number): string {
     let result = '';
     for (let i = 0; i <= 3; i++) {
@@ -134,19 +170,19 @@ export function md5(data: string): string {
     }
     return result;
   }
-  
+
   const x = convertToWordArray(data);
   let a = 0x67452301;
   let b = 0xefcdab89;
   let c = 0x98badcfe;
   let d = 0x10325476;
-  
+
   for (let k = 0; k < x.length; k += 16) {
     const aa = a;
     const bb = b;
     const cc = c;
     const dd = d;
-    
+
     a = ff(a, b, c, d, x[k], 7, 0xd76aa478);
     d = ff(d, a, b, c, x[k + 1], 12, 0xe8c7b756);
     c = ff(c, d, a, b, x[k + 2], 17, 0x242070db);
@@ -163,7 +199,7 @@ export function md5(data: string): string {
     d = ff(d, a, b, c, x[k + 13], 12, 0xfd987193);
     c = ff(c, d, a, b, x[k + 14], 17, 0xa679438e);
     b = ff(b, c, d, a, x[k + 15], 22, 0x49b40821);
-    
+
     a = gg(a, b, c, d, x[k + 1], 5, 0xf61e2562);
     d = gg(d, a, b, c, x[k + 6], 9, 0xc040b340);
     c = gg(c, d, a, b, x[k + 11], 14, 0x265e5a51);
@@ -180,7 +216,7 @@ export function md5(data: string): string {
     d = gg(d, a, b, c, x[k + 2], 9, 0xfcefa3f8);
     c = gg(c, d, a, b, x[k + 7], 14, 0x676f02d9);
     b = gg(b, c, d, a, x[k + 12], 20, 0x8d2a4c8a);
-    
+
     a = hh(a, b, c, d, x[k + 5], 4, 0xfffa3942);
     d = hh(d, a, b, c, x[k + 8], 11, 0x8771f681);
     c = hh(c, d, a, b, x[k + 11], 16, 0x6d9d6122);
@@ -197,7 +233,7 @@ export function md5(data: string): string {
     d = hh(d, a, b, c, x[k + 12], 11, 0xe6db99e5);
     c = hh(c, d, a, b, x[k + 15], 16, 0x1fa27cf8);
     b = hh(b, c, d, a, x[k + 2], 23, 0xc4ac5665);
-    
+
     a = ii(a, b, c, d, x[k], 6, 0xf4292244);
     d = ii(d, a, b, c, x[k + 7], 10, 0x432aff97);
     c = ii(c, d, a, b, x[k + 14], 15, 0xab9423a7);
@@ -214,13 +250,13 @@ export function md5(data: string): string {
     d = ii(d, a, b, c, x[k + 11], 10, 0xbd3af235);
     c = ii(c, d, a, b, x[k + 2], 15, 0x2ad7d2bb);
     b = ii(b, c, d, a, x[k + 9], 21, 0xeb86d391);
-    
+
     a = addUnsigned(a, aa);
     b = addUnsigned(b, bb);
     c = addUnsigned(c, cc);
     d = addUnsigned(d, dd);
   }
-  
+
   return (wordToHex(a) + wordToHex(b) + wordToHex(c) + wordToHex(d)).toLowerCase();
 }
 
@@ -261,10 +297,7 @@ export function base64Decode(data: string): string {
  * @returns URL安全的Base64编码字符串
  */
 export function base64UrlEncode(data: string | ArrayBuffer): string {
-  return base64Encode(data)
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=/g, '');
+  return base64Encode(data).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 }
 
 /**
@@ -329,19 +362,19 @@ export function generateUUID(): string {
   if (crypto.randomUUID) {
     return crypto.randomUUID();
   }
-  
+
   // 回退实现
   const bytes = generateRandomBytes(16);
   bytes[6] = (bytes[6] & 0x0f) | 0x40; // 版本4
   bytes[8] = (bytes[8] & 0x3f) | 0x80; // 变体
-  
+
   const hex = bufferToHex(bytes);
   return [
     hex.slice(0, 8),
     hex.slice(8, 12),
     hex.slice(12, 16),
     hex.slice(16, 20),
-    hex.slice(20, 32)
+    hex.slice(20, 32),
   ].join('-');
 }
 
@@ -356,7 +389,7 @@ export function generateRandomKey(
   format: 'hex' | 'base64' | 'bytes' = 'hex'
 ): string | Uint8Array {
   const bytes = generateRandomBytes(length);
-  
+
   switch (format) {
     case 'hex':
       return bufferToHex(bytes);
@@ -396,7 +429,7 @@ export async function hashPassword(
 ): Promise<{ hash: string; salt: string }> {
   const actualSalt = salt || generateSalt();
   const encoder = new TextEncoder();
-  
+
   const keyMaterial = await crypto.subtle.importKey(
     'raw',
     encoder.encode(password),
@@ -404,21 +437,21 @@ export async function hashPassword(
     false,
     ['deriveBits']
   );
-  
+
   const derivedBits = await crypto.subtle.deriveBits(
     {
       name: 'PBKDF2',
       salt: encoder.encode(actualSalt),
       iterations,
-      hash: 'SHA-256'
+      hash: 'SHA-256',
     },
     keyMaterial,
     256
   );
-  
+
   return {
     hash: bufferToHex(derivedBits),
-    salt: actualSalt
+    salt: actualSalt,
   };
 }
 
@@ -461,38 +494,38 @@ export function generateStrongPassword(
     includeLowercase = true,
     includeNumbers = true,
     includeSymbols = true,
-    excludeSimilar = false
+    excludeSimilar = false,
   } = options;
-  
+
   let charset = '';
-  
+
   if (includeUppercase) {
     charset += excludeSimilar ? 'ABCDEFGHJKLMNPQRSTUVWXYZ' : 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   }
-  
+
   if (includeLowercase) {
     charset += excludeSimilar ? 'abcdefghjkmnpqrstuvwxyz' : 'abcdefghijklmnopqrstuvwxyz';
   }
-  
+
   if (includeNumbers) {
     charset += excludeSimilar ? '23456789' : '0123456789';
   }
-  
+
   if (includeSymbols) {
     charset += '!@#$%^&*()_+-=[]{}|;:,.<>?';
   }
-  
+
   if (!charset) {
     throw new Error('At least one character type must be included');
   }
-  
+
   const randomBytes = generateRandomBytes(length);
   let password = '';
-  
+
   for (let i = 0; i < length; i++) {
     password += charset[randomBytes[i] % charset.length];
   }
-  
+
   return password;
 }
 
@@ -508,7 +541,7 @@ export function generateStrongPassword(
 function createJWTHeader(algorithm = 'HS256'): string {
   const header = {
     alg: algorithm,
-    typ: 'JWT'
+    typ: 'JWT',
   };
   return base64UrlEncode(JSON.stringify(header));
 }
@@ -524,7 +557,7 @@ function createJWTPayload(payload: any, expiresIn?: number): string {
   const jwtPayload = {
     ...payload,
     iat: now,
-    ...(expiresIn && { exp: now + expiresIn })
+    ...(expiresIn && { exp: now + expiresIn }),
   };
   return base64UrlEncode(JSON.stringify(jwtPayload));
 }
@@ -544,13 +577,9 @@ async function signJWT(data: string, secret: string): Promise<string> {
     false,
     ['sign']
   );
-  
-  const signature = await crypto.subtle.sign(
-    'HMAC',
-    key,
-    encoder.encode(data)
-  );
-  
+
+  const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(data));
+
   return base64UrlEncode(signature);
 }
 
@@ -570,7 +599,7 @@ export async function createSimpleJWT(
   const jwtPayload = createJWTPayload(payload, expiresIn);
   const data = `${header}.${jwtPayload}`;
   const signature = await signJWT(data, secret);
-  
+
   return `${data}.${signature}`;
 }
 
@@ -586,22 +615,22 @@ export async function verifySimpleJWT(token: string, secret: string): Promise<an
     if (parts.length !== 3) {
       return null;
     }
-    
+
     const [header, payload, signature] = parts;
     const data = `${header}.${payload}`;
     const expectedSignature = await signJWT(data, secret);
-    
+
     if (signature !== expectedSignature) {
       return null;
     }
-    
+
     const decodedPayload = JSON.parse(base64UrlDecode(payload));
-    
+
     // 检查过期时间
     if (decodedPayload.exp && decodedPayload.exp < Math.floor(Date.now() / 1000)) {
       return null;
     }
-    
+
     return decodedPayload;
   } catch (error) {
     return null;
@@ -634,12 +663,12 @@ export function secureCompare(a: string, b: string): boolean {
   if (a.length !== b.length) {
     return false;
   }
-  
+
   let result = 0;
   for (let i = 0; i < a.length; i++) {
     result |= a.charCodeAt(i) ^ b.charCodeAt(i);
   }
-  
+
   return result === 0;
 }
 
@@ -651,7 +680,7 @@ export function secureClear(data: string | Uint8Array): void {
   if (typeof data === 'string') {
     // 注意：JavaScript字符串是不可变的，这里只是演示
     // 实际应用中应该避免在内存中存储敏感字符串
-    console.warn('Cannot securely clear immutable string in JavaScript');
+    logger.warn('Cannot securely clear immutable string in JavaScript');
   } else {
     data.fill(0);
   }

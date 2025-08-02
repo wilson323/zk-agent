@@ -8,7 +8,11 @@
  * @purpose 统一初始化和配置所有核心组件
  */
 
-import { Logger } from '@/lib/utils/logger';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
+
+const logger = getLogger();
 import { performanceMonitor } from '@/lib/middleware/performance-monitor';
 import { enhancedDatabaseManager } from '@/lib/database/enhanced-database-manager';
 import { highAvailabilityManager } from '@/lib/system/high-availability-manager';
@@ -16,15 +20,18 @@ import { unifiedAIAdapter, initializeAIServices } from '@/lib/ai/unified-ai-adap
 import { enhancedMockService } from '@/lib/mocks/enhanced-mock-service';
 import { errorMonitor } from '@/lib/monitoring/error-monitor';
 import { errorTracker } from '@/lib/monitoring/error-tracker';
-import { getErrorMonitoringConfig, validateErrorMonitoringConfig } from '@/lib/config/error-monitoring-config';
+import {
+  getErrorMonitoringConfig,
+  validateErrorMonitoringConfig,
+} from '@/lib/config/error-monitoring-config';
 
 export class SystemInitializer {
   private static instance: SystemInitializer;
-  private logger = new Logger('SystemInitializer');
+  private logger = getLogger();
   private initialized = false;
   private initializationPromise: Promise<void> | null = null;
 
-  private constructor() {}
+  private constructor() { }
 
   public static getInstance(): SystemInitializer {
     if (!SystemInitializer.instance) {
@@ -96,7 +103,6 @@ export class SystemInitializer {
 
       // 发送初始化完成事件
       await this.notifyInitializationComplete(duration);
-
     } catch (error) {
       this.logger.error('❌ System initialization failed', {
         error: error.message,
@@ -112,10 +118,7 @@ export class SystemInitializer {
   private async validateEnvironment(): Promise<void> {
     this.logger.info('🔍 Validating environment configuration...');
 
-    const requiredEnvVars: any = [
-      'DATABASE_URL',
-      'NODE_ENV',
-    ];
+    const requiredEnvVars: any = ['DATABASE_URL', 'NODE_ENV'];
 
     const missingVars: any = requiredEnvVars.filter(varName => !process.env[varName]);
 
@@ -124,8 +127,10 @@ export class SystemInitializer {
     }
 
     // 验证数据库连接字符串
-    if (!process.env.DATABASE_URL?.startsWith('postgresql://') && 
-        !process.env.DATABASE_URL?.startsWith('mysql://')) {
+    if (
+      !process.env.DATABASE_URL?.startsWith('postgresql://') &&
+      !process.env.DATABASE_URL?.startsWith('mysql://')
+    ) {
       this.logger.warn('DATABASE_URL format may be incorrect');
     }
 
@@ -133,11 +138,15 @@ export class SystemInitializer {
     const aiConfigs: any = [
       { name: 'FastGPT', url: process.env.FASTGPT_API_URL, key: process.env.FASTGPT_API_KEY },
       { name: 'Qianwen', url: process.env.QWEN_BASE_URL, key: process.env.QWEN_API_KEY },
-      { name: 'SiliconFlow', url: process.env.SILICONFLOW_BASE_URL, key: process.env.SILICONFLOW_API_KEY },
+      {
+        name: 'SiliconFlow',
+        url: process.env.SILICONFLOW_BASE_URL,
+        key: process.env.SILICONFLOW_API_KEY,
+      },
     ];
 
     const configuredAI: any = aiConfigs.filter(config => config.url && config.key);
-    
+
     if (configuredAI.length === 0) {
       this.logger.warn('No AI services configured - AI features will be limited');
     } else {
@@ -178,7 +187,7 @@ export class SystemInitializer {
 
     // 获取配置的服务列表
     const configuredServices: any = unifiedAIAdapter.getConfiguredServices();
-    
+
     if (configuredServices.length > 0) {
       // 测试AI服务连接
       const healthStatus: any = await unifiedAIAdapter.getHealthStatus();
@@ -211,24 +220,24 @@ export class SystemInitializer {
     // 启动错误监控系统
     this.logger.info('🔍 Starting error monitoring system...');
     const monitoringConfig = getErrorMonitoringConfig();
-    
+
     // 验证配置
     if (!validateErrorMonitoringConfig(monitoringConfig)) {
       this.logger.warn('⚠️ Error monitoring config validation failed, using defaults');
     }
-    
+
     // 启动错误监控器
     errorMonitor.startMonitoring(monitoringConfig.monitoringInterval);
-    
+
     // 启动错误追踪器
     this.logger.info('📋 Starting error tracker...');
     errorTracker.startTracking();
-    
+
     this.logger.info('✅ Error monitoring system started', {
       interval: monitoringConfig.monitoringInterval,
       errorRateThreshold: monitoringConfig.alertThresholds.errorRate,
       autoRecovery: monitoringConfig.autoRecovery.enabled,
-      notifications: monitoringConfig.notifications.enabled
+      notifications: monitoringConfig.notifications.enabled,
     });
 
     this.logger.info('✅ Monitoring components initialized', {
@@ -246,9 +255,9 @@ export class SystemInitializer {
   private async initializeMockServices(): Promise<void> {
     if (enhancedMockService.isEnabled()) {
       this.logger.info('🎭 Initializing mock services...');
-      
+
       const mockStats: any = enhancedMockService.getMockStatistics();
-      
+
       this.logger.info('✅ Mock services initialized', {
         enabled: true,
         users: mockStats?.users?.total || 0,
@@ -266,11 +275,7 @@ export class SystemInitializer {
   private async performInitialHealthCheck(): Promise<void> {
     this.logger.info('🏥 Performing initial health check...');
 
-    const [
-      databaseHealth,
-      aiHealth,
-      systemStatus,
-    ] = await Promise.all([
+    const [databaseHealth, aiHealth, systemStatus] = await Promise.all([
       enhancedDatabaseManager.healthCheck(),
       unifiedAIAdapter.getHealthStatus(),
       highAvailabilityManager.getSystemStatus(),
@@ -335,7 +340,7 @@ export class SystemInitializer {
     process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
     // 监听未捕获的异常
-    process.on('uncaughtException', (error) => {
+    process.on('uncaughtException', error => {
       this.logger.error('❌ Uncaught exception', {
         error: error.message,
         stack: error.stack,
@@ -380,7 +385,6 @@ export class SystemInitializer {
           // 忽略通知发送失败
         });
       }
-
     } catch (error) {
       this.logger.warn('Failed to send initialization notification', {
         error: error.message,
@@ -406,10 +410,10 @@ export class SystemInitializer {
    */
   async reinitialize(): Promise<void> {
     this.logger.info('🔄 Reinitializing system...');
-    
+
     this.initialized = false;
     this.initializationPromise = null;
-    
+
     await this.initialize();
   }
 

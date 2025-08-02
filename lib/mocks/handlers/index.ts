@@ -7,11 +7,11 @@
  * @date 2024-12-19
  */
 
-import { agentsHandlers } from './agents'
-import { chatHandlers } from './chat'
-import { cadHandlers } from './cad'
-import { posterHandlers } from './poster'
-import { authHandlers } from './auth'
+import { agentsHandlers } from './agents';
+import { chatHandlers } from './chat';
+import { cadHandlers } from './cad';
+import { posterHandlers } from './poster';
+import { authHandlers } from './auth';
 
 // 导出所有处理器
 export const handlers: any = [
@@ -19,8 +19,14 @@ export const handlers: any = [
   ...chatHandlers,
   ...cadHandlers,
   ...posterHandlers,
-  ...authHandlers
-]
+  ...authHandlers,
+];
 
 // 按模块导出，便于按需使用
-export { agentsHandlers as any, chatHandlers as any, cadHandlers as any, posterHandlers as any, authHandlers as any } 
+export {
+  agentsHandlers as any,
+  chatHandlers as any,
+  cadHandlers as any,
+  posterHandlers as any,
+  authHandlers as any,
+};

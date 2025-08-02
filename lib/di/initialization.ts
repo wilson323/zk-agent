@@ -9,6 +9,9 @@ import 'reflect-metadata';
 import { EventEmitter } from 'events';
 import { container } from './container';
 import { configureServices } from './config';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
 
 /**
  * 依赖注入初始化状态
@@ -17,7 +20,7 @@ export enum DIInitializationStatus {
   PENDING = 'pending',
   INITIALIZING = 'initializing',
   COMPLETED = 'completed',
-  FAILED = 'failed'
+  FAILED = 'failed',
 }
 
 /**
@@ -25,14 +28,14 @@ export enum DIInitializationStatus {
  */
 export interface DIInitializationEvents {
   'status-change': (status: DIInitializationStatus) => void;
-  'progress': (step: string, progress: number) => void;
-  'error': (error: Error) => void;
-  'completed': () => void;
+  progress: (step: string, progress: number) => void;
+  error: (error: Error) => void;
+  completed: () => void;
 }
 
 /**
  * 依赖注入初始化管理器
- * 
+ *
  * 该类负责管理依赖注入系统的初始化流程，包括：
  * - 注册基础服务
  * - 注册业务服务
@@ -97,10 +100,8 @@ class DIInitializationManager extends EventEmitter {
 
       this.updateStatus(DIInitializationStatus.COMPLETED);
       this.emit('completed');
-
-      console.log('依赖注入系统初始化完成');
     } catch (error) {
-      console.error('依赖注入系统初始化失败:', error);
+      logger.error('依赖注入系统初始化失败:', error);
       this.emit('error', error as Error);
       this.updateStatus(DIInitializationStatus.FAILED);
       throw error;
@@ -114,9 +115,8 @@ class DIInitializationManager extends EventEmitter {
     try {
       // 调用配置服务函数
       configureServices();
-      console.log('依赖注入服务配置成功');
     } catch (error) {
-      console.error('依赖注入服务配置失败:', error);
+      logger.error('依赖注入服务配置失败:', error);
       throw error;
     }
   }
@@ -127,22 +127,16 @@ class DIInitializationManager extends EventEmitter {
   private validateContainer(): void {
     try {
       // 验证基础服务是否已注册
-      const requiredServices = [
-        'PrismaClient',
-        'Logger',
-        'Config'
-      ];
+      const requiredServices = ['PrismaClient', 'Logger', 'Config'];
 
       for (const service of requiredServices) {
         const serviceSymbol = Symbol.for(service);
         if (!container.isRegistered(serviceSymbol)) {
-          throw new Error(`必需的服务 ${service} 未注册`); 
+          throw new Error(`必需的服务 ${service} 未注册`);
         }
       }
-
-      console.log('依赖注入容器状态验证成功');
     } catch (error) {
-      console.error('依赖注入容器状态验证失败:', error);
+      logger.error('依赖注入容器状态验证失败:', error);
       throw error;
     }
   }

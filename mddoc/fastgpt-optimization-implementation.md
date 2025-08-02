@@ -7,12 +7,14 @@
 ### 优化目标达成情况
 
 ✅ **性能优化目标**：
+
 - 降低首屏加载时间50% → **已实现73%延迟降低**
 - 提升流式响应速度 → **平均延迟从150ms降至45ms**
 - 增强交互流畅度 → **60fps流畅渲染，支持1000+消息**
 - 优化消息渲染效果 → **智能打字机效果，120字符/秒**
 
 ✅ **架构优化目标**：
+
 - 严格遵循AG-UI协议 → **完全基于事件驱动架构**
 - 保持UI样式不变 → **所有现有样式完全保留**
 - 管理员和用户界面分离 → **独立的管理面板**
@@ -23,6 +25,7 @@
 ### 2.1 流式响应优化器 (`lib/ag-ui/stream-optimizer.ts`)
 
 **功能特性**：
+
 - ✅ 事件批处理系统 - 减少DOM更新频率
 - ✅ 智能缓冲机制 - 8KB默认缓冲区，可配置
 - ✅ 打字机效果控制器 - 120字符/秒，60fps渲染
@@ -30,21 +33,23 @@
 - ✅ 性能监控 - 实时指标收集和分析
 
 **性能提升**：
+
 ```typescript
 // 配置示例
 const optimizedConfig = {
-  bufferSize: 8192,      // 8KB缓冲区
-  chunkDelay: 16,        // 16ms = 60fps
-  typewriterSpeed: 120,  // 120字符/秒
-  batchSize: 10,         // 10事件批处理
-  maxBuffer: 65536,      // 64KB最大缓冲
-  debounceMs: 5          // 5ms防抖
-}
+  bufferSize: 8192, // 8KB缓冲区
+  chunkDelay: 16, // 16ms = 60fps
+  typewriterSpeed: 120, // 120字符/秒
+  batchSize: 10, // 10事件批处理
+  maxBuffer: 65536, // 64KB最大缓冲
+  debounceMs: 5, // 5ms防抖
+};
 ```
 
 ### 2.2 优化的聊天API (`app/api/ag-ui/chat/route.ts`)
 
 **新增功能**：
+
 - ✅ 集成流式优化器
 - ✅ 首字延迟追踪 - 目标<100ms
 - ✅ 会话级性能监控
@@ -52,6 +57,7 @@ const optimizedConfig = {
 - ✅ AG-UI事件流标准化
 
 **API增强**：
+
 ```typescript
 // 请求支持性能配置
 POST /api/ag-ui/chat
@@ -69,6 +75,7 @@ POST /api/ag-ui/chat
 ### 2.3 性能监控API (`app/api/ag-ui/performance/route.ts`)
 
 **监控能力**：
+
 - ✅ 实时性能指标查询
 - ✅ 健康状态评分系统
 - ✅ 自动警报生成
@@ -86,11 +93,13 @@ POST /api/ag-ui/chat
 ### 2.4 用户界面优化
 
 #### 聊天界面 (`components/chat/chat-interface.tsx`)
+
 - ✅ 智能设备适配 - 移动端/桌面端不同配置
 - ✅ 性能配置传递 - 自动优化设置
 - ✅ 保持原有UI样式 - 零视觉变化
 
-#### 流式聊天组件 (`components/chat/stream-chat-interface.tsx`)  
+#### 流式聊天组件 (`components/chat/stream-chat-interface.tsx`)
+
 - ✅ AG-UI协议集成 - 完整事件流支持
 - ✅ 性能监控集成 - 开发环境实时指标
 - ✅ 优化API调用 - 使用新的AG-UI端点
@@ -99,6 +108,7 @@ POST /api/ag-ui/chat
 ### 2.5 管理员监控面板
 
 #### 独立管理界面 (`app/admin/dashboard/performance/page.tsx`)
+
 - ✅ 完全独立的管理员界面
 - ✅ 实时性能监控大屏
 - ✅ 系统统计概览
@@ -107,14 +117,15 @@ POST /api/ag-ui/chat
 - ✅ 配置管理工具
 
 **管理功能**：
+
 ```typescript
 // 系统统计
 interface SystemStats {
-  activeUsers: number     // 活跃用户数
-  totalSessions: number   // 总会话数
-  avgResponseTime: number // 平均响应时间
-  errorCount: number      // 错误计数
-  uptime: number         // 系统运行时间
+  activeUsers: number; // 活跃用户数
+  totalSessions: number; // 总会话数
+  avgResponseTime: number; // 平均响应时间
+  errorCount: number; // 错误计数
+  uptime: number; // 系统运行时间
 }
 ```
 
@@ -123,21 +134,22 @@ interface SystemStats {
 ### 3.1 AG-UI协议遵循
 
 **事件驱动架构**：
+
 ```typescript
 // 支持的事件类型
-- TEXT_MESSAGE_START     // 消息开始
-- TEXT_MESSAGE_CONTENT   // 消息内容增量
-- TEXT_MESSAGE_END       // 消息结束
-- TEXT_MESSAGE_CHUNK     // 消息块（优化版）
-- TOOL_CALL_START        // 工具调用开始
-- TOOL_CALL_ARGS         // 工具调用参数
-- TOOL_CALL_END          // 工具调用结束
-- RUN_STARTED            // 运行开始
-- RUN_FINISHED           // 运行结束
-- RUN_ERROR              // 运行错误
-- STATE_SNAPSHOT         // 状态快照
-- CUSTOM                 // 自定义事件
-- RAW                    // 原始事件
+-TEXT_MESSAGE_START - // 消息开始
+  TEXT_MESSAGE_CONTENT - // 消息内容增量
+  TEXT_MESSAGE_END - // 消息结束
+  TEXT_MESSAGE_CHUNK - // 消息块（优化版）
+  TOOL_CALL_START - // 工具调用开始
+  TOOL_CALL_ARGS - // 工具调用参数
+  TOOL_CALL_END - // 工具调用结束
+  RUN_STARTED - // 运行开始
+  RUN_FINISHED - // 运行结束
+  RUN_ERROR - // 运行错误
+  STATE_SNAPSHOT - // 状态快照
+  CUSTOM - // 自定义事件
+  RAW; // 原始事件
 ```
 
 ### 3.2 性能优化架构
@@ -166,24 +178,26 @@ interface SystemStats {
 
 ### 4.1 优化前后对比
 
-| 指标 | 优化前 | 优化后 | 提升幅度 |
-|------|--------|--------|----------|
-| 首字延迟 | 300ms | 80ms | **73%** ↓ |
-| 平均延迟 | 150ms | 45ms | **70%** ↓ |
-| 内存使用 | 50MB | 12MB | **76%** ↓ |
-| 帧率 | 30fps | 60fps | **100%** ↑ |
-| 支持消息数 | 100 | 1000+ | **10x** ↑ |
-| 错误恢复时间 | 5s | 1s | **80%** ↓ |
+| 指标         | 优化前 | 优化后 | 提升幅度   |
+| ------------ | ------ | ------ | ---------- |
+| 首字延迟     | 300ms  | 80ms   | **73%** ↓  |
+| 平均延迟     | 150ms  | 45ms   | **70%** ↓  |
+| 内存使用     | 50MB   | 12MB   | **76%** ↓  |
+| 帧率         | 30fps  | 60fps  | **100%** ↑ |
+| 支持消息数   | 100    | 1000+  | **10x** ↑  |
+| 错误恢复时间 | 5s     | 1s     | **80%** ↓  |
 
 ### 4.2 实际性能数据
 
 **延迟分布**：
+
 - P50: 35ms
-- P95: 85ms  
+- P95: 85ms
 - P99: 150ms
 - 目标: <100ms (P95)
 
 **内存使用**：
+
 - 基础占用: 2MB
 - 100消息: 5MB
 - 1000消息: 12MB
@@ -194,57 +208,62 @@ interface SystemStats {
 ### 5.1 环境配置
 
 **开发环境**：
+
 ```typescript
 // 启用性能监控和调试
 const devConfig = {
   showPerformanceMetrics: true,
   debug: true,
   streamConfig: {
-    chunkDelay: 8,        // 更高帧率
-    typewriterSpeed: 180  // 更快打字
-  }
-}
+    chunkDelay: 8, // 更高帧率
+    typewriterSpeed: 180, // 更快打字
+  },
+};
 ```
 
 **生产环境**：
+
 ```typescript
 // 优化稳定性和资源使用
 const prodConfig = {
   showPerformanceMetrics: false,
   debug: false,
   streamConfig: {
-    chunkDelay: 16,       // 标准帧率
+    chunkDelay: 16, // 标准帧率
     typewriterSpeed: 120, // 标准速度
-    batchSize: 10         // 平衡批处理
-  }
-}
+    batchSize: 10, // 平衡批处理
+  },
+};
 ```
 
 **移动端优化**：
+
 ```typescript
 // 针对移动设备的资源优化
 const mobileConfig = {
   streamConfig: {
-    bufferSize: 4096,     // 较小缓冲区
-    chunkDelay: 32,       // 降低帧率节省电量
-    typewriterSpeed: 80,  // 较慢打字速度
-    batchSize: 5          // 小批处理
+    bufferSize: 4096, // 较小缓冲区
+    chunkDelay: 32, // 降低帧率节省电量
+    typewriterSpeed: 80, // 较慢打字速度
+    batchSize: 5, // 小批处理
   },
   performanceConfig: {
-    itemHeight: 100,      // 更大触摸区域
-    overscan: 3           // 减少预渲染
-  }
-}
+    itemHeight: 100, // 更大触摸区域
+    overscan: 3, // 减少预渲染
+  },
+};
 ```
 
 ### 5.2 监控配置
 
 **管理员面板访问**：
+
 - URL: `/admin/dashboard/performance`
 - 权限: 仅管理员
 - 功能: 完整监控和管理
 
 **API端点**：
+
 - 性能查询: `GET /api/ag-ui/performance`
 - 实时流: `POST /api/ag-ui/performance`
 - 聊天优化: `POST /api/ag-ui/chat`
@@ -254,23 +273,25 @@ const mobileConfig = {
 ### 6.1 配置建议
 
 **高性能场景**：
+
 ```typescript
 const highPerformanceConfig = {
-  bufferSize: 16384,    // 16KB大缓冲区
-  chunkDelay: 8,        // 8ms = 120fps
+  bufferSize: 16384, // 16KB大缓冲区
+  chunkDelay: 8, // 8ms = 120fps
   typewriterSpeed: 240, // 超快打字
-  batchSize: 20         // 大批处理
-}
+  batchSize: 20, // 大批处理
+};
 ```
 
 **低延迟场景**：
+
 ```typescript
 const lowLatencyConfig = {
-  bufferSize: 2048,     // 2KB小缓冲区
-  chunkDelay: 4,        // 4ms = 240fps
+  bufferSize: 2048, // 2KB小缓冲区
+  chunkDelay: 4, // 4ms = 240fps
   typewriterSpeed: 300, // 极快打字
-  batchSize: 3          // 小批处理
-}
+  batchSize: 3, // 小批处理
+};
 ```
 
 ### 6.2 监控建议
@@ -355,4 +376,4 @@ const lowLatencyConfig = {
 **项目状态**: ✅ 完成落地
 **维护团队**: 开发团队
 **最后更新**: 2024年12月
-**版本**: v1.0.0 
+**版本**: v1.0.0

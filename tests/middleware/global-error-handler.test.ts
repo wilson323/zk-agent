@@ -8,21 +8,21 @@ const mockNextResponse = {
   json: vi.fn((data: any, options?: any) => ({
     json: async () => data,
     status: options?.status || 200,
-    headers: options?.headers || {}
-  }))
+    headers: options?.headers || {},
+  })),
 };
 
 vi.mock('next/server', () => ({
   NextResponse: mockNextResponse,
-  NextRequest: vi.fn()
+  NextRequest: vi.fn(),
 }));
 
 vi.mock('../../lib/utils/api-logger', () => ({
   ApiLogger: {
     error: vi.fn(),
     info: vi.fn(),
-    warn: vi.fn()
-  }
+    warn: vi.fn(),
+  },
 }));
 
 vi.mock('../../lib/types/api-response', () => ({
@@ -30,8 +30,8 @@ vi.mock('../../lib/types/api-response', () => ({
     VALIDATION_ERROR: 'VALIDATION_ERROR',
     NETWORK_ERROR: 'NETWORK_ERROR',
     SERVICE_UNAVAILABLE: 'SERVICE_UNAVAILABLE',
-    INTERNAL_ERROR: 'INTERNAL_ERROR'
-  }
+    INTERNAL_ERROR: 'INTERNAL_ERROR',
+  },
 }));
 
 // 简化的错误类型定义
@@ -39,7 +39,7 @@ enum AgentErrorType {
   VALIDATION_ERROR = 'VALIDATION_ERROR',
   NETWORK_ERROR = 'NETWORK_ERROR',
   SYSTEM_ERROR = 'SYSTEM_ERROR',
-  SERVICE_UNAVAILABLE = 'SERVICE_UNAVAILABLE'
+  SERVICE_UNAVAILABLE = 'SERVICE_UNAVAILABLE',
 }
 
 // 简化的AgentError类
@@ -53,12 +53,7 @@ class AgentError extends Error {
   public readonly timestamp: string;
   public override readonly stack?: string;
 
-  constructor(
-    type: AgentErrorType,
-    message: string,
-    context?: any,
-    statusCode?: number
-  ) {
+  constructor(type: AgentErrorType, message: string, context?: any, statusCode?: number) {
     super(message);
     this.name = 'AgentError';
     this.id = Math.random().toString(36).substr(2, 9);
@@ -122,7 +117,7 @@ class GlobalErrorHandler {
   handleError(error: Error | AgentError, context?: any): any {
     try {
       let agentError: AgentError;
-      
+
       if (error instanceof AgentError) {
         agentError = error;
       } else {
@@ -133,15 +128,15 @@ class GlobalErrorHandler {
 
       // 记录错误
       this.recordError(agentError);
-      
+
       // 检查时间窗口并更新统计
       this.checkTimeWindowAndUpdateStats();
-      
+
       // 检查断路器
       if (this.errorCount >= this.errorThreshold) {
         this.openCircuitBreaker();
       }
-      
+
       return this.createErrorResponse(agentError);
     } catch (handlerError) {
       console.error('Error in error handler:', handlerError);
@@ -164,7 +159,7 @@ class GlobalErrorHandler {
       id: error.id,
       type: error.type,
       message: error.message,
-      timestamp: error.timestamp
+      timestamp: error.timestamp,
     });
   }
 
@@ -176,12 +171,12 @@ class GlobalErrorHandler {
 
   private checkTimeWindowAndUpdateStats(): void {
     const now = Date.now();
-    
+
     // 检查时间窗口是否过期
     if (this.lastErrorTime > 0 && now - this.lastErrorTime > this.timeWindowMs) {
       this.errorCount = 0;
     }
-    
+
     // 更新统计
     this.errorCount++;
     this.lastErrorTime = now;
@@ -189,12 +184,12 @@ class GlobalErrorHandler {
 
   private shouldTriggerCircuitBreaker(): boolean {
     const now = Date.now();
-    
+
     if (now - this.lastErrorTime > this.timeWindowMs) {
       this.errorCount = 0;
       this.lastErrorTime = now;
     }
-    
+
     return this.errorCount >= this.errorThreshold;
   }
 
@@ -202,14 +197,14 @@ class GlobalErrorHandler {
     if (this.circuitBreakerOpen) {
       return;
     }
-    
+
     this.circuitBreakerOpen = true;
     console.warn('🚨 Circuit breaker opened due to high error rate');
-    
+
     if (this.circuitBreakerResetTimer) {
       clearTimeout(this.circuitBreakerResetTimer);
     }
-    
+
     this.circuitBreakerResetTimer = setTimeout(() => {
       this.circuitBreakerOpen = false;
       this.errorCount = 0;
@@ -219,28 +214,34 @@ class GlobalErrorHandler {
   }
 
   private createErrorResponse(error: AgentError): any {
-    return mockNextResponse.json({
-      success: false,
-      error: {
-        code: error.type,
-        message: error.userMessage,
-        type: error.type
+    return mockNextResponse.json(
+      {
+        success: false,
+        error: {
+          code: error.type,
+          message: error.userMessage,
+          type: error.type,
+        },
+        requestId: error.id,
+        timestamp: error.timestamp,
       },
-      requestId: error.id,
-      timestamp: error.timestamp
-    }, { status: error.statusCode });
+      { status: error.statusCode }
+    );
   }
 
   private createFallbackResponse(): any {
-    return mockNextResponse.json({
-      success: false,
-      error: {
-        code: 'INTERNAL_ERROR',
-        message: '系统内部错误',
-        type: 'SYSTEM_ERROR'
+    return mockNextResponse.json(
+      {
+        success: false,
+        error: {
+          code: 'INTERNAL_ERROR',
+          message: '系统内部错误',
+          type: 'SYSTEM_ERROR',
+        },
+        timestamp: new Date().toISOString(),
       },
-      timestamp: new Date().toISOString()
-    }, { status: 500 });
+      { status: 500 }
+    );
   }
 
   isCircuitBreakerOpen(): boolean {
@@ -253,7 +254,7 @@ class GlobalErrorHandler {
       lastErrorTime: this.lastErrorTime,
       circuitBreakerOpen: this.circuitBreakerOpen,
       errorThreshold: this.errorThreshold,
-      timeWindowMs: this.timeWindowMs
+      timeWindowMs: this.timeWindowMs,
     };
   }
 
@@ -265,7 +266,7 @@ class GlobalErrorHandler {
 
 describe('GlobalErrorHandler', () => {
   let errorHandler: GlobalErrorHandler;
-  
+
   beforeEach(() => {
     GlobalErrorHandler.resetInstance();
     errorHandler = GlobalErrorHandler.getInstance();
@@ -275,7 +276,7 @@ describe('GlobalErrorHandler', () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {});
     vi.spyOn(console, 'info').mockImplementation(() => {});
   });
-  
+
   afterEach(() => {
     vi.restoreAllMocks();
   });
@@ -292,7 +293,7 @@ describe('GlobalErrorHandler', () => {
     it('should classify validation errors correctly', () => {
       const validationError = new Error('Validation failed');
       validationError.name = 'ValidationError';
-      
+
       const result = errorHandler.handleError(validationError);
       expect(result).toBeDefined();
       expect(mockNextResponse.json).toHaveBeenCalled();
@@ -301,18 +302,16 @@ describe('GlobalErrorHandler', () => {
     it('should classify network errors correctly', () => {
       const networkError = new Error('Network timeout');
       networkError.name = 'NetworkError';
-      
+
       const result = errorHandler.handleError(networkError);
       expect(result).toBeDefined();
     });
 
     it('should handle AgentError instances', () => {
-      const agentError = new AgentError(
-        AgentErrorType.VALIDATION_ERROR,
-        'Test validation error',
-        { field: 'email' }
-      );
-      
+      const agentError = new AgentError(AgentErrorType.VALIDATION_ERROR, 'Test validation error', {
+        field: 'email',
+      });
+
       const result = errorHandler.handleError(agentError);
       expect(result).toBeDefined();
     });
@@ -323,7 +322,7 @@ describe('GlobalErrorHandler', () => {
       for (let i = 0; i < 10; i++) {
         errorHandler.handleError(new Error(`Error ${i}`));
       }
-      
+
       expect(errorHandler.isCircuitBreakerOpen()).toBe(false);
     });
 
@@ -331,28 +330,28 @@ describe('GlobalErrorHandler', () => {
       process.env.ERROR_THRESHOLD = '5';
       GlobalErrorHandler.resetInstance();
       errorHandler = GlobalErrorHandler.getInstance();
-      
+
       for (let i = 0; i < 6; i++) {
         errorHandler.handleError(new Error(`Error ${i}`));
       }
-      
+
       expect(errorHandler.isCircuitBreakerOpen()).toBe(true);
     });
 
     it('should reset error count after time window', () => {
       errorHandler.handleError(new Error('Test error'));
-      
+
       const stats = errorHandler.getErrorStats();
       expect(stats.errorCount).toBe(1);
-      
+
       vi.useFakeTimers();
       vi.advanceTimersByTime(61000);
-      
+
       errorHandler.handleError(new Error('Another error'));
-      
+
       const newStats = errorHandler.getErrorStats();
       expect(newStats.errorCount).toBe(1);
-      
+
       vi.useRealTimers();
     });
   });
@@ -361,9 +360,9 @@ describe('GlobalErrorHandler', () => {
     it('should track error statistics correctly', () => {
       const initialStats = errorHandler.getErrorStats();
       expect(initialStats.errorCount).toBe(0);
-      
+
       errorHandler.handleError(new Error('Test error'));
-      
+
       const updatedStats = errorHandler.getErrorStats();
       expect(updatedStats.errorCount).toBe(1);
       expect(updatedStats.lastErrorTime).toBeGreaterThan(0);
@@ -379,15 +378,13 @@ describe('GlobalErrorHandler', () => {
 
   describe('Error Response Format', () => {
     it('should create properly formatted error responses', async () => {
-      const error = new AgentError(
-        AgentErrorType.VALIDATION_ERROR,
-        'Test validation error',
-        { field: 'email' }
-      );
-      
+      const error = new AgentError(AgentErrorType.VALIDATION_ERROR, 'Test validation error', {
+        field: 'email',
+      });
+
       const response = errorHandler.handleError(error);
       const responseBody = await response.json();
-      
+
       expect(responseBody).toHaveProperty('success', false);
       expect(responseBody).toHaveProperty('error');
       expect(responseBody).toHaveProperty('requestId');
@@ -401,21 +398,18 @@ describe('GlobalErrorHandler', () => {
   describe('Error Recording', () => {
     it('should record errors to monitoring system', () => {
       const consoleSpy = vi.spyOn(console, 'error');
-      
-      const error = new AgentError(
-        AgentErrorType.SYSTEM_ERROR,
-        'Test system error'
-      );
-      
+
+      const error = new AgentError(AgentErrorType.SYSTEM_ERROR, 'Test system error');
+
       errorHandler.handleError(error);
-      
+
       expect(consoleSpy).toHaveBeenCalledWith(
         'Error recorded:',
         expect.objectContaining({
           id: expect.any(String),
           type: AgentErrorType.SYSTEM_ERROR,
           message: 'Test system error',
-          timestamp: expect.any(String)
+          timestamp: expect.any(String),
         })
       );
     });
@@ -428,10 +422,10 @@ describe('GlobalErrorHandler', () => {
       (errorHandler as any).recordError = () => {
         throw new Error('Recording failed');
       };
-      
+
       const result = errorHandler.handleError(new Error('Test error'));
       expect(result).toBeDefined();
-      
+
       // 恢复原方法
       (errorHandler as any).recordError = originalRecordError;
     });
@@ -442,13 +436,13 @@ describe('GlobalErrorHandler', () => {
 describe('GlobalErrorHandler Integration', () => {
   it('should handle complete error flow', async () => {
     const errorHandler = GlobalErrorHandler.getInstance();
-    
+
     const error = new Error('Database connection failed');
     const result = errorHandler.handleError(error);
-    
+
     expect(result).toBeDefined();
     expect(result.status).toBeGreaterThanOrEqual(400);
-    
+
     const responseBody = await result.json();
     expect(responseBody.success).toBe(false);
     expect(responseBody.error).toBeDefined();
@@ -459,14 +453,14 @@ describe('GlobalErrorHandler Integration', () => {
     process.env.ERROR_THRESHOLD = '3';
     GlobalErrorHandler.resetInstance();
     const errorHandler = GlobalErrorHandler.getInstance();
-    
+
     // 触发断路器
     for (let i = 0; i < 4; i++) {
       errorHandler.handleError(new Error(`Error ${i}`));
     }
-    
+
     expect(errorHandler.isCircuitBreakerOpen()).toBe(true);
-    
+
     const stats = errorHandler.getErrorStats();
     expect(stats.circuitBreakerOpen).toBe(true);
     expect(stats.errorCount).toBeGreaterThanOrEqual(3);

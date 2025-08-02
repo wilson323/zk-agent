@@ -7,9 +7,11 @@
 ## 🚨 核心开发原则（强制执行）
 
 ### 基于现有代码优化的核心原则
+
 > **关键要求：尽可能基于现有代码进行优化调整，确保没有代码冗余，是在本系统上优化而不是新建一个系统**
 
 #### 实施要求：
+
 1. **扩展而非重建** - 在现有组件基础上添加功能，不创建重复组件
 2. **继承现有架构** - 遵循现有的文件结构和命名规范
 3. **复用现有逻辑** - 优先使用已有的工具函数和服务
@@ -17,6 +19,7 @@
 5. **渐进式增强** - 新功能可以独立开关，不影响现有功能
 
 #### 代码实施检查：
+
 - [ ] **组件扩展**：是否基于现有组件进行功能扩展？
 - [ ] **服务复用**：是否复用了现有的服务和工具函数？
 - [ ] **接口兼容**：新功能是否保持API接口向后兼容？
@@ -26,18 +29,21 @@
 ## 📊 任务优先级矩阵
 
 ### P0 - 核心功能（必须完成）
+
 - 响应式布局系统
 - CAD智能体功能整合
 - 基础UI组件库
 - API接口体系
 
 ### P1 - 重要功能（应该完成）
+
 - 欢迎页面优化
 - 智能体切换系统
 - 性能监控
 - 错误处理机制
 
 ### P2 - 增强功能（可以完成）
+
 - PWA支持
 - 离线功能
 - 高级动画效果
@@ -48,17 +54,19 @@
 ### Week 1: 基础响应式系统建设
 
 #### 任务A1-1: 断点系统创建
+
 **文件**: `lib/constants/breakpoints.ts`
 **工作量**: 4小时
 **详细步骤**:
+
 ```typescript
 // 1. 定义10个响应式断点
 export const BREAKPOINTS = {
-  xs: '320px',    // 小屏手机 (iPhone SE)
-  sm: '375px',    // 标准手机 (iPhone 12/13)
-  md: '414px',    // 大屏手机 (iPhone 12 Pro Max)
-  lg: '768px',    // 平板竖屏 (iPad)
-  xl: '1024px',   // 平板横屏 (iPad Pro)
+  xs: '320px', // 小屏手机 (iPhone SE)
+  sm: '375px', // 标准手机 (iPhone 12/13)
+  md: '414px', // 大屏手机 (iPhone 12 Pro Max)
+  lg: '768px', // 平板竖屏 (iPad)
+  xl: '1024px', // 平板横屏 (iPad Pro)
   '2xl': '1280px', // 标准桌面
   '3xl': '1440px', // 大屏桌面
   '4xl': '1920px', // 全高清显示器
@@ -87,15 +95,18 @@ export const mediaQueries = {
 ```
 
 **验收标准**:
+
 - [ ] 所有断点值符合设计规范
 - [ ] 媒体查询函数工作正常
 - [ ] TypeScript类型定义完整
 - [ ] 单元测试覆盖率100%
 
 #### 任务A1-2: 设备检测Hook开发
+
 **文件**: `hooks/use-device-detection.ts`
 **工作量**: 8小时
 **详细步骤**:
+
 ```typescript
 interface DeviceInfo {
   // 设备类型检测
@@ -137,31 +148,31 @@ export const useDeviceDetection = (): DeviceInfo => {
     const detectDevice = () => {
       // 1. 检测设备类型
       const deviceType = getDeviceType();
-      
+
       // 2. 检测触摸支持
       const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-      
+
       // 3. 获取像素比
       const pixelRatio = window.devicePixelRatio || 1;
-      
+
       // 4. 检测屏幕方向
       const orientation = window.innerHeight > window.innerWidth ? 'portrait' : 'landscape';
-      
+
       // 5. 评估性能级别
       const performanceLevel = evaluatePerformance();
-      
+
       // 6. 检测网络速度
       const connectionSpeed = getConnectionSpeed();
-      
+
       // 7. 检测平台和浏览器
       const { platform, browser } = getPlatformAndBrowser();
-      
+
       // 8. 检测WebGL支持
       const hasWebGL = checkWebGLSupport();
-      
+
       // 9. 获取内存信息
       const memory = (navigator as any).deviceMemory;
-      
+
       setDeviceInfo({
         deviceType,
         hasTouch,
@@ -177,11 +188,11 @@ export const useDeviceDetection = (): DeviceInfo => {
     };
 
     detectDevice();
-    
+
     // 监听窗口大小变化
     window.addEventListener('resize', detectDevice);
     window.addEventListener('orientationchange', detectDevice);
-    
+
     return () => {
       window.removeEventListener('resize', detectDevice);
       window.removeEventListener('orientationchange', detectDevice);
@@ -195,13 +206,13 @@ export const useDeviceDetection = (): DeviceInfo => {
 const getDeviceType = (): DeviceInfo['deviceType'] => {
   const userAgent = navigator.userAgent;
   const width = window.innerWidth;
-  
+
   if (/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent)) {
     if (width < 768) return 'mobile';
     if (width < 1024) return 'tablet';
     return 'desktop';
   }
-  
+
   if (width < 768) return 'mobile';
   if (width < 1024) return 'tablet';
   if (width > 1920) return 'tv';
@@ -212,19 +223,19 @@ const evaluatePerformance = (): DeviceInfo['performanceLevel'] => {
   const memory = (navigator as any).deviceMemory || 4;
   const cores = navigator.hardwareConcurrency || 4;
   const connection = (navigator as any).connection;
-  
+
   let score = 0;
-  
+
   // 内存评分
   if (memory >= 8) score += 3;
   else if (memory >= 4) score += 2;
   else score += 1;
-  
+
   // CPU核心数评分
   if (cores >= 8) score += 3;
   else if (cores >= 4) score += 2;
   else score += 1;
-  
+
   // 网络评分
   if (connection) {
     if (connection.effectiveType === '4g') score += 2;
@@ -232,7 +243,7 @@ const evaluatePerformance = (): DeviceInfo['performanceLevel'] => {
   } else {
     score += 2; // 默认假设良好网络
   }
-  
+
   if (score >= 7) return 'high';
   if (score >= 4) return 'medium';
   return 'low';
@@ -240,6 +251,7 @@ const evaluatePerformance = (): DeviceInfo['performanceLevel'] => {
 ```
 
 **验收标准**:
+
 - [ ] 准确检测所有主流设备类型
 - [ ] 性能评估算法经过测试验证
 - [ ] 支持实时监听设备状态变化
@@ -247,8 +259,10 @@ const evaluatePerformance = (): DeviceInfo['performanceLevel'] => {
 - [ ] 浏览器兼容性测试通过
 
 #### 任务A1-3: 响应式工具Hook开发
+
 **文件**: `hooks/use-responsive.ts`
 **工作量**: 6小时
+
 ```typescript
 interface ResponsiveConfig {
   xs?: any;
@@ -302,20 +316,20 @@ export const useResponsive = (): ResponsiveState => {
     const updateState = () => {
       const width = window.innerWidth;
       const height = window.innerHeight;
-      
+
       // 确定当前断点
       const currentBreakpoint = getCurrentBreakpoint(width);
-      
+
       // 确定设备类别
       const isMobile = width < getBreakpointValue('lg');
       const isTablet = width >= getBreakpointValue('lg') && width < getBreakpointValue('xl');
       const isDesktop = width >= getBreakpointValue('xl') && width < getBreakpointValue('4xl');
       const isTV = width >= getBreakpointValue('4xl');
-      
+
       // 确定屏幕方向
       const isPortrait = height > width;
       const isLandscape = width >= height;
-      
+
       setState({
         currentBreakpoint,
         isMobile,
@@ -330,44 +344,50 @@ export const useResponsive = (): ResponsiveState => {
     };
 
     updateState();
-    
+
     window.addEventListener('resize', updateState);
     window.addEventListener('orientationchange', () => {
       setTimeout(updateState, 100); // 延迟确保方向变化完成
     });
-    
+
     return () => {
       window.removeEventListener('resize', updateState);
       window.removeEventListener('orientationchange', updateState);
     };
   }, []);
 
-  const getValue = useCallback(<T>(config: ResponsiveConfig): T => {
-    const breakpoints = Object.keys(BREAKPOINTS) as (keyof typeof BREAKPOINTS)[];
-    const currentIndex = breakpoints.indexOf(state.currentBreakpoint);
-    
-    // 从当前断点向下查找最近的配置值
-    for (let i = currentIndex; i >= 0; i--) {
-      const breakpoint = breakpoints[i];
-      if (config[breakpoint] !== undefined) {
-        return config[breakpoint];
+  const getValue = useCallback(
+    <T>(config: ResponsiveConfig): T => {
+      const breakpoints = Object.keys(BREAKPOINTS) as (keyof typeof BREAKPOINTS)[];
+      const currentIndex = breakpoints.indexOf(state.currentBreakpoint);
+
+      // 从当前断点向下查找最近的配置值
+      for (let i = currentIndex; i >= 0; i--) {
+        const breakpoint = breakpoints[i];
+        if (config[breakpoint] !== undefined) {
+          return config[breakpoint];
+        }
       }
-    }
-    
-    // 如果没找到，返回最小断点的值
-    return config.xs;
-  }, [state.currentBreakpoint]);
 
-  const matches = useCallback((breakpoint: keyof typeof BREAKPOINTS): boolean => {
-    return state.width >= getBreakpointValue(breakpoint);
-  }, [state.width]);
+      // 如果没找到，返回最小断点的值
+      return config.xs;
+    },
+    [state.currentBreakpoint]
+  );
 
-  const between = useCallback((
-    min: keyof typeof BREAKPOINTS, 
-    max: keyof typeof BREAKPOINTS
-  ): boolean => {
-    return state.width >= getBreakpointValue(min) && state.width < getBreakpointValue(max);
-  }, [state.width]);
+  const matches = useCallback(
+    (breakpoint: keyof typeof BREAKPOINTS): boolean => {
+      return state.width >= getBreakpointValue(breakpoint);
+    },
+    [state.width]
+  );
+
+  const between = useCallback(
+    (min: keyof typeof BREAKPOINTS, max: keyof typeof BREAKPOINTS): boolean => {
+      return state.width >= getBreakpointValue(min) && state.width < getBreakpointValue(max);
+    },
+    [state.width]
+  );
 
   return {
     ...state,
@@ -382,18 +402,19 @@ const getCurrentBreakpoint = (width: number): keyof typeof BREAKPOINTS => {
   const breakpoints = Object.entries(BREAKPOINTS)
     .map(([key, value]) => ({ key: key as keyof typeof BREAKPOINTS, value: parseInt(value) }))
     .sort((a, b) => b.value - a.value);
-  
+
   for (const { key, value } of breakpoints) {
     if (width >= value) {
       return key;
     }
   }
-  
+
   return 'xs';
 };
 ```
 
 **验收标准**:
+
 - [ ] 响应式值计算准确
 - [ ] 断点匹配逻辑正确
 - [ ] 性能优化（防抖处理）
@@ -403,8 +424,10 @@ const getCurrentBreakpoint = (width: number): keyof typeof BREAKPOINTS => {
 ### Week 2: 核心UI组件开发
 
 #### 任务A2-1: Button组件响应式改造
+
 **文件**: `components/ui/button.tsx`
 **工作量**: 6小时
+
 ```typescript
 import { forwardRef } from 'react';
 import { Slot } from '@radix-ui/react-slot';
@@ -489,11 +512,11 @@ export interface ButtonProps
 }
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ 
-    className, 
-    variant, 
-    size, 
-    asChild = false, 
+  ({
+    className,
+    variant,
+    size,
+    asChild = false,
     touchOptimized,
     responsiveSize,
     loading = false,
@@ -501,25 +524,25 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     rightIcon,
     children,
     disabled,
-    ...props 
+    ...props
   }, ref) => {
     const { isMobile, isTablet, getValue } = useResponsive();
-    
+
     // 自动检测是否需要触摸优化
     const shouldOptimizeForTouch = touchOptimized ?? (isMobile || isTablet);
-    
+
     // 获取响应式尺寸
     const currentSize = responsiveSize ? getValue(responsiveSize) || size : size;
-    
+
     const Comp = asChild ? Slot : 'button';
-    
+
     return (
       <Comp
         className={cn(
-          buttonVariants({ 
-            variant, 
-            size: currentSize, 
-            touchOptimized: shouldOptimizeForTouch 
+          buttonVariants({
+            variant,
+            size: currentSize,
+            touchOptimized: shouldOptimizeForTouch
           }),
           // 加载状态样式
           loading && 'relative text-transparent pointer-events-none',
@@ -538,7 +561,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent" />
           </div>
         )}
-        
+
         {!loading && (
           <>
             {leftIcon && (
@@ -565,6 +588,7 @@ export { Button, buttonVariants };
 ```
 
 **验收标准**:
+
 - [ ] 在所有断点下显示正确
 - [ ] 触摸目标满足44px最小要求
 - [ ] 加载状态动画流畅
@@ -576,9 +600,11 @@ export { Button, buttonVariants };
 ### Week 1: 智能体系统架构
 
 #### 任务B1-1: 智能体注册中心开发
+
 **文件**: `lib/agents/registry.ts`
 **工作量**: 8小时
 **详细步骤**:
+
 ```typescript
 import { EventEmitter } from 'events';
 
@@ -642,7 +668,7 @@ export interface Agent {
 export class AgentRegistry extends EventEmitter {
   private agents: Map<string, Agent> = new Map();
   private healthCheckIntervals: Map<string, NodeJS.Timeout> = new Map();
-  
+
   constructor() {
     super();
     this.initializeHealthChecks();
@@ -651,12 +677,12 @@ export class AgentRegistry extends EventEmitter {
   // 注册智能体
   register(agent: Agent): void {
     this.validateAgent(agent);
-    
+
     const existingAgent = this.agents.get(agent.id);
     if (existingAgent && existingAgent.version !== agent.version) {
       this.emit('agentUpdated', { old: existingAgent, new: agent });
     }
-    
+
     this.agents.set(agent.id, {
       ...agent,
       metrics: {
@@ -667,7 +693,7 @@ export class AgentRegistry extends EventEmitter {
         ...agent.metrics,
       },
     });
-    
+
     this.startHealthCheck(agent);
     this.emit('agentRegistered', agent);
   }
@@ -676,7 +702,7 @@ export class AgentRegistry extends EventEmitter {
   unregister(agentId: string): boolean {
     const agent = this.agents.get(agentId);
     if (!agent) return false;
-    
+
     this.stopHealthCheck(agentId);
     this.agents.delete(agentId);
     this.emit('agentUnregistered', agent);
@@ -716,41 +742,44 @@ export class AgentRegistry extends EventEmitter {
     maxResponseTime?: number;
   }): Agent | null {
     let candidates = this.getAvailableAgents();
-    
+
     // 按类别过滤
     if (requirements.category) {
       candidates = candidates.filter(agent => agent.category === requirements.category);
     }
-    
+
     // 按能力过滤
     if (requirements.capabilities) {
-      candidates = candidates.filter(agent => 
-        requirements.capabilities!.every(cap => 
+      candidates = candidates.filter(agent =>
+        requirements.capabilities!.every(cap =>
           agent.capabilities.some(agentCap => agentCap.id === cap)
         )
       );
     }
-    
+
     // 按性能指标过滤
     candidates = candidates.filter(agent => {
       if (requirements.minSuccessRate && agent.metrics.successRate < requirements.minSuccessRate) {
         return false;
       }
-      if (requirements.maxResponseTime && agent.metrics.averageResponseTime > requirements.maxResponseTime) {
+      if (
+        requirements.maxResponseTime &&
+        agent.metrics.averageResponseTime > requirements.maxResponseTime
+      ) {
         return false;
       }
       return true;
     });
-    
+
     if (candidates.length === 0) return null;
-    
+
     // 按综合得分排序
     candidates.sort((a, b) => {
       const scoreA = this.calculateAgentScore(a);
       const scoreB = this.calculateAgentScore(b);
       return scoreB - scoreA;
     });
-    
+
     return candidates[0];
   }
 
@@ -758,22 +787,19 @@ export class AgentRegistry extends EventEmitter {
   updateAgentStatus(agentId: string, status: AgentStatus): boolean {
     const agent = this.agents.get(agentId);
     if (!agent) return false;
-    
+
     const oldStatus = agent.status;
     agent.status = status;
-    
+
     this.emit('agentStatusChanged', { agent, oldStatus, newStatus: status });
     return true;
   }
 
   // 更新智能体指标
-  updateAgentMetrics(
-    agentId: string, 
-    metrics: Partial<Agent['metrics']>
-  ): boolean {
+  updateAgentMetrics(agentId: string, metrics: Partial<Agent['metrics']>): boolean {
     const agent = this.agents.get(agentId);
     if (!agent) return false;
-    
+
     agent.metrics = { ...agent.metrics, ...metrics };
     this.emit('agentMetricsUpdated', { agent, metrics });
     return true;
@@ -783,22 +809,22 @@ export class AgentRegistry extends EventEmitter {
   recordUsage(agentId: string, responseTime: number, success: boolean): void {
     const agent = this.agents.get(agentId);
     if (!agent) return;
-    
+
     const { metrics } = agent;
     const newTotal = metrics.totalRequests + 1;
-    
+
     // 更新平均响应时间
-    metrics.averageResponseTime = 
+    metrics.averageResponseTime =
       (metrics.averageResponseTime * metrics.totalRequests + responseTime) / newTotal;
-    
+
     // 更新成功率
-    const successCount = Math.round(metrics.successRate * metrics.totalRequests / 100);
+    const successCount = Math.round((metrics.successRate * metrics.totalRequests) / 100);
     const newSuccessCount = successCount + (success ? 1 : 0);
     metrics.successRate = (newSuccessCount / newTotal) * 100;
-    
+
     metrics.totalRequests = newTotal;
     metrics.lastUsed = new Date();
-    
+
     this.emit('agentUsed', { agent, responseTime, success });
   }
 
@@ -807,15 +833,15 @@ export class AgentRegistry extends EventEmitter {
     if (!agent.id || !agent.name || !agent.route) {
       throw new Error('智能体必须有id、name和route');
     }
-    
+
     if (!Object.values(AgentCategory).includes(agent.category)) {
       throw new Error('无效的智能体类别');
     }
-    
+
     if (!Object.values(AgentStatus).includes(agent.status)) {
       throw new Error('无效的智能体状态');
     }
-    
+
     // 验证依赖关系
     for (const depId of agent.dependencies || []) {
       if (!this.agents.has(depId)) {
@@ -828,19 +854,22 @@ export class AgentRegistry extends EventEmitter {
   private calculateAgentScore(agent: Agent): number {
     const { metrics } = agent;
     let score = 0;
-    
+
     // 成功率权重 50%
     score += (metrics.successRate / 100) * 50;
-    
+
     // 响应时间权重 30% (反向分数)
     const maxResponseTime = 10000; // 10秒
-    const responseScore = Math.max(0, (maxResponseTime - metrics.averageResponseTime) / maxResponseTime);
+    const responseScore = Math.max(
+      0,
+      (maxResponseTime - metrics.averageResponseTime) / maxResponseTime
+    );
     score += responseScore * 30;
-    
+
     // 使用频率权重 20%
     const usageScore = Math.min(100, metrics.totalRequests / 100);
     score += usageScore * 20;
-    
+
     return score;
   }
 
@@ -858,13 +887,13 @@ export class AgentRegistry extends EventEmitter {
 
   private startHealthCheck(agent: Agent): void {
     if (!agent.healthCheck?.endpoint) return;
-    
+
     this.stopHealthCheck(agent.id);
-    
+
     const interval = setInterval(() => {
       this.performHealthCheck(agent);
     }, agent.healthCheck.interval || 30000);
-    
+
     this.healthCheckIntervals.set(agent.id, interval);
   }
 
@@ -878,16 +907,16 @@ export class AgentRegistry extends EventEmitter {
 
   private async performHealthCheck(agent: Agent): Promise<void> {
     if (!agent.healthCheck?.endpoint) return;
-    
+
     try {
       const startTime = Date.now();
       const response = await fetch(agent.healthCheck.endpoint, {
         method: 'GET',
         timeout: agent.healthCheck.timeout || 5000,
       });
-      
+
       const responseTime = Date.now() - startTime;
-      
+
       if (response.ok) {
         if (agent.status !== AgentStatus.ONLINE) {
           this.updateAgentStatus(agent.id, AgentStatus.ONLINE);
@@ -934,10 +963,10 @@ export class AgentRegistry extends EventEmitter {
     // 停止所有健康检查
     this.healthCheckIntervals.forEach(interval => clearInterval(interval));
     this.healthCheckIntervals.clear();
-    
+
     // 清空智能体
     this.agents.clear();
-    
+
     // 移除所有事件监听器
     this.removeAllListeners();
   }
@@ -947,7 +976,9 @@ export class AgentRegistry extends EventEmitter {
 export const agentRegistry = new AgentRegistry();
 
 // 智能体工厂函数
-export const createAgent = (config: Partial<Agent> & Pick<Agent, 'id' | 'name' | 'route'>): Agent => {
+export const createAgent = (
+  config: Partial<Agent> & Pick<Agent, 'id' | 'name' | 'route'>
+): Agent => {
   return {
     description: '',
     icon: '🤖',
@@ -979,6 +1010,7 @@ export const createAgent = (config: Partial<Agent> & Pick<Agent, 'id' | 'name' |
 ```
 
 **验收标准**:
+
 - [ ] 智能体注册和注销功能正常
 - [ ] 健康检查机制工作稳定
 - [ ] 性能指标计算准确
@@ -989,28 +1021,33 @@ export const createAgent = (config: Partial<Agent> & Pick<Agent, 'id' | 'name' |
 ## 📋 质量保证和验收检查清单
 
 ### 智能体A质量检查清单
+
 ```markdown
 # 智能体A每日质量检查清单
 
 ## 响应式设计检查
+
 - [ ] 320px - 3840px 所有断点测试通过
 - [ ] 触摸设备最小44px触摸目标
 - [ ] 横竖屏切换流畅
 - [ ] 高DPI屏幕显示清晰
 
 ## 性能指标检查
+
 - [ ] 首屏加载时间 < 1.5s
 - [ ] 动画帧率 ≥ 60fps
 - [ ] 内存使用稳定
 - [ ] 包体积 < 500KB (gzipped)
 
 ## 无障碍访问检查
+
 - [ ] 键盘导航完整
 - [ ] 屏幕阅读器兼容
 - [ ] 对比度比例 ≥ 4.5:1
 - [ ] ARIA标签完整
 
 ## 代码质量检查
+
 - [ ] TypeScript编译无错误
 - [ ] ESLint无警告
 - [ ] 测试覆盖率 ≥ 80%
@@ -1018,28 +1055,33 @@ export const createAgent = (config: Partial<Agent> & Pick<Agent, 'id' | 'name' |
 ```
 
 ### 智能体B质量检查清单
+
 ```markdown
 # 智能体B每日质量检查清单
 
 ## API功能检查
+
 - [ ] 所有接口响应正常
 - [ ] 错误处理完善
 - [ ] 数据验证严格
 - [ ] 权限控制正确
 
 ## CAD功能检查
+
 - [ ] .dwg/.dxf/.step/.iges文件解析正常
 - [ ] AI分析结果准确
 - [ ] 文件上传进度显示
 - [ ] 历史记录保存正确
 
 ## 性能指标检查
+
 - [ ] API响应时间 < 500ms
 - [ ] 数据库查询优化
 - [ ] 文件处理异步化
 - [ ] 内存使用监控
 
 ## 安全性检查
+
 - [ ] 输入验证完整
 - [ ] SQL注入防护
 - [ ] 文件上传安全
@@ -1049,10 +1091,12 @@ export const createAgent = (config: Partial<Agent> & Pick<Agent, 'id' | 'name' |
 ## 🚨 风险控制和问题处理
 
 ### 常见风险和预防措施
+
 ```markdown
 # 开发风险控制矩阵
 
 ## 高风险问题
+
 1. **文件冲突**
    - 风险：同时修改共享文件导致代码冲突
    - 预防：严格遵守文件分工，使用Git保护分支
@@ -1069,6 +1113,7 @@ export const createAgent = (config: Partial<Agent> & Pick<Agent, 'id' | 'name' |
    - 应急：性能剖析定位问题，回滚问题代码
 
 ## 中等风险问题
+
 1. **依赖冲突**
    - 风险：两个智能体安装冲突的包版本
    - 预防：集中管理package.json，版本锁定
@@ -1080,6 +1125,7 @@ export const createAgent = (config: Partial<Agent> & Pick<Agent, 'id' | 'name' |
    - 应急：紧急补充测试用例
 
 ## 低风险问题
+
 1. **代码风格不一致**
    - 风险：影响代码可维护性
    - 预防：ESLint+Prettier自动格式化
@@ -1092,6 +1138,7 @@ export const createAgent = (config: Partial<Agent> & Pick<Agent, 'id' | 'name' |
 ```
 
 ### 应急处理流程
+
 ```typescript
 interface EmergencyProcedure {
   id: string;
@@ -1136,4 +1183,4 @@ const emergencyProcedures: EmergencyProcedure[] = [
 3. **风险控制完善**：预设了常见问题的预防和应急处理措施
 4. **协作机制清晰**：明确了两个智能体的协作方式和冲突解决流程
 
-接下来我将创建更多支撑文档来确保开发质量. 
+接下来我将创建更多支撑文档来确保开发质量.

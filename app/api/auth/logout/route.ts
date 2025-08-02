@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file auth\logout\route.ts
  * @description Migrated API route with global error handling
  * @author ZK-Agent Team
@@ -8,7 +8,7 @@
 import { NextRequest } from 'next/server';
 import { createApiRoute, RouteConfigs } from '@/lib/middleware/api-route-wrapper';
 import { ApiResponseWrapper } from '@/lib/utils/api-helper';
-import { prisma } from "@/lib/database/connection"
+import { prisma } from '@/lib/database/connection';
 
 export const POST = createApiRoute(
   RouteConfigs.protectedPost(),
@@ -19,25 +19,22 @@ export const POST = createApiRoute(
         .create({
           data: {
             userId: user.userId,
-            agentType: "auth",
-            action: "logout",
+            agentType: 'auth',
+            action: 'logout',
             metadata: {
-              userAgent: req.headers.get("user-agent"),
-              ip: req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip"),
+              userAgent: req.headers.get('user-agent'),
+              ip: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip'),
             },
           },
         })
         .catch((error: any) => {
-          console.error("Failed to log logout:", error);
-        });
+          });
     } else if (!enhancedDb) {
-      console.warn("Database connection not available for logout logging");
-    }
+      }
 
     return ApiResponseWrapper.success({
       success: true,
-      message: "登出成功",
+      message: '登出成功',
     });
   }
 );
-

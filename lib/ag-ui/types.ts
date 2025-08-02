@@ -1,168 +1,108 @@
-// @ts-nocheck
 /**
- * AG-UI 事件类型定义
- * @deprecated 请使用 ../shared/ag-ui-types.ts 中的统一类型定义
+ * @file AG-UI核心类型定义
+ * @description 定义AG-UI系统中使用的核心类型和接口
+ * @author ZK-Agent Team
+ * @date 2024-12-19
  */
 
-// 重新导出统一的类型定义
-export {
-  BaseEvent,
-  RunStartedEvent,
-  RunFinishedEvent,
-  RunErrorEvent,
-  RunCancelledEvent,
-  TextMessageStartEvent,
-  TextMessageContentEvent,
-  TextMessageEndEvent,
-  ToolCallStartEvent,
-  ToolCallEndEvent,
-  AgUiEvent,
-  EventHandler,
-  AgUiEventEmitter,
-  AG_UI_PROTOCOL_VERSION
-} from '../shared/ag-ui-types';
+// 重新导出协议类型
+export type { Tool, ToolFunction, AgentDefinition, AgentMetadata, AgentRuntimeState, ToolExecutionResult, AgentExecutionContext } from './protocol/types';
+export { AgentStatus } from './protocol/types';
 
-// 保持向后兼容的类型别名
-export type { BaseEvent as LegacyBaseEvent } from '../shared/ag-ui-types';
-export type { RunStartedEvent as LegacyRunStartedEvent } from '../shared/ag-ui-types';
-export type { RunFinishedEvent as LegacyRunFinishedEvent } from '../shared/ag-ui-types';
-export type { RunErrorEvent as LegacyRunErrorEvent } from '../shared/ag-ui-types';
-
-// 文本消息开始事件
-export interface TextMessageStartEvent extends BaseEvent {
-  type: "TEXT_MESSAGE_START"
-  messageId: string
-  role: string
+/**
+ * AG-UI系统配置
+ */
+export interface AgUIConfig {
+  /** API端点 */
+  apiEndpoint?: string;
+  /** 是否启用调试模式 */
+  debug?: boolean;
+  /** 是否启用中间件 */
+  enableMiddleware?: boolean;
+  /** 是否启用内置工具 */
+  enableBuiltinTools?: boolean;
+  /** 超时时间（毫秒） */
+  timeout?: number;
+  /** 重试次数 */
+  retryCount?: number;
 }
 
-// 文本消息内容事件
-export interface TextMessageContentEvent extends BaseEvent {
-  type: "TEXT_MESSAGE_CONTENT"
-  messageId: string
-  delta: string
+/**
+ * AG-UI运行时选项
+ */
+export interface AgUIRuntimeOptions extends AgUIConfig {
+  /** 线程ID */
+  threadId: string;
+  /** 运行ID */
+  runId?: string;
 }
 
-// 文本消息结束事件
-export interface TextMessageEndEvent extends BaseEvent {
-  type: "TEXT_MESSAGE_END"
-  messageId: string
+/**
+ * AG-UI事件类型
+ */
+export enum AgUIEventType {
+  /** 智能体状态变化 */
+  AGENT_STATUS_CHANGED = 'agent_status_changed',
+  /** 工具执行开始 */
+  TOOL_EXECUTION_STARTED = 'tool_execution_started',
+  /** 工具执行完成 */
+  TOOL_EXECUTION_COMPLETED = 'tool_execution_completed',
+  /** 工具执行失败 */
+  TOOL_EXECUTION_FAILED = 'tool_execution_failed',
+  /** 消息接收 */
+  MESSAGE_RECEIVED = 'message_received',
+  /** 消息发送 */
+  MESSAGE_SENT = 'message_sent',
+  /** 错误发生 */
+  ERROR_OCCURRED = 'error_occurred',
 }
 
-// 文本消息块事件（优化版）
-export interface TextMessageChunkEvent extends BaseEvent {
-  type: "TEXT_MESSAGE_CHUNK"
-  messageId: string
-  role: string
-  delta: string
+/**
+ * AG-UI事件数据
+ */
+export interface AgUIEventData {
+  /** 事件类型 */
+  type: AgUIEventType;
+  /** 事件时间戳 */
+  timestamp: Date;
+  /** 事件数据 */
+  data: any;
+  /** 智能体ID */
+  agentId?: string;
+  /** 线程ID */
+  threadId?: string;
 }
 
-// 工具调用开始事件
-export interface ToolCallStartEvent extends BaseEvent {
-  type: "TOOL_CALL_START"
-  toolCallId: string
-  toolCallName: string
-  parentMessageId: string
+/**
+ * AG-UI错误类型
+ */
+export enum AgUIErrorType {
+  /** 配置错误 */
+  CONFIG_ERROR = 'config_error',
+  /** 网络错误 */
+  NETWORK_ERROR = 'network_error',
+  /** 认证错误 */
+  AUTH_ERROR = 'auth_error',
+  /** 工具错误 */
+  TOOL_ERROR = 'tool_error',
+  /** 智能体错误 */
+  AGENT_ERROR = 'agent_error',
+  /** 运行时错误 */
+  RUNTIME_ERROR = 'runtime_error',
 }
 
-// 工具调用参数事件
-export interface ToolCallArgsEvent extends BaseEvent {
-  type: "TOOL_CALL_ARGS"
-  toolCallId: string
-  delta: string
-}
-
-// 工具调用结束事件
-export interface ToolCallEndEvent extends BaseEvent {
-  type: "TOOL_CALL_END"
-  toolCallId: string
-}
-
-// 工具调用块事件（优化版）
-export interface ToolCallChunkEvent extends BaseEvent {
-  type: "TOOL_CALL_CHUNK"
-  toolCallId: string
-  toolCallName: string
-  parentMessageId: string
-  delta: string
-}
-
-// 状态快照事件
-export interface StateSnapshotEvent extends BaseEvent {
-  type: "STATE_SNAPSHOT"
-  snapshot: Record<string, any>
-}
-
-// 状态增量事件
-export interface StateDeltaEvent extends BaseEvent {
-  type: "STATE_DELTA"
-  delta: any[] // JSON Patch 数组
-}
-
-// 消息快照事件
-export interface MessagesSnapshotEvent extends BaseEvent {
-  type: "MESSAGES_SNAPSHOT"
-  messages: any[]
-}
-
-// 原始事件
-export interface RawEvent extends BaseEvent {
-  type: "RAW"
-  event: any
-  source: string
-}
-
-// 自定义事件
-export interface CustomEvent extends BaseEvent {
-  type: "CUSTOM"
-  name: string
-  value: any
-}
-
-// 步骤开始事件
-export interface StepStartedEvent extends BaseEvent {
-  type: "STEP_STARTED"
-  stepName: string
-}
-
-// 步骤结束事件
-export interface StepFinishedEvent extends BaseEvent {
-  type: "STEP_FINISHED"
-  stepName: string
-}
-
-// 消息类型
-export interface Message {
-  id: string
-  role: "user" | "assistant" | "tool" | "developer" | "system"
-  content: string
-  name?: string
-  toolCalls?: ToolCall[]
-}
-
-// 工具调用
-export interface ToolCall {
-  id: string
-  type: "function"
-  function: {
-    name: string
-    arguments: string
-  }
-}
-
-// 工具定义
-export interface Tool {
-  name: string
-  description: string
-  parameters: Record<string, any> // JSON Schema
-}
-
-// Agent执行输入
-export interface RunAgentInput {
-  threadId: string
-  runId: string
-  state: Record<string, any>
-  messages: Message[]
-  tools: Tool[]
-  context: any[]
-  forwardedProps: Record<string, any>
+/**
+ * AG-UI错误信息
+ */
+export interface AgUIError {
+  /** 错误类型 */
+  type: AgUIErrorType;
+  /** 错误消息 */
+  message: string;
+  /** 错误代码 */
+  code?: string;
+  /** 错误详情 */
+  details?: any;
+  /** 错误堆栈 */
+  stack?: string;
 }

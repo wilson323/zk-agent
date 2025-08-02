@@ -6,18 +6,24 @@
  * @features 安全性、性能优化、类型安全、错误处理
  */
 
-import { Logger } from '@/lib/utils/logger';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
+
+const logger = getLogger();
 import { promises as fs } from 'fs';
 import { createReadStream, createWriteStream } from 'fs';
 import path from 'path';
 import crypto from 'crypto';
-import { pipeline } from 'stream/promises';
 
 import { enhancedCacheManager } from '@/lib/cache/enhanced-cache-manager';
 
 // 自定义错误类
 export class StorageError extends Error {
-  constructor(message: string, public code: string) {
+  constructor(
+    message: string,
+    public code: string
+  ) {
     super(message);
     this.name = 'StorageError';
   }
@@ -118,7 +124,7 @@ interface StorageStats {
  */
 export class OptimizedStorageManager {
   private static instance: OptimizedStorageManager | null = null;
-  private readonly logger = new Logger('OptimizedStorageManager');
+  private readonly logger = logger.withContext('OptimizedStorageManager');
   private readonly metadata = new Map<string, FileMetadata>();
   private cleanupInterval: NodeJS.Timeout | null = null;
   private readonly uploadSemaphore: Set<string> = new Set();
@@ -129,15 +135,27 @@ export class OptimizedStorageManager {
     maxFileSize: 100 * 1024 * 1024, // 100MB
     allowedMimeTypes: [
       // 图片
-      'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
+      'image/jpeg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+      'image/svg+xml',
       // 文档
-      'application/pdf', 'text/plain', 'application/msword',
+      'application/pdf',
+      'text/plain',
+      'application/msword',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       // CAD文件
-      'application/acad', 'application/dwg', 'application/dxf',
-      'application/step', 'application/iges', 'model/stl',
+      'application/acad',
+      'application/dwg',
+      'application/dxf',
+      'application/step',
+      'application/iges',
+      'model/stl',
       // 压缩文件
-      'application/zip', 'application/x-rar-compressed', 'application/x-7z-compressed',
+      'application/zip',
+      'application/x-rar-compressed',
+      'application/x-7z-compressed',
     ] as const,
     enableCompression: true,
     enableThumbnails: true,
@@ -168,12 +186,12 @@ export class OptimizedStorageManager {
    */
   private validateStoragePath(storagePath: string): string {
     const resolvedPath = path.resolve(storagePath);
-    
+
     // 确保路径不包含危险字符
     if (resolvedPath.includes('..') || resolvedPath.includes('~')) {
       throw new StorageError('Invalid storage path', 'INVALID_PATH');
     }
-    
+
     return resolvedPath;
   }
 
@@ -205,13 +223,16 @@ export class OptimizedStorageManager {
    */
   private startCleanupProcess(): void {
     // 每小时执行一次清理
-    this.cleanupInterval = setInterval(() => {
-      this.cleanupExpiredFiles().catch(error => {
-        this.logger.error('Cleanup process failed', {
-          error: error instanceof Error ? error.message : 'Unknown error',
+    this.cleanupInterval = setInterval(
+      () => {
+        this.cleanupExpiredFiles().catch(error => {
+          this.logger.error('Cleanup process failed', {
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
         });
-      });
-    }, 60 * 60 * 1000); // 1小时
+      },
+      60 * 60 * 1000
+    ); // 1小时
   }
 
   /**
@@ -220,11 +241,11 @@ export class OptimizedStorageManager {
   private async loadMetadata(): Promise<void> {
     try {
       const metadataPath = path.join(this.config.localPath, 'metadata.json');
-      
+
       try {
         const data = await fs.readFile(metadataPath, 'utf-8');
         const metadataArray: FileMetadata[] = JSON.parse(data);
-        
+
         for (const metadata of metadataArray) {
           // 转换日期字符串为Date对象
           const processedMetadata: FileMetadata = {
@@ -232,15 +253,17 @@ export class OptimizedStorageManager {
             uploadedAt: new Date(metadata.uploadedAt),
             lastAccessed: new Date(metadata.lastAccessed),
             expiresAt: metadata.expiresAt ? new Date(metadata.expiresAt) : undefined,
-            virusScanResult: metadata.virusScanResult ? {
-              ...metadata.virusScanResult,
-              scanDate: new Date(metadata.virusScanResult.scanDate),
-            } : undefined,
+            virusScanResult: metadata.virusScanResult
+              ? {
+                ...metadata.virusScanResult,
+                scanDate: new Date(metadata.virusScanResult.scanDate),
+              }
+              : undefined,
           };
-          
+
           this.metadata.set(metadata.id, processedMetadata);
         }
-        
+
         this.logger.info('Metadata loaded successfully', {
           fileCount: this.metadata.size,
         });
@@ -265,7 +288,7 @@ export class OptimizedStorageManager {
     try {
       const metadataPath = path.join(this.config.localPath, 'metadata.json');
       const metadataArray = Array.from(this.metadata.values());
-      
+
       await fs.writeFile(metadataPath, JSON.stringify(metadataArray, null, 2));
     } catch (error) {
       this.logger.error('Failed to save metadata', {
@@ -288,8 +311,8 @@ export class OptimizedStorageManager {
     return new Promise((resolve, reject) => {
       const hash = crypto.createHash('sha256');
       const stream = createReadStream(filePath);
-      
-      stream.on('data', (data) => hash.update(data));
+
+      stream.on('data', data => hash.update(data));
       stream.on('end', () => resolve(hash.digest('hex')));
       stream.on('error', reject);
     });
@@ -322,8 +345,27 @@ export class OptimizedStorageManager {
 
     // 检查文件扩展名
     const extension = path.extname(originalName).toLowerCase();
-    const allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.pdf', '.txt', '.doc', '.docx', '.dwg', '.dxf', '.step', '.iges', '.stl', '.zip', '.rar', '.7z'];
-    
+    const allowedExtensions = [
+      '.jpg',
+      '.jpeg',
+      '.png',
+      '.gif',
+      '.webp',
+      '.svg',
+      '.pdf',
+      '.txt',
+      '.doc',
+      '.docx',
+      '.dwg',
+      '.dxf',
+      '.step',
+      '.iges',
+      '.stl',
+      '.zip',
+      '.rar',
+      '.7z',
+    ];
+
     if (!allowedExtensions.includes(extension)) {
       throw new FileValidationError(`File extension '${extension}' is not allowed`);
     }
@@ -347,7 +389,7 @@ export class OptimizedStorageManager {
   private async scanForVirus(fileBuffer: Buffer): Promise<VirusScanResult> {
     // 在生产环境中，这里应该集成真实的病毒扫描服务
     // 如 ClamAV、VirusTotal API 等
-    
+
     return {
       scanned: true,
       clean: true,
@@ -362,15 +404,10 @@ export class OptimizedStorageManager {
   private async encryptFile(fileBuffer: Buffer): Promise<{ data: Buffer; key: string }> {
     const key = crypto.randomBytes(32).toString('hex');
     const iv = crypto.randomBytes(16);
-    const iv = crypto.randomBytes(16);
     const cipher = crypto.createCipheriv('aes-256-cbc', Buffer.from(key, 'hex'), iv);
-    
-    const encrypted = Buffer.concat([
-      iv,
-      cipher.update(fileBuffer),
-      cipher.final(),
-    ]);
-    
+
+    const encrypted = Buffer.concat([iv, cipher.update(fileBuffer), cipher.final()]);
+
     return { data: encrypted, key };
   }
 
@@ -380,13 +417,10 @@ export class OptimizedStorageManager {
   private async decryptFile(encryptedBuffer: Buffer, key: string): Promise<Buffer> {
     const iv = encryptedBuffer.slice(0, 16);
     const encrypted = encryptedBuffer.slice(16);
-    
+
     const decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from(key, 'hex'), iv);
-    
-    return Buffer.concat([
-      decipher.update(encrypted),
-      decipher.final(),
-    ]);
+
+    return Buffer.concat([decipher.update(encrypted), decipher.final()]);
   }
 
   /**
@@ -395,13 +429,13 @@ export class OptimizedStorageManager {
   private async cleanupExpiredFiles(): Promise<void> {
     const now = new Date();
     const expiredFiles: string[] = [];
-    
+
     for (const [fileId, metadata] of this.metadata.entries()) {
       if (metadata.expiresAt && metadata.expiresAt < now) {
         expiredFiles.push(fileId);
       }
     }
-    
+
     for (const fileId of expiredFiles) {
       try {
         await this.deleteFile(fileId);
@@ -460,7 +494,7 @@ export class OptimizedStorageManager {
       if (existingFile) {
         // 删除临时文件
         await fs.unlink(tempPath);
-        
+
         this.logger.info('Duplicate file detected, returning existing', {
           fileId: existingFile.id,
           hash,
@@ -544,10 +578,7 @@ export class OptimizedStorageManager {
   /**
    * 下载文件
    */
-  public async downloadFile(
-    fileId: string,
-    options: DownloadOptions = {}
-  ): Promise<Buffer> {
+  public async downloadFile(fileId: string, options: DownloadOptions = {}): Promise<Buffer> {
     try {
       // 获取元数据
       let metadata: FileMetadata | undefined = this.metadata.get(fileId);
@@ -561,7 +592,11 @@ export class OptimizedStorageManager {
       }
 
       // 检查权限
-      if (options.checkPermissions && !metadata.isPublic && metadata.uploadedBy !== options.userId) {
+      if (
+        options.checkPermissions &&
+        !metadata.isPublic &&
+        metadata.uploadedBy !== options.userId
+      ) {
         throw new StorageError('Access denied', 'ACCESS_DENIED');
       }
 
@@ -681,13 +716,13 @@ export class OptimizedStorageManager {
   public getStorageStats(): StorageStats {
     const files = Array.from(this.metadata.values());
     const now = new Date();
-    
+
     const totalFiles = files.length;
     const totalSize = files.reduce((sum, file) => sum + file.size, 0);
     const publicFiles = files.filter(file => file.isPublic).length;
     const privateFiles = totalFiles - publicFiles;
     const expiredFiles = files.filter(file => file.expiresAt && file.expiresAt < now).length;
-    
+
     // 计算文件类型统计
     const typeStats = new Map<string, { count: number; size: number }>();
     for (const file of files) {
@@ -697,12 +732,12 @@ export class OptimizedStorageManager {
         size: existing.size + file.size,
       });
     }
-    
+
     const topFileTypes = Array.from(typeStats.entries())
       .map(([type, stats]) => ({ type, ...stats }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 10);
-    
+
     return {
       totalFiles,
       totalSize,
@@ -723,10 +758,10 @@ export class OptimizedStorageManager {
       clearInterval(this.cleanupInterval);
       this.cleanupInterval = null;
     }
-    
+
     this.metadata.clear();
     this.uploadSemaphore.clear();
-    
+
     OptimizedStorageManager.instance = null;
   }
 }

@@ -13,7 +13,7 @@ import { validateRequestBody, validateSearchParams } from '../utils/api-helper';
 import { ErrorCode } from '../../types/core';
 
 // API路由配置接口
-interface ApiRouteConfig {
+export interface ApiRouteConfig {
   method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
   requireAuth?: boolean;
   rateLimit?: {
@@ -47,14 +47,11 @@ const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
 /**
  * 创建API路由处理器
  */
-export function createApiRoute<T = any>(
-  config: ApiRouteConfig,
-  handler: ApiHandler<T>
-) {
+export function createApiRoute<T = any>(config: ApiRouteConfig, handler: ApiHandler<T>) {
   return withGlobalErrorHandler(async (req: NextRequest, routeParams?: any) => {
     const startTime = Date.now();
     const requestId = generateRequestId();
-    
+
     try {
       // 1. 方法验证
       if (req.method !== config.method) {
@@ -86,7 +83,7 @@ export function createApiRoute<T = any>(
 
         // 5. 请求验证
         let validatedBody, validatedQuery;
-        
+
         if (config.validation?.body && req.method !== 'GET') {
           try {
             const body = await req.json();
@@ -121,7 +118,7 @@ export function createApiRoute<T = any>(
           validatedBody,
           validatedQuery,
           user,
-          requestId
+          requestId,
         });
 
         // 8. 记录响应日志
@@ -131,7 +128,7 @@ export function createApiRoute<T = any>(
         // 9. 添加响应头
         response.headers.set('X-Request-ID', requestId);
         response.headers.set('X-Response-Time', `${duration}ms`);
-        
+
         return response;
       };
 
@@ -142,11 +139,8 @@ export function createApiRoute<T = any>(
             reject(new Error(`Request timeout after ${config.timeout}ms`));
           }, config.timeout);
         });
-        
-        return await Promise.race([
-          processRequest(),
-          timeoutPromise
-        ]);
+
+        return await Promise.race([processRequest(), timeoutPromise]);
       }
 
       return await processRequest();
@@ -167,24 +161,24 @@ function checkRateLimit(
   const clientId = getClientId(req);
   const now = Date.now();
   const windowStart = now - rateLimit.windowMs;
-  
+
   // 清理过期记录
   for (const [key, value] of Array.from(rateLimitStore.entries())) {
     if (value.resetTime < now) {
       rateLimitStore.delete(key);
     }
   }
-  
+
   const key = `${clientId}:${Math.floor(now / rateLimit.windowMs)}`;
   const current = rateLimitStore.get(key) || { count: 0, resetTime: now + rateLimit.windowMs };
-  
+
   if (current.count >= rateLimit.requests) {
     return { allowed: false, resetTime: current.resetTime };
   }
-  
+
   current.count++;
   rateLimitStore.set(key, current);
-  
+
   return { allowed: true };
 }
 
@@ -196,7 +190,7 @@ function getClientId(req: NextRequest): string {
   const forwarded = req.headers.get('x-forwarded-for');
   const realIp = req.headers.get('x-real-ip');
   const ip = forwarded?.split(',')[0] || realIp || 'unknown';
-  
+
   // 结合用户代理创建唯一标识
   const userAgent = req.headers.get('user-agent') || 'unknown';
   return `${ip}:${Buffer.from(userAgent).toString('base64').slice(0, 10)}`;
@@ -217,10 +211,10 @@ async function authenticateRequest(req: NextRequest): Promise<any> {
     if (token === 'valid-token') {
       return { id: 'user-1', email: 'user@example.com' };
     }
-    
+
     return null;
   } catch (error) {
-    console.error('Authentication error:', error);
+    ApiLogger.logError(error, { message: 'Authentication error' });
     return null;
   }
 }
@@ -238,30 +232,36 @@ function generateRequestId(): string {
 export const CommonValidations = {
   // 分页参数
   pagination: z.object({
-    page: z.string().optional().transform(val => val ? parseInt(val) : 1),
-    limit: z.string().optional().transform(val => val ? parseInt(val) : 10),
+    page: z
+      .string()
+      .optional()
+      .transform(val => (val ? parseInt(val) : 1)),
+    limit: z
+      .string()
+      .optional()
+      .transform(val => (val ? parseInt(val) : 10)),
     sort: z.string().optional(),
-    order: z.enum(['asc', 'desc']).optional().default('desc')
+    order: z.enum(['asc', 'desc']).optional().default('desc'),
   }),
-  
+
   // ID参数
   id: z.object({
-    id: z.string().min(1, 'ID is required')
+    id: z.string().min(1, 'ID is required'),
   }),
-  
+
   // 搜索参数
   search: z.object({
     q: z.string().optional(),
     category: z.string().optional(),
-    status: z.string().optional()
+    status: z.string().optional(),
   }),
-  
+
   // 文件上传
   fileUpload: z.object({
     file: z.any(),
     description: z.string().optional(),
-    tags: z.array(z.string()).optional()
-  })
+    tags: z.array(z.string()).optional(),
+  }),
 };
 
 /**
@@ -273,87 +273,98 @@ export const RouteConfigs = {
     method: 'GET',
     requireAuth: false,
     validation,
-    timeout: 30000
+    timeout: 30000,
   }),
-  
+
   // GET路由 - 需要认证
   protectedGet: (validation?: { query?: z.ZodSchema }): ApiRouteConfig => ({
     method: 'GET',
     requireAuth: true,
     validation,
-    timeout: 30000
+    timeout: 30000,
   }),
-  
+
+  // POST路由 - 无需认证
+  publicPost: (validation?: { body?: z.ZodSchema; query?: z.ZodSchema }): ApiRouteConfig => ({
+    method: 'POST',
+    requireAuth: false,
+    validation,
+    timeout: 60000,
+  }),
+
   // POST路由 - 需要认证和速率限制
   protectedPost: (validation?: { body?: z.ZodSchema; query?: z.ZodSchema }): ApiRouteConfig => ({
     method: 'POST',
     requireAuth: true,
     rateLimit: { requests: 100, windowMs: 60000 }, // 每分钟100次
     validation,
-    timeout: 60000
+    timeout: 60000,
   }),
-  
+
   // PUT路由 - 需要认证和速率限制
   protectedPut: (validation?: { body?: z.ZodSchema; query?: z.ZodSchema }): ApiRouteConfig => ({
     method: 'PUT',
     requireAuth: true,
     rateLimit: { requests: 100, windowMs: 60000 }, // 每分钟100次
     validation,
-    timeout: 60000
+    timeout: 60000,
   }),
-  
+
   // PATCH路由 - 需要认证和速率限制
   protectedPatch: (validation?: { body?: z.ZodSchema; query?: z.ZodSchema }): ApiRouteConfig => ({
     method: 'PATCH',
     requireAuth: true,
     rateLimit: { requests: 100, windowMs: 60000 }, // 每分钟100次
     validation,
-    timeout: 60000
+    timeout: 60000,
   }),
-  
+
   // DELETE路由 - 需要认证和速率限制
   protectedDelete: (validation?: { query?: z.ZodSchema }): ApiRouteConfig => ({
     method: 'DELETE',
     requireAuth: true,
     rateLimit: { requests: 50, windowMs: 60000 }, // 每分钟50次
     validation,
-    timeout: 30000
+    timeout: 30000,
   }),
-  
+
   // 文件上传路由
   fileUpload: (validation?: { body?: z.ZodSchema }): ApiRouteConfig => ({
     method: 'POST',
     requireAuth: true,
     rateLimit: { requests: 20, windowMs: 60000 }, // 每分钟20次
     validation,
-    timeout: 300000 // 5分钟
+    timeout: 300000, // 5分钟
   }),
-  
+
   // 管理员路由
-  admin: (method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH', validation?: any): ApiRouteConfig => ({
+  admin: (
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH',
+    validation?: any
+  ): ApiRouteConfig => ({
     method,
     requireAuth: true,
     rateLimit: { requests: 200, windowMs: 60000 },
     validation,
-    timeout: 60000
-  })
+    timeout: 60000,
+  }),
 };
 
 // 导出ApiResponseWrapper类
 export { ApiResponseWrapper } from '../utils/api-helper';
 
 // 导出便捷函数
-export const GET = (handler: ApiHandler, config?: Partial<ApiRouteConfig>) => 
+export const GET = (handler: ApiHandler, config?: Partial<ApiRouteConfig>) =>
   createApiRoute({ ...RouteConfigs.publicGet(), ...config }, handler);
 
-export const POST = (handler: ApiHandler, config?: Partial<ApiRouteConfig>) => 
+export const POST = (handler: ApiHandler, config?: Partial<ApiRouteConfig>) =>
   createApiRoute({ ...RouteConfigs.protectedPost(), ...config }, handler);
 
-export const PUT = (handler: ApiHandler, config?: Partial<ApiRouteConfig>) => 
+export const PUT = (handler: ApiHandler, config?: Partial<ApiRouteConfig>) =>
   createApiRoute({ method: 'PUT', requireAuth: true, timeout: 60000, ...config }, handler);
 
-export const PATCH = (handler: ApiHandler, config?: Partial<ApiRouteConfig>) => 
+export const PATCH = (handler: ApiHandler, config?: Partial<ApiRouteConfig>) =>
   createApiRoute({ method: 'PATCH', requireAuth: true, timeout: 60000, ...config }, handler);
 
-export const DELETE = (handler: ApiHandler, config?: Partial<ApiRouteConfig>) => 
+export const DELETE = (handler: ApiHandler, config?: Partial<ApiRouteConfig>) =>
   createApiRoute({ method: 'DELETE', requireAuth: true, timeout: 30000, ...config }, handler);

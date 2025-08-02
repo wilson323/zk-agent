@@ -9,9 +9,9 @@
 
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
-import { Logger } from '@/lib/utils/logger';
+import { getLogger } from '@/lib/utils/logger';
 
-const logger = new Logger('PasswordSecurity');
+const logger = getLogger();
 
 // 密码安全配置
 interface PasswordSecurityConfig {
@@ -95,11 +95,31 @@ export class EnhancedPasswordSecurity {
    */
   private loadCommonPasswords(): void {
     const commonPasswords = [
-      'password', '123456', 'password123', 'admin', 'qwerty',
-      'letmein', 'welcome', 'monkey', '1234567890', 'abc123',
-      'password1', '123456789', 'welcome123', 'admin123',
-      'root', 'toor', 'pass', 'test', 'guest', 'demo',
-      'user', 'login', 'changeme', 'secret', 'default',
+      'password',
+      '123456',
+      'password123',
+      'admin',
+      'qwerty',
+      'letmein',
+      'welcome',
+      'monkey',
+      '1234567890',
+      'abc123',
+      'password1',
+      '123456789',
+      'welcome123',
+      'admin123',
+      'root',
+      'toor',
+      'pass',
+      'test',
+      'guest',
+      'demo',
+      'user',
+      'login',
+      'changeme',
+      'secret',
+      'default',
     ];
 
     commonPasswords.forEach(pwd => this.commonPasswords.add(pwd.toLowerCase()));
@@ -109,11 +129,14 @@ export class EnhancedPasswordSecurity {
   /**
    * 验证密码强度
    */
-  validatePassword(password: string, userInfo?: {
-    email?: string;
-    name?: string;
-    username?: string;
-  }): PasswordValidationResult {
+  validatePassword(
+    password: string,
+    userInfo?: {
+      email?: string;
+      name?: string;
+      username?: string;
+    }
+  ): PasswordValidationResult {
     const errors: string[] = [];
     const warnings: string[] = [];
     const suggestions: string[] = [];
@@ -168,11 +191,9 @@ export class EnhancedPasswordSecurity {
 
     // 个人信息检查
     if (userInfo) {
-      const personalInfo = [
-        userInfo.email?.split('@')[0],
-        userInfo.name,
-        userInfo.username,
-      ].filter(Boolean);
+      const personalInfo = [userInfo.email?.split('@')[0], userInfo.name, userInfo.username].filter(
+        Boolean
+      );
 
       for (const info of personalInfo) {
         if (info && password.toLowerCase().includes(info.toLowerCase())) {
@@ -198,12 +219,18 @@ export class EnhancedPasswordSecurity {
     }
 
     // 长度加分
-    if (password.length >= 12) {score += 1;}
-    if (password.length >= 16) {score += 1;}
+    if (password.length >= 12) {
+      score += 1;
+    }
+    if (password.length >= 16) {
+      score += 1;
+    }
 
     // 复杂度加分
     const uniqueChars = new Set(password).size;
-    if (uniqueChars >= password.length * 0.7) {score += 1;}
+    if (uniqueChars >= password.length * 0.7) {
+      score += 1;
+    }
 
     // 生成建议
     if (score < 3) {
@@ -213,7 +240,7 @@ export class EnhancedPasswordSecurity {
     }
 
     const strength = this.calculateStrength(score);
-    
+
     return {
       isValid: errors.length === 0,
       strength,
@@ -231,11 +258,11 @@ export class EnhancedPasswordSecurity {
     try {
       const salt = await bcrypt.genSalt(this.config.saltRounds);
       const hash = await bcrypt.hash(password, salt);
-      
+
       logger.info('Password hashed successfully', {
         saltRounds: this.config.saltRounds,
       });
-      
+
       return hash;
     } catch (error) {
       logger.error('Password hashing failed', { error: error.message });
@@ -249,11 +276,11 @@ export class EnhancedPasswordSecurity {
   async verifyPassword(password: string, hash: string): Promise<boolean> {
     try {
       const isValid = await bcrypt.compare(password, hash);
-      
+
       logger.debug('Password verification completed', {
         success: isValid,
       });
-      
+
       return isValid;
     } catch (error) {
       logger.error('Password verification failed', { error: error.message });
@@ -303,14 +330,16 @@ export class EnhancedPasswordSecurity {
   isAccountLocked(userId: string, ip: string): boolean {
     const key = `${userId}:${ip}`;
     const lockTime = this.lockedAccounts.get(key);
-    
-    if (!lockTime) {return false;}
-    
+
+    if (!lockTime) {
+      return false;
+    }
+
     if (Date.now() - lockTime > this.config.lockoutDuration) {
       this.lockedAccounts.delete(key);
       return false;
     }
-    
+
     return true;
   }
 
@@ -320,9 +349,11 @@ export class EnhancedPasswordSecurity {
   getLockoutTimeRemaining(userId: string, ip: string): number {
     const key = `${userId}:${ip}`;
     const lockTime = this.lockedAccounts.get(key);
-    
-    if (!lockTime) {return 0;}
-    
+
+    if (!lockTime) {
+      return 0;
+    }
+
     const remaining = this.config.lockoutDuration - (Date.now() - lockTime);
     return Math.max(0, remaining);
   }
@@ -334,7 +365,7 @@ export class EnhancedPasswordSecurity {
     const key = `${userId}:${ip}`;
     this.lockedAccounts.delete(key);
     this.loginAttempts.delete(key);
-    
+
     logger.info('Account manually unlocked', { userId, ip });
   }
 
@@ -362,7 +393,10 @@ export class EnhancedPasswordSecurity {
     }
 
     // 打乱字符顺序
-    return password.split('').sort(() => Math.random() - 0.5).join('');
+    return password
+      .split('')
+      .sort(() => Math.random() - 0.5)
+      .join('');
   }
 
   /**
@@ -384,11 +418,7 @@ export class EnhancedPasswordSecurity {
    * 私有方法：检查连续字符
    */
   private hasSequentialChars(password: string): boolean {
-    const sequences = [
-      'abcdefghijklmnopqrstuvwxyz',
-      '0123456789',
-      'qwertyuiopasdfghjklzxcvbnm',
-    ];
+    const sequences = ['abcdefghijklmnopqrstuvwxyz', '0123456789', 'qwertyuiopasdfghjklzxcvbnm'];
 
     for (const seq of sequences) {
       for (let i = 0; i <= seq.length - 3; i++) {
@@ -406,11 +436,21 @@ export class EnhancedPasswordSecurity {
    * 私有方法：计算密码强度
    */
   private calculateStrength(score: number): PasswordStrength {
-    if (score <= 1) {return PasswordStrength.VERY_WEAK;}
-    if (score <= 2) {return PasswordStrength.WEAK;}
-    if (score <= 3) {return PasswordStrength.FAIR;}
-    if (score <= 4) {return PasswordStrength.GOOD;}
-    if (score <= 5) {return PasswordStrength.STRONG;}
+    if (score <= 1) {
+      return PasswordStrength.VERY_WEAK;
+    }
+    if (score <= 2) {
+      return PasswordStrength.WEAK;
+    }
+    if (score <= 3) {
+      return PasswordStrength.FAIR;
+    }
+    if (score <= 4) {
+      return PasswordStrength.GOOD;
+    }
+    if (score <= 5) {
+      return PasswordStrength.STRONG;
+    }
     return PasswordStrength.VERY_STRONG;
   }
 
@@ -420,14 +460,14 @@ export class EnhancedPasswordSecurity {
   private checkAndLockAccount(userId: string, ip: string): void {
     const key = `${userId}:${ip}`;
     const attempts = this.loginAttempts.get(key) || [];
-    
+
     const recentFailedAttempts = attempts.filter(
       a => !a.success && Date.now() - a.timestamp < this.config.lockoutDuration
     );
 
     if (recentFailedAttempts.length >= this.config.maxAttempts) {
       this.lockedAccounts.set(key, Date.now());
-      
+
       logger.warn('Account locked due to failed attempts', {
         userId,
         ip,
@@ -468,7 +508,7 @@ export class EnhancedPasswordSecurity {
       const validAttempts = attempts.filter(
         a => now - a.timestamp < this.config.lockoutDuration * 2
       );
-      
+
       if (validAttempts.length === 0) {
         this.loginAttempts.delete(key);
         cleanedAttempts++;
@@ -502,8 +542,10 @@ export class EnhancedPasswordSecurity {
     config: PasswordSecurityConfig;
   } {
     return {
-      totalAttempts: Array.from(this.loginAttempts.values())
-        .reduce((sum, attempts) => sum + attempts.length, 0),
+      totalAttempts: Array.from(this.loginAttempts.values()).reduce(
+        (sum, attempts) => sum + attempts.length,
+        0
+      ),
       lockedAccounts: this.lockedAccounts.size,
       config: { ...this.config },
     };
@@ -514,9 +556,14 @@ export class EnhancedPasswordSecurity {
 export const enhancedPasswordSecurity = EnhancedPasswordSecurity.getInstance();
 
 // 导出便捷方法
-export const validatePassword = enhancedPasswordSecurity.validatePassword.bind(enhancedPasswordSecurity);
+export const validatePassword =
+  enhancedPasswordSecurity.validatePassword.bind(enhancedPasswordSecurity);
 export const hashPassword = enhancedPasswordSecurity.hashPassword.bind(enhancedPasswordSecurity);
-export const verifyPassword = enhancedPasswordSecurity.verifyPassword.bind(enhancedPasswordSecurity);
-export const generateSecurePassword = enhancedPasswordSecurity.generateSecurePassword.bind(enhancedPasswordSecurity);
-export const recordLoginAttempt = enhancedPasswordSecurity.recordLoginAttempt.bind(enhancedPasswordSecurity);
-export const isAccountLocked = enhancedPasswordSecurity.isAccountLocked.bind(enhancedPasswordSecurity); 
+export const verifyPassword =
+  enhancedPasswordSecurity.verifyPassword.bind(enhancedPasswordSecurity);
+export const generateSecurePassword =
+  enhancedPasswordSecurity.generateSecurePassword.bind(enhancedPasswordSecurity);
+export const recordLoginAttempt =
+  enhancedPasswordSecurity.recordLoginAttempt.bind(enhancedPasswordSecurity);
+export const isAccountLocked =
+  enhancedPasswordSecurity.isAccountLocked.bind(enhancedPasswordSecurity);

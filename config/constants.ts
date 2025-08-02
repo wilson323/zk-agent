@@ -16,7 +16,7 @@ export const API_ROUTES = {
     PROFILE: '/api/auth/profile',
     CHANGE_PASSWORD: '/api/auth/change-password',
   },
-  
+
   // 智能体相关
   AGENTS: {
     LIST: '/api/ag-ui/standard/chat',
@@ -24,7 +24,7 @@ export const API_ROUTES = {
     COMPLIANCE: '/api/ag-ui/compliance',
     CAD_ANALYSIS: '/api/ag-ui/cad-analysis',
   },
-  
+
   // CAD分析相关
   CAD: {
     UPLOAD: '/api/cad/upload',
@@ -33,7 +33,7 @@ export const API_ROUTES = {
     STATISTICS: '/api/cad/statistics',
     EXPORT: '/api/cad/export',
   },
-  
+
   // 海报生成相关
   POSTER: {
     GENERATE: '/api/poster/generate',
@@ -43,7 +43,7 @@ export const API_ROUTES = {
     EXPORT: '/api/poster/export',
     CONVERT_TO_PDF: '/api/poster/convert-to-pdf',
   },
-  
+
   // 管理端相关
   ADMIN: {
     DASHBOARD: '/api/admin',
@@ -53,7 +53,7 @@ export const API_ROUTES = {
     ERROR_LOGS: '/api/admin/error-logs',
     IP_STATS: '/api/admin/ip-stats',
   },
-  
+
   // 系统相关
   SYSTEM: {
     HEALTH: '/api/health',
@@ -70,17 +70,17 @@ export const PAGE_ROUTES = {
   CAD_ANALYZER: '/cad-analyzer',
   POSTER_GENERATOR: '/poster-generator',
   PROFILE: '/profile',
-  
+
   // 认证页面
   LOGIN: '/auth/login',
   REGISTER: '/auth/register',
-  
+
   // 管理端页面
   ADMIN_DASHBOARD: '/admin/dashboard',
   ADMIN_USERS: '/admin/users',
   ADMIN_AI_MODELS: '/admin/ai-models',
   ADMIN_ANALYTICS: '/admin/analytics',
-  
+
   // 共享页面
   SHARED: '/shared',
 } as const;
@@ -91,13 +91,13 @@ export const APP_CONFIG = {
   NAME: 'ZK-Agent',
   DESCRIPTION: 'AI多智能体宇宙平台',
   VERSION: '1.0.0',
-  
+
   // 分页配置
   PAGINATION: {
     DEFAULT_PAGE_SIZE: 20,
     MAX_PAGE_SIZE: 100,
   },
-  
+
   // 文件上传配置
   FILE_UPLOAD: {
     MAX_SIZE: 50 * 1024 * 1024, // 50MB
@@ -107,7 +107,7 @@ export const APP_CONFIG = {
       DOCUMENT: ['.pdf', '.doc', '.docx'],
     },
   },
-  
+
   // 缓存配置
   CACHE: {
     TTL: {
@@ -116,7 +116,7 @@ export const APP_CONFIG = {
       LONG: 24 * 60 * 60, // 24小时
     },
   },
-  
+
   // 速率限制配置
   RATE_LIMIT: {
     API: {
@@ -132,7 +132,7 @@ export const APP_CONFIG = {
       MAX_REQUESTS: 10,
     },
   },
-  
+
   // WebSocket配置
   WEBSOCKET: {
     HEARTBEAT_INTERVAL: 30000, // 30秒
@@ -151,7 +151,7 @@ export const THEME_CONFIG = {
     ERROR: '#ef4444',
     INFO: '#3b82f6',
   },
-  
+
   BREAKPOINTS: {
     SM: '640px',
     MD: '768px',
@@ -167,17 +167,17 @@ export const ERROR_CODES = {
   AUTH_INVALID_CREDENTIALS: 'AUTH_INVALID_CREDENTIALS',
   AUTH_TOKEN_EXPIRED: 'AUTH_TOKEN_EXPIRED',
   AUTH_INSUFFICIENT_PERMISSIONS: 'AUTH_INSUFFICIENT_PERMISSIONS',
-  
+
   // 验证错误
   VALIDATION_REQUIRED_FIELD: 'VALIDATION_REQUIRED_FIELD',
   VALIDATION_INVALID_FORMAT: 'VALIDATION_INVALID_FORMAT',
   VALIDATION_FILE_TOO_LARGE: 'VALIDATION_FILE_TOO_LARGE',
-  
+
   // 业务错误
   RESOURCE_NOT_FOUND: 'RESOURCE_NOT_FOUND',
   RESOURCE_ALREADY_EXISTS: 'RESOURCE_ALREADY_EXISTS',
   OPERATION_FAILED: 'OPERATION_FAILED',
-  
+
   // 系统错误
   INTERNAL_SERVER_ERROR: 'INTERNAL_SERVER_ERROR',
   SERVICE_UNAVAILABLE: 'SERVICE_UNAVAILABLE',
@@ -194,7 +194,7 @@ export const AI_MODEL_CONFIG = {
     MAX_TOKENS: 4000,
     TEMPERATURE: 0.7,
   },
-  
+
   // 阿里云千问配置
   QWEN: {
     BASE_URL: process.env.QWEN_BASE_URL,
@@ -203,7 +203,7 @@ export const AI_MODEL_CONFIG = {
     MAX_TOKENS: 2000,
     TEMPERATURE: 0.8,
   },
-  
+
   // 硅基流动配置
   SILICONFLOW: {
     BASE_URL: process.env.SILICONFLOW_BASE_URL,
@@ -223,10 +223,10 @@ export const PERFORMANCE_CONFIG = {
     CAD_ANALYSIS_TIME: 30000, // 30秒
     POSTER_GENERATION_TIME: 60000, // 60秒
   },
-  
+
   // 监控指标
   METRICS: {
     ENABLED: process.env.NODE_ENV === 'production',
     COLLECTION_INTERVAL: 60000, // 1分钟
   },
-} as const; 
+} as const;

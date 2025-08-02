@@ -5,9 +5,9 @@
  * @date 2025-06-25
  */
 
-import { db, enhancedDb, dbTransaction } from '../database/enhanced-database-manager';
+import { getDb, getEnhancedDb, dbTransaction } from '../database/enhanced-database-manager';
 import { z } from 'zod';
-import type { HealthCheckResult } from '../types/health';
+import type { HealthCheckResult } from '../interfaces/health-check.interface';
 
 // Zod a validation schema for creating a user
 const createUserSchema = z.object({
@@ -34,7 +34,16 @@ const updateUserSchema = z.object({
  * @param {number} options.limit - The maximum number of records to return.
  * @returns {Promise<[object[], number]>} A tuple containing the list of users and the total count.
  */
-export const getUsers = async ({ where, skip, limit }: { where: object; skip: number; limit: number }) => {
+export const getUsers = async ({
+  where,
+  skip,
+  limit,
+}: {
+  where: object;
+  skip: number;
+  limit: number;
+}) => {
+  const db = getDb();
   const [users, total] = await Promise.all([
     db?.user.findMany({
       where,
@@ -64,6 +73,7 @@ export const getUsers = async ({ where, skip, limit }: { where: object; skip: nu
  * @returns {Promise<object>} The created user.
  */
 export const createUser = async (data: z.infer<typeof createUserSchema>) => {
+  const db = getDb();
   const { email } = data;
   const existingUser = await db?.user.findUnique({
     where: { email: email.toLowerCase() },
@@ -91,6 +101,7 @@ export const createUser = async (data: z.infer<typeof createUserSchema>) => {
  * @returns {Promise<object | null>} The user object or null if not found.
  */
 export const getUserById = async (id: string) => {
+  const db = getDb();
   const user = await db?.user.findUnique({
     where: { id },
     select: {
@@ -130,31 +141,31 @@ export const getUserById = async (id: string) => {
  * @returns {Promise<object>} The updated user.
  */
 export const updateUser = async (id: string, data: z.infer<typeof updateUserSchema>) => {
-    return dbTransaction(async (prisma) => {
-      const updatedUser = await prisma.user.update({
-        where: { id },
-        data: {
-          ...data,
-          updatedAt: new Date(),
-        },
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          avatar: true,
-          role: true,
-          status: true,
-          emailVerified: true,
-          emailVerifiedAt: true,
-          lastLoginAt: true,
-          loginCount: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      });
-      return updatedUser;
+  return dbTransaction(async prisma => {
+    const updatedUser = await prisma.user.update({
+      where: { id },
+      data: {
+        ...data,
+        updatedAt: new Date(),
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        avatar: true,
+        role: true,
+        status: true,
+        emailVerified: true,
+        emailVerifiedAt: true,
+        lastLoginAt: true,
+        loginCount: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
-  };
+    return updatedUser;
+  });
+};
 
 /**
  * Deletes a user by their ID (soft delete).
@@ -163,7 +174,7 @@ export const updateUser = async (id: string, data: z.infer<typeof updateUserSche
  * @returns {Promise<void>}
  */
 export const deleteUser = async (id: string) => {
-  return dbTransaction(async (prisma) => {
+  return dbTransaction(async prisma => {
     await prisma.user.update({
       where: { id },
       data: {
@@ -175,19 +186,52 @@ export const deleteUser = async (id: string) => {
 };
 
 export const checkHealth = async (): Promise<HealthCheckResult> => {
-    try {
-      await enhancedDb.prisma.$queryRaw`SELECT 1`;
-      return {
-        status: 'UP',
-        timestamp: new Date(),
-        details: { database: 'Connected' },
-      };
-    } catch (error: any) {
-      return {
-        status: 'DOWN',
-        timestamp: new Date(),
-        details: { database: 'Disconnected' },
-        error: error.message,
-      };
+  try {
+    const enhancedDb = getEnhancedDb();
+    const prismaClient = enhancedDb.getClient();
+    
+    if (!prismaClient) {
+      throw new Error('Database client not available');
     }
-  };
+    
+    await prismaClient.$queryRaw`SELECT 1`;
+    return {
+      status: 'UP',
+      timestamp: new Date(),
+      details: { database: 'Connected' },
+    };
+  } catch (error: any) {
+    return {
+      status: 'DOWN',
+      timestamp: new Date(),
+      details: { database: 'Disconnected' },
+      error: error.message,
+    };
+  }
+};
+
+/**
+ * Get user by email address
+ * @param email - User email
+ * @returns User object or null if not found
+ */
+export const getUserByEmail = async (email: string) => {
+  const db = getDb();
+  if (!db) {
+    throw new Error('Database not available');
+  }
+  
+  return await db.user.findUnique({
+    where: { email },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      password: true,
+      role: true,
+      status: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+};

@@ -1,60 +1,73 @@
-// @ts-nocheck
-import { AgUIRuntime } from "./runtime"
-import { AgUIMiddlewareManager, LoggingMiddleware, PerformanceMiddleware, SecurityMiddleware } from "./middleware"
-import { ToolRegistry, WeatherTool, WebSearchTool, CADAnalysisTool, PosterGeneratorTool } from "./tool-registry"
-import { AgUIErrorCode, ErrorHandler } from "./error-codes"
-import { VersionCompatibility } from "./version"
-import type { AgUIEvent, RunInput, RunConfig, AgentDefinition } from "./types"
+import { AgUIRuntime } from './runtime';
+import {
+  AgUIMiddlewareManager,
+  LoggingMiddleware,
+  PerformanceMiddleware,
+  SecurityMiddleware,
+} from './middleware';
+import {
+  ToolRegistry,
+  WeatherTool,
+  WebSearchTool,
+  CADAnalysisTool,
+  PosterGeneratorTool,
+} from './tool-registry';
+import { AgUIErrorCode, ErrorHandler } from './error-codes';
+import { VersionCompatibility } from './version';
+import type { AgUIEvent, RunAgentInput, AgentDefinition } from './types';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
 
 /**
  * 增强版AG-UI运行时
  * 集成所有协议特性
  */
 export class EnhancedAgUIRuntime extends AgUIRuntime {
-  private middlewareManager: AgUIMiddlewareManager
-  private toolRegistry: ToolRegistry
-  private performanceMetrics: Map<string, any> = new Map()
+  private middlewareManager: AgUIMiddlewareManager;
+  private toolRegistry: ToolRegistry;
+  private performanceMetrics: Map<string, any> = new Map();
 
   constructor(config: {
-    threadId: string
-    debug?: boolean
-    apiEndpoint?: string
-    enableMiddleware?: boolean
-    enableBuiltinTools?: boolean
+    threadId: string;
+    debug?: boolean;
+    apiEndpoint?: string;
+    enableMiddleware?: boolean;
+    enableBuiltinTools?: boolean;
     securityOptions?: {
-      allowedTools?: string[]
-      maxMessageLength?: number
-      rateLimitPerMinute?: number
-    }
+      allowedTools?: string[];
+      maxMessageLength?: number;
+      rateLimitPerMinute?: number;
+    };
   }) {
-    super(config)
+    super(config);
 
     // 初始化中间件管理器
-    this.middlewareManager = new AgUIMiddlewareManager()
+    this.middlewareManager = new AgUIMiddlewareManager();
 
     // 初始化工具注册表
-    this.toolRegistry = new ToolRegistry()
+    this.toolRegistry = new ToolRegistry();
 
     // 注册内置中间件
     if (config.enableMiddleware !== false) {
-      this.middlewareManager.register(new LoggingMiddleware({ debug: config.debug }))
-      this.middlewareManager.register(new PerformanceMiddleware())
+      this.middlewareManager.register(new LoggingMiddleware({ debug: config.debug }));
+      this.middlewareManager.register(new PerformanceMiddleware());
 
       if (config.securityOptions) {
-        this.middlewareManager.register(new SecurityMiddleware(config.securityOptions))
+        this.middlewareManager.register(new SecurityMiddleware(config.securityOptions));
       }
     }
 
     // 注册内置工具
     if (config.enableBuiltinTools !== false) {
-      this.toolRegistry.register(new WeatherTool())
-      this.toolRegistry.register(new WebSearchTool())
-      this.toolRegistry.register(new CADAnalysisTool())
-      this.toolRegistry.register(new PosterGeneratorTool())
+      this.toolRegistry.register(new WeatherTool());
+      this.toolRegistry.register(new WebSearchTool());
+      this.toolRegistry.register(new CADAnalysisTool());
+      this.toolRegistry.register(new PosterGeneratorTool());
     }
 
     // 初始化中间件
-    this.middlewareManager.initialize()
+    this.middlewareManager.initialize();
   }
 
   /**
@@ -68,59 +81,59 @@ export class EnhancedAgUIRuntime extends AgUIRuntime {
           throw ErrorHandler.createError(
             AgUIErrorCode.AGENT_INVALID_CONFIG,
             { protocolVersion: agent.metadata.protocolVersion },
-            { agentId: agent.id },
-          )
+            { agentId: agent.id }
+          );
         }
       }
 
       // 验证工具定义
       for (const tool of agent.tools) {
         if (!this.toolRegistry.has(tool.function.name)) {
-          console.warn(`Tool ${tool.function.name} not found in registry`)
+          logger.warn(`Tool ${tool.function.name} not found in registry`);
         }
       }
 
-      super.setAgent(agent)
+      super.setAgent(agent);
     } catch (error) {
-      throw ErrorHandler.handleError(error, { agentId: agent.id })
+      throw ErrorHandler.handleError(error, { agentId: agent.id });
     }
   }
 
   /**
    * 执行运行（增强版）
    */
-  async run(input: RunInput, config?: RunConfig): Promise<void> {
-    const startTime = Date.now()
+  async run(input: RunAgentInput): Promise<void> {
+    const startTime = Date.now();
 
     try {
       // 通过中间件处理输入
-      const processedInput = await this.middlewareManager.processRun(input)
+      const processedInput = await this.middlewareManager.processRun(input);
 
       // 记录性能指标
       this.performanceMetrics.set(input.runId, {
         startTime,
         input: processedInput,
-        config,
-      })
+        config: input.config,
+      });
 
       // 执行运行
-      await super.run(processedInput, config)
+      await super.run(processedInput);
 
       // 更新性能指标
-      const metric = this.performanceMetrics.get(input.runId)
+      const metric = this.performanceMetrics.get(input.runId);
       if (metric) {
-        metric.endTime = Date.now()
-        metric.duration = metric.endTime - metric.startTime
+        metric.endTime = Date.now();
+        metric.duration = metric.endTime - metric.startTime;
       }
     } catch (error) {
       // 通过中间件处理错误
       const processedError = this.middlewareManager.processError(ErrorHandler.handleError(error), {
         runId: input.runId,
         threadId: input.threadId,
-      })
+      });
 
       if (processedError) {
-        throw processedError
+        throw processedError;
       }
     }
   }
@@ -130,11 +143,15 @@ export class EnhancedAgUIRuntime extends AgUIRuntime {
    */
   protected async executeTool(toolName: string, argsJson: string): Promise<any> {
     try {
-      let args: any = {}
+      let args: any = {};
       try {
-        args = JSON.parse(argsJson)
+        args = JSON.parse(argsJson);
       } catch (e) {
-        throw ErrorHandler.createError(AgUIErrorCode.TOOL_INVALID_ARGS, { argsJson, parseError: e }, { toolName })
+        throw ErrorHandler.createError(
+          AgUIErrorCode.TOOL_INVALID_ARGS,
+          { argsJson, parseError: e },
+          { toolName }
+        );
       }
 
       // 使用工具注册表执行
@@ -142,13 +159,13 @@ export class EnhancedAgUIRuntime extends AgUIRuntime {
         return await this.toolRegistry.execute(toolName, args, {
           threadId: this.config.threadId,
           timestamp: Date.now(),
-        })
+        });
       }
 
       // 回退到父类实现
-      return await super.executeTool(toolName, argsJson)
+      return await super.executeTool(toolName, argsJson);
     } catch (error) {
-      throw ErrorHandler.handleError(error, { toolName, argsJson })
+      throw ErrorHandler.handleError(error, { toolName, argsJson });
     }
   }
 
@@ -158,15 +175,15 @@ export class EnhancedAgUIRuntime extends AgUIRuntime {
   protected emitEvent(event: AgUIEvent): void {
     try {
       // 通过中间件处理事件
-      const processedEvent = this.middlewareManager.processEvent(event)
+      const processedEvent = this.middlewareManager.processEvent(event);
 
       if (processedEvent) {
-        super.emitEvent(processedEvent)
+        super.emitEvent(processedEvent);
       }
     } catch (error) {
-      console.error("Error processing event through middleware:", error)
+      logger.error('Error processing event through middleware:', error);
       // 即使中间件出错，也要发送原始事件
-      super.emitEvent(event)
+      super.emitEvent(event);
     }
   }
 
@@ -174,71 +191,71 @@ export class EnhancedAgUIRuntime extends AgUIRuntime {
    * 注册自定义工具
    */
   registerTool(executor: any): void {
-    this.toolRegistry.register(executor)
+    this.toolRegistry.register(executor);
   }
 
   /**
    * 注册中间件
    */
   registerMiddleware(middleware: any): void {
-    this.middlewareManager.register(middleware)
+    this.middlewareManager.register(middleware);
   }
 
   /**
    * 获取性能指标
    */
   getPerformanceMetrics(): Record<string, any> {
-    const result: Record<string, any> = {}
+    const result: Record<string, any> = {};
     for (const [runId, metric] of this.performanceMetrics.entries()) {
-      result[runId] = { ...metric }
+      result[runId] = { ...metric };
     }
-    return result
+    return result;
   }
 
   /**
    * 获取工具列表
    */
   getAvailableTools(): string[] {
-    return this.toolRegistry.getToolNames()
+    return this.toolRegistry.getToolNames();
   }
 
   /**
    * 获取版本信息
    */
   getVersionInfo() {
-    return VersionCompatibility.getCurrentVersionInfo()
+    return VersionCompatibility.getCurrentVersionInfo();
   }
 
   /**
    * 健康检查
    */
   async healthCheck(): Promise<{
-    status: "healthy" | "degraded" | "unhealthy"
-    details: Record<string, any>
+    status: 'healthy' | 'degraded' | 'unhealthy';
+    details: Record<string, any>;
   }> {
     const details: Record<string, any> = {
       version: VersionCompatibility.getCurrentVersionInfo(),
       tools: this.toolRegistry.getToolNames(),
       middleware: Array.from((this.middlewareManager as any).middlewares.keys()),
       metrics: Object.keys(this.performanceMetrics).length,
-    }
+    };
 
     try {
       // 测试基本功能
       const testEvent: AgUIEvent = {
-        type: "custom",
-        name: "health-check",
+        type: 'custom',
+        name: 'health-check',
         data: { timestamp: Date.now() },
         timestamp: Date.now(),
-      }
+      };
 
-      this.middlewareManager.processEvent(testEvent)
+      this.middlewareManager.processEvent(testEvent);
 
-      details.status = "healthy"
-      return { status: "healthy", details }
+      details.status = 'healthy';
+      return { status: 'healthy', details };
     } catch (error) {
-      details.error = error instanceof Error ? error.message : String(error)
-      return { status: "unhealthy", details }
+      details.error = error instanceof Error ? error.message : String(error);
+      return { status: 'unhealthy', details };
     }
   }
 
@@ -247,12 +264,12 @@ export class EnhancedAgUIRuntime extends AgUIRuntime {
    */
   dispose(): void {
     // 清理中间件
-    this.middlewareManager.dispose()
+    this.middlewareManager.dispose();
 
     // 清理性能指标
-    this.performanceMetrics.clear()
+    this.performanceMetrics.clear();
 
     // 调用父类清理
-    super.dispose()
+    super.dispose();
   }
 }

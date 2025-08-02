@@ -10,10 +10,13 @@ import {
   PosterConfig,
   PosterResult,
   ResourceStatus,
-  delay,
-  calculateBackoffDelay
+  calculateBackoffDelay,
 } from '../errors/agent-errors';
+import { delay } from '../utils';
 import { PosterTemplate } from '../poster/template-system';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
 
 // 海报模板接口已从 '../poster/template-system' 导入
 
@@ -21,22 +24,19 @@ import { PosterTemplate } from '../poster/template-system';
 class PosterResourceManager {
   private memoryThreshold = {
     normal: 0.7,
-    high: 0.9
+    high: 0.9,
   };
-  
+
   private cpuThreshold = {
     normal: 0.7,
-    high: 0.9
+    high: 0.9,
   };
 
   /**
    * 检查资源可用性
    */
   async checkResourceAvailability(): Promise<ResourceStatus> {
-    const [memoryUsage, cpuUsage] = await Promise.all([
-      this.getMemoryUsage(),
-      this.getCPUUsage()
-    ]);
+    const [memoryUsage, cpuUsage] = await Promise.all([this.getMemoryUsage(), this.getCPUUsage()]);
 
     if (memoryUsage > this.memoryThreshold.high || cpuUsage > this.cpuThreshold.high) {
       return ResourceStatus.CRITICAL;
@@ -59,17 +59,17 @@ class PosterResourceManager {
           return memory.usedJSHeapSize / memory.jsHeapSizeLimit;
         }
       }
-      
+
       // Node.js环境
       if (typeof process !== 'undefined' && process.memoryUsage) {
         const usage = process.memoryUsage();
         return usage.heapUsed / usage.heapTotal;
       }
-      
+
       // 模拟值
       return Math.random() * 0.8;
     } catch (error) {
-      console.warn('无法获取内存使用率:', error);
+      logger.warn('无法获取内存使用率:', error as ILogContext);
       return 0.5; // 默认值
     }
   }
@@ -83,15 +83,15 @@ class PosterResourceManager {
       const start = Date.now();
       await delay(10);
       const end = Date.now();
-      
+
       // 简单的CPU负载估算
       const expectedDelay = 10;
       const actualDelay = end - start;
       const loadFactor = Math.max(0, (actualDelay - expectedDelay) / expectedDelay);
-      
+
       return Math.min(0.9, loadFactor + Math.random() * 0.3);
     } catch (error) {
-      console.warn('无法获取CPU使用率:', error);
+      logger.warn('无法获取CPU使用率:', error as ILogContext);
       return 0.5; // 默认值
     }
   }
@@ -101,21 +101,18 @@ class PosterResourceManager {
    */
   async waitForResources(maxWaitTime: number = 5000): Promise<void> {
     const startTime = Date.now();
-    
+
     while (Date.now() - startTime < maxWaitTime) {
       const status = await this.checkResourceAvailability();
-      
+
       if (status !== ResourceStatus.CRITICAL) {
         return;
       }
-      
+
       await delay(1000); // 等待1秒后重新检查
     }
-    
-    throw new PosterResourceLimit(
-      `等待资源释放超时 (${maxWaitTime}ms)`,
-      { waitTime: maxWaitTime }
-    );
+
+    throw new PosterResourceLimit(`等待资源释放超时 (${maxWaitTime}ms)`, { waitTime: maxWaitTime });
   }
 
   /**
@@ -123,25 +120,25 @@ class PosterResourceManager {
    */
   adjustConfigForResources(config: PosterConfig, resourceStatus: ResourceStatus): PosterConfig {
     const adjustedConfig = { ...config };
-    
+
     switch (resourceStatus) {
       case ResourceStatus.CRITICAL:
         adjustedConfig.quality = 'low';
         adjustedConfig.width = Math.min(config.width, 800);
         adjustedConfig.height = Math.min(config.height, 600);
         break;
-        
+
       case ResourceStatus.HIGH:
         adjustedConfig.quality = config.quality === 'high' ? 'medium' : config.quality;
         adjustedConfig.width = Math.min(config.width, 1200);
         adjustedConfig.height = Math.min(config.height, 900);
         break;
-        
+
       default:
         // 保持原配置
         break;
     }
-    
+
     return adjustedConfig;
   }
 }
@@ -149,7 +146,7 @@ class PosterResourceManager {
 // 海报模板管理器
 class PosterTemplateManager {
   private templates: Map<string, PosterTemplate> = new Map();
-  
+
   constructor() {
     this.initializeTemplates();
   }
@@ -168,8 +165,26 @@ class PosterTemplateManager {
         previewUrl: '/templates/security-basic-preview.jpg',
         elements: [],
         layout: { type: 'grid', columns: 1, rows: 3 },
-        style: { colorScheme: ['#1e40af', '#ffffff'], typography: { primaryFont: 'Arial', secondaryFont: 'Helvetica', headingScale: 1.5, lineHeight: 1.4 }, spacing: { unit: 8, scale: [0.5, 1, 1.5, 2, 3, 4, 6, 8] }, effects: [] },
-        metadata: { industry: ['security'], useCase: ['awareness'], difficulty: 'beginner', popularity: 85, tags: ['security', 'awareness'], createdAt: new Date(), updatedAt: new Date() }
+        style: {
+          colorScheme: ['#1e40af', '#ffffff'],
+          typography: {
+            primaryFont: 'Arial',
+            secondaryFont: 'Helvetica',
+            headingScale: 1.5,
+            lineHeight: 1.4,
+          },
+          spacing: { unit: 8, scale: [0.5, 1, 1.5, 2, 3, 4, 6, 8] },
+          effects: [],
+        },
+        metadata: {
+          industry: ['security'],
+          useCase: ['awareness'],
+          difficulty: 'beginner',
+          popularity: 85,
+          tags: ['security', 'awareness'],
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
       },
       {
         id: 'security-advanced',
@@ -180,8 +195,26 @@ class PosterTemplateManager {
         previewUrl: '/templates/security-advanced-preview.jpg',
         elements: [],
         layout: { type: 'grid', columns: 2, rows: 4 },
-        style: { colorScheme: ['#dc2626', '#ffffff', '#1e40af'], typography: { primaryFont: 'Arial', secondaryFont: 'Helvetica', headingScale: 1.6, lineHeight: 1.5 }, spacing: { unit: 8, scale: [0.5, 1, 1.5, 2, 3, 4, 6, 8] }, effects: [] },
-        metadata: { industry: ['security'], useCase: ['training'], difficulty: 'advanced', popularity: 75, tags: ['security', 'training', 'advanced'], createdAt: new Date(), updatedAt: new Date() }
+        style: {
+          colorScheme: ['#dc2626', '#ffffff', '#1e40af'],
+          typography: {
+            primaryFont: 'Arial',
+            secondaryFont: 'Helvetica',
+            headingScale: 1.6,
+            lineHeight: 1.5,
+          },
+          spacing: { unit: 8, scale: [0.5, 1, 1.5, 2, 3, 4, 6, 8] },
+          effects: [],
+        },
+        metadata: {
+          industry: ['security'],
+          useCase: ['training'],
+          difficulty: 'advanced',
+          popularity: 75,
+          tags: ['security', 'training', 'advanced'],
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
       },
       {
         id: 'minimal',
@@ -192,11 +225,29 @@ class PosterTemplateManager {
         previewUrl: '/templates/minimal-preview.jpg',
         elements: [],
         layout: { type: 'flex', alignment: 'center' },
-        style: { colorScheme: ['#000000', '#ffffff'], typography: { primaryFont: 'Arial', secondaryFont: 'Helvetica', headingScale: 1.2, lineHeight: 1.3 }, spacing: { unit: 4, scale: [0.25, 0.5, 1, 1.5, 2, 3, 4, 6] }, effects: [] },
-        metadata: { industry: ['general'], useCase: ['basic'], difficulty: 'beginner', popularity: 95, tags: ['minimal', 'basic'], createdAt: new Date(), updatedAt: new Date() }
-      }
+        style: {
+          colorScheme: ['#000000', '#ffffff'],
+          typography: {
+            primaryFont: 'Arial',
+            secondaryFont: 'Helvetica',
+            headingScale: 1.2,
+            lineHeight: 1.3,
+          },
+          spacing: { unit: 4, scale: [0.25, 0.5, 1, 1.5, 2, 3, 4, 6] },
+          effects: [],
+        },
+        metadata: {
+          industry: ['general'],
+          useCase: ['basic'],
+          difficulty: 'beginner',
+          popularity: 95,
+          tags: ['minimal', 'basic'],
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      },
     ];
-    
+
     templates.forEach(template => {
       this.templates.set(template.id, template);
     });
@@ -218,7 +269,7 @@ class PosterTemplateManager {
       // 使用默认模板作为备用
       return this.getDefaultTemplate();
     }
-    
+
     // 返回最简单的模板
     return this.getTemplate('minimal');
   }
@@ -252,12 +303,12 @@ class PosterGenerationEngine {
     try {
       // 模拟海报生成过程
       await this.simulateGeneration(config);
-      
+
       // 模拟可能的失败
       if (Math.random() < 0.2) {
         throw new Error('生成过程中遇到错误');
       }
-      
+
       return {
         success: true,
         imageUrl: this.generateImageUrl(config),
@@ -265,8 +316,8 @@ class PosterGenerationEngine {
           template: config.template,
           quality: config.quality,
           dimensions: `${config.width}x${config.height}`,
-          generatedAt: new Date().toISOString()
-        }
+          generatedAt: new Date().toISOString(),
+        },
       };
     } catch (error) {
       throw new PosterGenerationFailed(
@@ -285,19 +336,18 @@ class PosterGenerationEngine {
     const complexityMultiplier = {
       low: 1,
       medium: 2,
-      high: 3
+      high: 3,
     };
-    
+
     const qualityMultiplier = {
       low: 0.5,
       medium: 1,
-      high: 1.5
+      high: 1.5,
     };
-    
-    const generationTime = baseTime * 
-      complexityMultiplier[config.quality] * 
-      qualityMultiplier[config.quality];
-    
+
+    const generationTime =
+      baseTime * complexityMultiplier[config.quality] * qualityMultiplier[config.quality];
+
     await delay(generationTime + Math.random() * 1000);
   }
 
@@ -330,20 +380,17 @@ export class PosterGenerationAgent {
   async generatePoster(config: PosterConfig): Promise<PosterResult> {
     // 验证配置
     this.validateConfig(config);
-    
+
     // 检查资源状态
     const resourceStatus = await this.resourceManager.checkResourceAvailability();
-    
+
     if (resourceStatus === ResourceStatus.CRITICAL) {
-      throw new PosterResourceLimit(
-        '系统资源不足，请稍后重试',
-        { resourceStatus }
-      );
+      throw new PosterResourceLimit('系统资源不足，请稍后重试', { resourceStatus });
     }
-    
+
     // 根据资源状态调整配置
     const adjustedConfig = this.resourceManager.adjustConfigForResources(config, resourceStatus);
-    
+
     return await this.generateWithRetry(adjustedConfig);
   }
 
@@ -353,13 +400,13 @@ export class PosterGenerationAgent {
   async generateWithRetry(config: PosterConfig): Promise<PosterResult> {
     let lastError: Error = new Error('未知错误');
     let currentConfig = { ...config };
-    
+
     for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
       try {
         return await this.attemptGeneration(currentConfig, attempt);
       } catch (error) {
         lastError = error as Error;
-        
+
         if (error instanceof PosterResourceLimit) {
           // 等待资源释放
           await this.resourceManager.waitForResources(attempt * 1000);
@@ -370,32 +417,25 @@ export class PosterGenerationAgent {
           // 降低质量设置
           currentConfig = this.adjustQualityForRetry(currentConfig, attempt);
         }
-        
+
         if (attempt < this.maxRetries) {
           const delay = calculateBackoffDelay(attempt);
-          console.warn(`海报生成失败，${delay}ms后重试 (${attempt}/${this.maxRetries}):`, error);
+          logger.warn(`海报生成失败，${delay}ms后重试 (${attempt}/${this.maxRetries}):`, error as ILogContext);
           await this.delay(delay);
         }
       }
     }
-    
-    throw new PosterGenerationFailed(
-      `海报生成失败，已重试${this.maxRetries}次`,
-      lastError,
-      { attempts: this.maxRetries, finalConfig: currentConfig }
-    );
+
+    throw new PosterGenerationFailed(`海报生成失败，已重试${this.maxRetries}次`, lastError, {
+      attempts: this.maxRetries,
+      finalConfig: currentConfig,
+    });
   }
 
   /**
    * 尝试生成海报
    */
   private async attemptGeneration(config: PosterConfig, attempt: number): Promise<PosterResult> {
-    console.log(`海报生成尝试 ${attempt}:`, {
-      template: config.template,
-      quality: config.quality,
-      dimensions: `${config.width}x${config.height}`
-    });
-    
     return await this.generationEngine.generatePoster(config);
   }
 
@@ -404,19 +444,15 @@ export class PosterGenerationAgent {
    */
   private useFallbackTemplate(config: PosterConfig): PosterConfig {
     const fallbackTemplate = this.templateManager.getFallbackTemplate(config.template);
-    
+
     if (fallbackTemplate) {
-      console.log(`切换到备用模板: ${fallbackTemplate.id}`);
       return {
         ...config,
-        template: fallbackTemplate.id
+        template: fallbackTemplate.id,
       };
     }
-    
-    throw new PosterTemplateError(
-      '没有可用的备用模板',
-      { originalTemplate: config.template }
-    );
+
+    throw new PosterTemplateError('没有可用的备用模板', { originalTemplate: config.template });
   }
 
   /**
@@ -426,23 +462,18 @@ export class PosterGenerationAgent {
     const qualityLevels: Array<'low' | 'medium' | 'high'> = ['high', 'medium', 'low'];
     const currentIndex = qualityLevels.indexOf(config.quality);
     const newIndex = Math.min(currentIndex + attempt - 1, qualityLevels.length - 1);
-    
+
     const adjustedConfig: PosterConfig = {
       ...config,
-      quality: qualityLevels[newIndex] || 'medium'
+      quality: qualityLevels[newIndex] || 'medium',
     };
-    
+
     // 同时调整尺寸
     if (attempt > 1) {
-      adjustedConfig.width = Math.max(config.width * (0.8 ** (attempt - 1)), 400);
-      adjustedConfig.height = Math.max(config.height * (0.8 ** (attempt - 1)), 300);
+      adjustedConfig.width = Math.max(config.width * 0.8 ** (attempt - 1), 400);
+      adjustedConfig.height = Math.max(config.height * 0.8 ** (attempt - 1), 300);
     }
-    
-    console.log(`调整质量设置 (尝试 ${attempt}):`, {
-      quality: adjustedConfig.quality,
-      dimensions: `${adjustedConfig.width}x${adjustedConfig.height}`
-    });
-    
+
     return adjustedConfig;
   }
 
@@ -453,21 +484,20 @@ export class PosterGenerationAgent {
     if (!config.template) {
       throw new PosterTemplateError('模板ID不能为空');
     }
-    
+
     if (config.width <= 0 || config.height <= 0) {
       throw new PosterGenerationFailed('海报尺寸必须大于0');
     }
-    
+
     if (config.width > 4000 || config.height > 4000) {
       throw new PosterGenerationFailed('海报尺寸过大，最大支持4000x4000');
     }
-    
+
     const template = this.templateManager.getTemplate(config.template);
     if (!template) {
-      throw new PosterTemplateError(
-        `模板不存在: ${config.template}`,
-        { templateId: config.template }
-      );
+      throw new PosterTemplateError(`模板不存在: ${config.template}`, {
+        templateId: config.template,
+      });
     }
   }
 
@@ -500,7 +530,7 @@ export class PosterGenerationAgent {
       maxRetries: this.maxRetries,
       supportedQualities: ['low', 'medium', 'high'],
       maxDimensions: '4000x4000',
-      availableTemplates: this.getAvailableTemplates().length
+      availableTemplates: this.getAvailableTemplates().length,
     };
   }
 }

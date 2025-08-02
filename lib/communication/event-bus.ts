@@ -1,3 +1,9 @@
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
+
+const logger = getLogger();
+
 /**
  * 智能体间通信 - 事件总线容错机制
  * 提供事件路由、失败处理、服务熔断等功能
@@ -10,9 +16,13 @@ import {
   AgentEvent,
   AgentRequest,
   AgentResponse,
-  delay,
-  generateId
 } from '../errors/agent-errors';
+// 导入工具函数
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+// 生成唯一ID
+function generateId(): string {
+  return Math.random().toString(36).substring(2) + Date.now().toString(36);
+}
 
 // 事件监听器接口
 interface EventListener {
@@ -64,7 +74,7 @@ class ServiceCircuitBreaker {
       recoveryTimeout: 60000, // 1分钟
       halfOpenMaxCalls: 3,
       monitoringPeriod: 10000, // 10秒
-      ...config
+      ...config,
     };
   }
 
@@ -76,16 +86,12 @@ class ServiceCircuitBreaker {
       if (this.shouldAttemptReset()) {
         this.state = CircuitBreakerState.HALF_OPEN;
         this.halfOpenCalls = 0;
-        console.log(`熔断器 ${this.serviceName} 进入半开状态`);
       } else {
-        throw new ServiceUnavailable(
-          `服务 ${this.serviceName} 熔断器开启，服务不可用`,
-          { 
-            serviceName: this.serviceName,
-            state: this.state,
-            failureCount: this.failureCount
-          }
-        );
+        throw new ServiceUnavailable(`服务 ${this.serviceName} 熔断器开启，服务不可用`, {
+          serviceName: this.serviceName,
+          state: this.state,
+          failureCount: this.failureCount,
+        });
       }
     }
 
@@ -122,10 +128,8 @@ class ServiceCircuitBreaker {
 
     if (this.state === CircuitBreakerState.HALF_OPEN) {
       this.state = CircuitBreakerState.OPEN;
-      console.log(`熔断器 ${this.serviceName} 重新开启`);
     } else if (this.failureCount >= this.config.failureThreshold) {
       this.state = CircuitBreakerState.OPEN;
-      console.log(`熔断器 ${this.serviceName} 开启，失败次数: ${this.failureCount}`);
     }
   }
 
@@ -136,7 +140,6 @@ class ServiceCircuitBreaker {
     this.state = CircuitBreakerState.CLOSED;
     this.failureCount = 0;
     this.halfOpenCalls = 0;
-    console.log(`熔断器 ${this.serviceName} 重置为关闭状态`);
   }
 
   /**
@@ -163,7 +166,7 @@ class ServiceCircuitBreaker {
       failureCount: this.failureCount,
       lastFailureTime: this.lastFailureTime,
       halfOpenCalls: this.halfOpenCalls,
-      config: this.config
+      config: this.config,
     };
   }
 }
@@ -190,7 +193,7 @@ class EventRouter {
       agentId,
       listener,
       priority,
-      isActive: true
+      isActive: true,
     };
 
     if (!this.subscriptions.has(eventType)) {
@@ -199,11 +202,10 @@ class EventRouter {
 
     const subs = this.subscriptions.get(eventType)!;
     subs.push(subscription);
-    
+
     // 按优先级排序
     subs.sort((a, b) => b.priority - a.priority);
 
-    console.log(`智能体 ${agentId} 订阅事件 ${eventType}`);
     return subscription.id;
   }
 
@@ -215,7 +217,7 @@ class EventRouter {
       const index = subs.findIndex((sub: any) => sub.id === subscriptionId);
       if (index !== -1) {
         subs.splice(index, 1);
-        console.log(`取消订阅: ${subscriptionId}`);
+
         return true;
       }
     }
@@ -230,16 +232,12 @@ class EventRouter {
     const activeSubscriptions = subscriptions.filter(sub => sub.isActive);
 
     if (activeSubscriptions.length === 0) {
-      console.warn(`没有智能体订阅事件类型: ${event.type}`);
+      logger.warn(`没有智能体订阅事件类型: ${event.type}`);
       return;
     }
 
-    console.log(`发布事件 ${event.type} 给 ${activeSubscriptions.length} 个订阅者`);
-
     // 并行发送给所有订阅者
-    const promises = activeSubscriptions.map(sub => 
-      this.deliverEventToSubscriber(event, sub)
-    );
+    const promises = activeSubscriptions.map(sub => this.deliverEventToSubscriber(event, sub));
 
     await Promise.allSettled(promises);
   }
@@ -257,23 +255,20 @@ class EventRouter {
       await circuitBreaker.execute(async () => {
         await subscription.listener(event);
       });
-      
-      console.log(`事件 ${event.id} 成功投递给智能体 ${subscription.agentId}`);
     } catch (error) {
-      console.error(`事件投递失败 (智能体: ${subscription.agentId}):`, error);
-      
+      logger.error(`事件投递失败 (智能体: ${subscription.agentId}):`, error as Error);
+
       // 记录失败事件
       this.recordFailedEvent(event, subscription.agentId, error as Error);
-      
+
       // 如果是严重错误，暂时禁用订阅
       if (error instanceof ServiceUnavailable) {
         subscription.isActive = false;
-        console.warn(`暂时禁用智能体 ${subscription.agentId} 的订阅`);
-        
+        logger.warn(`暂时禁用智能体 ${subscription.agentId} 的订阅`);
+
         // 5分钟后重新启用
         setTimeout(() => {
           subscription.isActive = true;
-          console.log(`重新启用智能体 ${subscription.agentId} 的订阅`);
         }, 300000);
       }
     }
@@ -289,7 +284,7 @@ class EventRouter {
         new ServiceCircuitBreaker(`Agent-${agentId}`, {
           failureThreshold: 3,
           recoveryTimeout: 30000, // 30秒
-          halfOpenMaxCalls: 2
+          halfOpenMaxCalls: 2,
         })
       );
     }
@@ -299,11 +294,7 @@ class EventRouter {
   /**
    * 记录失败事件
    */
-  private recordFailedEvent(
-    event: AgentEvent,
-    targetAgentId: string,
-    error: Error
-  ): void {
+  private recordFailedEvent(event: AgentEvent, targetAgentId: string, error: Error): void {
     const failedEvent: FailedEvent = {
       id: generateId(),
       event,
@@ -311,11 +302,11 @@ class EventRouter {
       error,
       timestamp: new Date(),
       retryCount: 0,
-      maxRetries: 3
+      maxRetries: 3,
     };
 
     this.failedEvents.push(failedEvent);
-    
+
     // 限制失败事件数量
     if (this.failedEvents.length > this.maxFailedEvents) {
       this.failedEvents = this.failedEvents.slice(-this.maxFailedEvents);
@@ -327,8 +318,7 @@ class EventRouter {
    */
   async retryFailedEvents(): Promise<void> {
     const retryableEvents = this.failedEvents.filter(
-      fe => fe.retryCount < fe.maxRetries && 
-           Date.now() - fe.timestamp.getTime() > 60000 // 1分钟后重试
+      fe => fe.retryCount < fe.maxRetries && Date.now() - fe.timestamp.getTime() > 60000 // 1分钟后重试
     );
 
     for (const failedEvent of retryableEvents) {
@@ -340,19 +330,20 @@ class EventRouter {
 
         if (subscription && subscription.isActive) {
           await this.deliverEventToSubscriber(failedEvent.event, subscription);
-          
+
           // 重试成功，移除失败记录
           const index = this.failedEvents.indexOf(failedEvent);
           if (index !== -1) {
             this.failedEvents.splice(index, 1);
           }
-          
-          console.log(`失败事件重试成功: ${failedEvent.id}`);
         }
       } catch (error) {
         failedEvent.retryCount++;
-        console.error(`失败事件重试失败 (${failedEvent.retryCount}/${failedEvent.maxRetries}):`, error);
-        
+        logger.error(
+          `失败事件重试失败 (${failedEvent.retryCount}/${failedEvent.maxRetries}):`,
+          error
+        );
+
         // 达到最大重试次数，移除记录
         if (failedEvent.retryCount >= failedEvent.maxRetries) {
           const index = this.failedEvents.indexOf(failedEvent);
@@ -367,10 +358,7 @@ class EventRouter {
   /**
    * 查找订阅
    */
-  private findSubscription(
-    eventType: string,
-    agentId: string
-  ): EventSubscription | undefined {
+  private findSubscription(eventType: string, agentId: string): EventSubscription | undefined {
     const subscriptions = this.subscriptions.get(eventType) || [];
     return subscriptions.find(sub => sub.agentId === agentId);
   }
@@ -379,17 +367,22 @@ class EventRouter {
    * 获取统计信息
    */
   getStats(): Record<string, any> {
-    const circuitBreakerStats = Array.from(this.circuitBreakers.entries()).map(
-      ([agentId, cb]) => ({ agentId, ...cb.getStats() })
-    );
+    const circuitBreakerStats = Array.from(this.circuitBreakers.entries()).map(([agentId, cb]) => ({
+      agentId,
+      ...cb.getStats(),
+    }));
 
     return {
-      totalSubscriptions: Array.from(this.subscriptions.values())
-        .reduce((sum, subs) => sum + subs.length, 0),
-      activeSubscriptions: Array.from(this.subscriptions.values())
-        .reduce((sum, subs) => sum + subs.filter(s => s.isActive).length, 0),
+      totalSubscriptions: Array.from(this.subscriptions.values()).reduce(
+        (sum, subs) => sum + subs.length,
+        0
+      ),
+      activeSubscriptions: Array.from(this.subscriptions.values()).reduce(
+        (sum, subs) => sum + subs.filter(s => s.isActive).length,
+        0
+      ),
       failedEventsCount: this.failedEvents.length,
-      circuitBreakers: circuitBreakerStats
+      circuitBreakers: circuitBreakerStats,
     };
   }
 
@@ -399,10 +392,8 @@ class EventRouter {
   cleanupFailedEvents(): void {
     const now = Date.now();
     const maxAge = 24 * 60 * 60 * 1000; // 24小时
-    
-    this.failedEvents = this.failedEvents.filter(
-      fe => now - fe.timestamp.getTime() < maxAge
-    );
+
+    this.failedEvents = this.failedEvents.filter(fe => now - fe.timestamp.getTime() < maxAge);
   }
 }
 
@@ -410,13 +401,11 @@ class EventRouter {
 class DirectNotificationService {
   private agentEndpoints = new Map<string, string>();
 
-
   /**
    * 注册智能体端点
    */
   registerAgent(agentId: string, endpoint: string): void {
     this.agentEndpoints.set(agentId, endpoint);
-    console.log(`注册智能体端点: ${agentId} -> ${endpoint}`);
   }
 
   /**
@@ -425,16 +414,15 @@ class DirectNotificationService {
   async notifyAgent(agentId: string, event: AgentEvent): Promise<void> {
     const endpoint = this.agentEndpoints.get(agentId);
     if (!endpoint) {
-      throw new CommunicationError(
-        `智能体 ${agentId} 没有注册端点`,
-        { agentId, eventId: event.id }
-      );
+      throw new CommunicationError(`智能体 ${agentId} 没有注册端点`, {
+        agentId,
+        eventId: event.id,
+      });
     }
 
     try {
       // 模拟HTTP请求
       await this.sendHttpNotification(endpoint, event);
-      console.log(`直接通知成功: ${agentId}`);
     } catch (error) {
       throw new CommunicationError(
         `直接通知失败: ${error instanceof Error ? error.message : '未知错误'}`,
@@ -449,7 +437,7 @@ class DirectNotificationService {
   private async sendHttpNotification(_endpoint: string, _event: AgentEvent): Promise<void> {
     // 模拟HTTP请求
     await delay(100 + Math.random() * 200);
-    
+
     // 模拟可能的失败
     if (Math.random() < 0.1) {
       throw new Error('网络连接失败');
@@ -459,13 +447,10 @@ class DirectNotificationService {
   /**
    * 批量通知
    */
-  async notifyMultipleAgents(
-    agentIds: string[],
-    event: AgentEvent
-  ): Promise<void> {
-    const promises = agentIds.map(agentId => 
+  async notifyMultipleAgents(agentIds: string[], event: AgentEvent): Promise<void> {
+    const promises = agentIds.map(agentId =>
       this.notifyAgent(agentId, event).catch(error => {
-        console.error(`批量通知失败 (${agentId}):`, error);
+        logger.error(`批量通知失败 (${agentId}):`, error);
         return error;
       })
     );
@@ -483,7 +468,7 @@ export class EventBus {
   constructor() {
     this.router = new EventRouter();
     this.directNotification = new DirectNotificationService();
-    
+
     // 启动失败事件重试机制
     this.startRetryMechanism();
   }
@@ -514,7 +499,7 @@ export class EventBus {
     try {
       await this.router.publish(event);
     } catch (error) {
-      console.error('事件发布失败:', error);
+      logger.error('事件发布失败:', error);
       throw new CommunicationError(
         `事件发布失败: ${error instanceof Error ? error.message : '未知错误'}`,
         { eventId: event.id, eventType: event.type }
@@ -536,7 +521,7 @@ export class EventBus {
     try {
       await this.directNotification.notifyAgent(agentId, event);
     } catch (error) {
-      console.warn('直接通知失败，尝试通过事件总线发送:', error);
+      logger.warn('直接通知失败，尝试通过事件总线发送:', error);
       // 降级到事件总线
       await this.publish(event);
     }
@@ -552,10 +537,9 @@ export class EventBus {
   ): Promise<AgentResponse> {
     return new Promise((resolve, reject) => {
       const timeoutId = setTimeout(() => {
-        reject(new CommunicationError(
-          `请求超时: ${timeout}ms`,
-          { targetAgentId, requestId: request.id }
-        ));
+        reject(
+          new CommunicationError(`请求超时: ${timeout}ms`, { targetAgentId, requestId: request.id })
+        );
       }, timeout);
 
       // 订阅响应事件
@@ -565,14 +549,17 @@ export class EventBus {
         (event: AgentEvent) => {
           clearTimeout(timeoutId);
           this.unsubscribe(subscriptionId);
-          
+
           if (event.data && event.data['success']) {
             resolve(event.data as AgentResponse);
           } else {
-            reject(new CommunicationError(
-              '请求处理失败',
-              { targetAgentId, requestId: request.id, response: event.data }
-            ));
+            reject(
+              new CommunicationError('请求处理失败', {
+                targetAgentId,
+                requestId: request.id,
+                response: event.data,
+              })
+            );
           }
         }
       );
@@ -585,7 +572,7 @@ export class EventBus {
         sourceAgentId: request.sourceAgentId,
         targetAgentId,
         data: request,
-        timestamp: new Date()
+        timestamp: new Date(),
       };
 
       this.publish(requestEvent).catch(error => {
@@ -622,7 +609,7 @@ export class EventBus {
   getStats(): Record<string, any> {
     return {
       router: this.router.getStats(),
-      retryMechanismActive: this.retryInterval !== null
+      retryMechanismActive: this.retryInterval !== null,
     };
   }
 
@@ -632,11 +619,11 @@ export class EventBus {
   healthCheck(): Record<string, any> {
     const stats = this.getStats();
     const isHealthy = stats['router'].activeSubscriptions > 0;
-    
+
     return {
       status: isHealthy ? 'healthy' : 'warning',
       timestamp: new Date(),
-      stats
+      stats,
     };
   }
 
@@ -645,7 +632,6 @@ export class EventBus {
    */
   shutdown(): void {
     this.stopRetryMechanism();
-    console.log('事件总线已关闭');
   }
 }
 
@@ -653,9 +639,4 @@ export class EventBus {
 export const eventBus = new EventBus();
 
 // 导出类型
-export type {
-  EventListener,
-  EventSubscription,
-  FailedEvent,
-  CircuitBreakerConfig
-};
+export type { EventListener, EventSubscription, FailedEvent, CircuitBreakerConfig };

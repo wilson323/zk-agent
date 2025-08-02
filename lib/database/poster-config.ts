@@ -3,8 +3,17 @@
  * 海报配置数据库操作
  */
 
-import { enhancedDb, dbTransaction } from "@/lib/database"
-import type { PosterStyle, ColorPalette, PosterSize, SecurityTemplate, IndustryConfig } from "@/types/poster"
+import { enhancedDb, dbTransaction } from '@/lib/database';
+import type {
+  PosterStyle,
+  ColorPalette,
+  PosterSize,
+  SecurityTemplate,
+  IndustryConfig,
+} from '@/types/poster';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
 
 export class PosterConfigDB {
   /**
@@ -12,11 +21,12 @@ export class PosterConfigDB {
    */
   static async getStyles(): Promise<PosterStyle[]> {
     try {
+      const prisma = enhancedDb.getClient();
       const styles = await prisma.posterStyle.findMany({
         where: { isActive: true },
-        orderBy: { order: "asc" },
-      })
-      return styles.map((style) => ({
+        orderBy: { order: 'asc' },
+      });
+      return styles.map(style => ({
         id: style.id,
         name: style.name,
         description: style.description,
@@ -25,10 +35,10 @@ export class PosterConfigDB {
         tags: style.tags,
         industrySpecific: style.industrySpecific,
         parameters: style.parameters as any,
-      }))
+      }));
     } catch (error) {
-      console.error("Failed to get poster styles:", error)
-      return []
+      logger.error('Failed to get poster styles:', error);
+      return [];
     }
   }
 
@@ -37,19 +47,20 @@ export class PosterConfigDB {
    */
   static async getSecurityTemplates(): Promise<SecurityTemplate[]> {
     try {
+      const prisma = enhancedDb.getClient();
       const templates = await prisma.posterTemplate.findMany({
         where: {
           isActive: true,
-          industry: "security",
+          industry: 'security',
         },
         include: {
           elements: true,
           tags: true,
         },
-        orderBy: { popularity: "desc" },
-      })
+        orderBy: { popularity: 'desc' },
+      });
 
-      return templates.map((template) => ({
+      return templates.map(template => ({
         id: template.id,
         name: template.name,
         description: template.description,
@@ -58,15 +69,15 @@ export class PosterConfigDB {
         industry: template.industry,
         productType: template.productType,
         useCase: template.useCase,
-        tags: template.tags.map((t) => t.name),
+        tags: template.tags.map(t => t.name),
         elements: template.elements,
         popularity: template.popularity,
         isNew: template.isNew,
         isPremium: template.isPremium,
-      }))
+      }));
     } catch (error) {
-      console.error("Failed to get security templates:", error)
-      return []
+      logger.error('Failed to get security templates:', error);
+      return [];
     }
   }
 
@@ -75,21 +86,22 @@ export class PosterConfigDB {
    */
   static async getColorPalettes(): Promise<ColorPalette[]> {
     try {
+      const prisma = enhancedDb.getClient();
       const palettes = await prisma.colorPalette.findMany({
         where: { isActive: true },
-        orderBy: { order: "asc" },
-      })
-      return palettes.map((palette) => ({
+        orderBy: { order: 'asc' },
+      });
+      return palettes.map(palette => ({
         id: palette.id,
         name: palette.name,
         colors: palette.colors,
         description: palette.description,
         category: palette.category as any,
         industryRecommended: palette.industryRecommended,
-      }))
+      }));
     } catch (error) {
-      console.error("Failed to get color palettes:", error)
-      return []
+      logger.error('Failed to get color palettes:', error);
+      return [];
     }
   }
 
@@ -98,11 +110,12 @@ export class PosterConfigDB {
    */
   static async getPosterSizes(): Promise<PosterSize[]> {
     try {
+      const prisma = enhancedDb.getClient();
       const sizes = await prisma.posterSize.findMany({
         where: { isActive: true },
-        orderBy: { order: "asc" },
-      })
-      return sizes.map((size) => ({
+        orderBy: { order: 'asc' },
+      });
+      return sizes.map(size => ({
         id: size.id,
         name: size.name,
         dimensions: size.dimensions,
@@ -112,10 +125,10 @@ export class PosterConfigDB {
         dpi: size.dpi,
         category: size.category,
         recommended: size.recommended,
-      }))
+      }));
     } catch (error) {
-      console.error("Failed to get poster sizes:", error)
-      return []
+      logger.error('Failed to get poster sizes:', error);
+      return [];
     }
   }
 
@@ -123,15 +136,16 @@ export class PosterConfigDB {
    * 保存用户生成历史
    */
   static async saveGenerationHistory(data: {
-    userId: string
-    prompt: string
-    style: string
-    template?: string
-    settings: any
-    imageUrl: string
-    industry?: string
+    userId: string;
+    prompt: string;
+    style: string;
+    template?: string;
+    settings: any;
+    imageUrl: string;
+    industry?: string;
   }) {
     try {
+      const prisma = enhancedDb.getClient();
       return await prisma.posterGeneration.create({
         data: {
           userId: data.userId,
@@ -143,10 +157,10 @@ export class PosterConfigDB {
           industry: data.industry,
           createdAt: new Date(),
         },
-      })
+      });
     } catch (error) {
-      console.error("Failed to save generation history:", error)
-      throw error
+      logger.error('Failed to save generation history:', error);
+      throw error;
     }
   }
 
@@ -155,17 +169,18 @@ export class PosterConfigDB {
    */
   static async getUserHistory(userId: string, limit = 20) {
     try {
+      const prisma = enhancedDb.getClient();
       return await prisma.posterGeneration.findMany({
         where: { userId },
         include: {
           template: true,
         },
-        orderBy: { createdAt: "desc" },
+        orderBy: { createdAt: 'desc' },
         take: limit,
-      })
+      });
     } catch (error) {
-      console.error("Failed to get user history:", error)
-      return []
+      logger.error('Failed to get user history:', error);
+      return [];
     }
   }
 
@@ -174,15 +189,16 @@ export class PosterConfigDB {
    */
   static async updateTemplateUsage(templateId: string) {
     try {
+      const prisma = enhancedDb.getClient();
       await prisma.posterTemplate.update({
         where: { id: templateId },
         data: {
           usageCount: { increment: 1 },
           lastUsed: new Date(),
         },
-      })
+      });
     } catch (error) {
-      console.error("Failed to update template usage:", error)
+      logger.error('Failed to update template usage:', error);
     }
   }
 
@@ -191,18 +207,24 @@ export class PosterConfigDB {
    */
   static async getIndustryConfig(industry: string): Promise<IndustryConfig | null> {
     try {
-      const config = await enhancedDb.prisma.industryConfig.findUnique({
+      const prismaClient = enhancedDb.getClient();
+      
+      if (!prismaClient) {
+        throw new Error('Database client not available');
+      }
+      
+      const config = await prismaClient.industryConfig.findUnique({
         where: { industry },
         include: {
           recommendedStyles: true,
           recommendedPalettes: true,
           brandGuidelines: true,
         },
-      })
-      return config
+      });
+      return config;
     } catch (error) {
-      console.error("Failed to get industry config:", error)
-      return null
+      logger.error('Failed to get industry config:', error);
+      return null;
     }
   }
 }

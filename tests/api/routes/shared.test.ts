@@ -17,7 +17,7 @@ jest.mock('../../../lib/services/sharing-manager', () => ({
   getSharedContent: jest.fn(),
   trackShareActivity: jest.fn(),
   generateShareToken: jest.fn(),
-  validateShareToken: jest.fn()
+  validateShareToken: jest.fn(),
 }));
 
 jest.mock('../../../lib/storage/content-store', () => ({
@@ -26,7 +26,7 @@ jest.mock('../../../lib/storage/content-store', () => ({
   updateContentMetadata: jest.fn(),
   deleteSharedContent: jest.fn(),
   checkContentExists: jest.fn(),
-  validateContentAccess: jest.fn()
+  validateContentAccess: jest.fn(),
 }));
 
 jest.mock('../../../lib/security/share-security', () => ({
@@ -35,13 +35,13 @@ jest.mock('../../../lib/security/share-security', () => ({
   sanitizeShareData: jest.fn(),
   enforceSharePolicies: jest.fn(),
   validateExpirationDate: jest.fn(),
-  checkPasswordStrength: jest.fn()
+  checkPasswordStrength: jest.fn(),
 }));
 
 jest.mock('../../../lib/auth/session', () => ({
   validateSession: jest.fn(),
   checkUserPermissions: jest.fn(),
-  getUserId: jest.fn()
+  getUserId: jest.fn(),
 }));
 
 describe('Shared API Error Handling', () => {
@@ -132,7 +132,9 @@ describe('Shared API Error Handling', () => {
       const { validateShareAccess } = require('../../../lib/services/sharing-manager');
       validateShareAccess.mockRejectedValue(new Error('Incorrect share password'));
 
-      const request = new NextRequest('http://localhost:3000/api/shared?token=protected-token&password=wrong');
+      const request = new NextRequest(
+        'http://localhost:3000/api/shared?token=protected-token&password=wrong'
+      );
       const response = await GET(request);
       const data = await response.json();
 
@@ -188,14 +190,14 @@ describe('Shared API Error Handling', () => {
         permissions: {
           read: true,
           download: false,
-          comment: false
+          comment: false,
         },
         settings: {
           expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
           maxAccess: 100,
           requirePassword: false,
-          allowAnonymous: true
-        }
+          allowAnonymous: true,
+        },
       };
     });
 
@@ -206,7 +208,7 @@ describe('Shared API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/shared', {
         method: 'POST',
         body: JSON.stringify(invalidData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -224,7 +226,7 @@ describe('Shared API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/shared', {
         method: 'POST',
         body: JSON.stringify(validShareData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -237,15 +239,17 @@ describe('Shared API Error Handling', () => {
 
     it('should handle insufficient permissions to share content', async () => {
       const { validateContentAccess } = require('../../../lib/storage/content-store');
-      validateContentAccess.mockRejectedValue(new Error('Insufficient permissions to share content'));
+      validateContentAccess.mockRejectedValue(
+        new Error('Insufficient permissions to share content')
+      );
 
       const request = new NextRequest('http://localhost:3000/api/shared', {
         method: 'POST',
         body: JSON.stringify(validShareData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer user-token'
-        }
+          Authorization: 'Bearer user-token',
+        },
       });
 
       const response = await POST(request);
@@ -257,20 +261,22 @@ describe('Shared API Error Handling', () => {
 
     it('should handle invalid expiration date', async () => {
       const { validateExpirationDate } = require('../../../lib/security/share-security');
-      validateExpirationDate.mockRejectedValue(new Error('Invalid expiration date: must be in the future'));
+      validateExpirationDate.mockRejectedValue(
+        new Error('Invalid expiration date: must be in the future')
+      );
 
       const invalidExpirationData = {
         ...validShareData,
         settings: {
           ...validShareData.settings,
-          expiresAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() // Yesterday
-        }
+          expiresAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // Yesterday
+        },
       };
 
       const request = new NextRequest('http://localhost:3000/api/shared', {
         method: 'POST',
         body: JSON.stringify(invalidExpirationData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -282,21 +288,23 @@ describe('Shared API Error Handling', () => {
 
     it('should handle weak password for protected share', async () => {
       const { checkPasswordStrength } = require('../../../lib/security/share-security');
-      checkPasswordStrength.mockRejectedValue(new Error('Password does not meet security requirements'));
+      checkPasswordStrength.mockRejectedValue(
+        new Error('Password does not meet security requirements')
+      );
 
       const weakPasswordData = {
         ...validShareData,
         settings: {
           ...validShareData.settings,
           requirePassword: true,
-          password: '123'
-        }
+          password: '123',
+        },
       };
 
       const request = new NextRequest('http://localhost:3000/api/shared', {
         method: 'POST',
         body: JSON.stringify(weakPasswordData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -313,10 +321,10 @@ describe('Shared API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/shared', {
         method: 'POST',
         body: JSON.stringify(validShareData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer user-token'
-        }
+          Authorization: 'Bearer user-token',
+        },
       });
 
       const response = await POST(request);
@@ -333,7 +341,7 @@ describe('Shared API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/shared', {
         method: 'POST',
         body: JSON.stringify(validShareData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -350,7 +358,7 @@ describe('Shared API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/shared', {
         method: 'POST',
         body: JSON.stringify(validShareData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -366,13 +374,13 @@ describe('Shared API Error Handling', () => {
 
       const invalidTypeData = {
         ...validShareData,
-        contentType: 'restricted-type'
+        contentType: 'restricted-type',
       };
 
       const request = new NextRequest('http://localhost:3000/api/shared', {
         method: 'POST',
         body: JSON.stringify(invalidTypeData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -393,8 +401,8 @@ describe('Shared API Error Handling', () => {
           expiresAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(), // 14 days
           maxAccess: 200,
           requirePassword: true,
-          password: 'new-secure-password-123'
-        }
+          password: 'new-secure-password-123',
+        },
       };
     });
 
@@ -405,7 +413,7 @@ describe('Shared API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/shared', {
         method: 'PUT',
         body: JSON.stringify({ shareId: 'nonexistent-share', settings: {} }),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await PUT(request);
@@ -423,10 +431,10 @@ describe('Shared API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/shared', {
         method: 'PUT',
         body: JSON.stringify(validUpdateData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer unauthorized-token'
-        }
+          Authorization: 'Bearer unauthorized-token',
+        },
       });
 
       const response = await PUT(request);
@@ -444,14 +452,14 @@ describe('Shared API Error Handling', () => {
         shareId: 'share-123',
         settings: {
           maxAccess: -1, // Invalid negative value
-          expiresAt: 'invalid-date'
-        }
+          expiresAt: 'invalid-date',
+        },
       };
 
       const request = new NextRequest('http://localhost:3000/api/shared', {
         method: 'PUT',
         body: JSON.stringify(invalidSettings),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await PUT(request);
@@ -468,7 +476,7 @@ describe('Shared API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/shared', {
         method: 'PUT',
         body: JSON.stringify(validUpdateData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await PUT(request);
@@ -480,12 +488,14 @@ describe('Shared API Error Handling', () => {
 
     it('should handle share update service failure', async () => {
       const { updateShareSettings } = require('../../../lib/services/sharing-manager');
-      updateShareSettings.mockRejectedValue(new Error('Share update service temporarily unavailable'));
+      updateShareSettings.mockRejectedValue(
+        new Error('Share update service temporarily unavailable')
+      );
 
       const request = new NextRequest('http://localhost:3000/api/shared', {
         method: 'PUT',
         body: JSON.stringify(validUpdateData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await PUT(request);
@@ -501,9 +511,12 @@ describe('Shared API Error Handling', () => {
       const { revokeShareLink } = require('../../../lib/services/sharing-manager');
       revokeShareLink.mockRejectedValue(new Error('Share not found'));
 
-      const request = new NextRequest('http://localhost:3000/api/shared?shareId=nonexistent-share', {
-        method: 'DELETE'
-      });
+      const request = new NextRequest(
+        'http://localhost:3000/api/shared?shareId=nonexistent-share',
+        {
+          method: 'DELETE',
+        }
+      );
 
       const response = await DELETE(request);
       const data = await response.json();
@@ -519,7 +532,7 @@ describe('Shared API Error Handling', () => {
 
       const request = new NextRequest('http://localhost:3000/api/shared?shareId=share-123', {
         method: 'DELETE',
-        headers: { 'Authorization': 'Bearer unauthorized-token' }
+        headers: { Authorization: 'Bearer unauthorized-token' },
       });
 
       const response = await DELETE(request);
@@ -534,7 +547,7 @@ describe('Shared API Error Handling', () => {
       revokeShareLink.mockRejectedValue(new Error('Share has already been revoked'));
 
       const request = new NextRequest('http://localhost:3000/api/shared?shareId=revoked-share', {
-        method: 'DELETE'
+        method: 'DELETE',
       });
 
       const response = await DELETE(request);
@@ -549,7 +562,7 @@ describe('Shared API Error Handling', () => {
       revokeShareLink.mockRejectedValue(new Error('Failed to revoke share link'));
 
       const request = new NextRequest('http://localhost:3000/api/shared?shareId=share-123', {
-        method: 'DELETE'
+        method: 'DELETE',
       });
 
       const response = await DELETE(request);
@@ -592,13 +605,13 @@ describe('Shared API Error Handling', () => {
       const maliciousData = {
         contentId: 'content-123',
         contentType: '<script>alert("xss")</script>',
-        permissions: { read: true }
+        permissions: { read: true },
       };
 
       const request = new NextRequest('http://localhost:3000/api/shared', {
         method: 'POST',
         body: JSON.stringify(maliciousData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -615,8 +628,8 @@ describe('Shared API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/shared?token=valid-token', {
         headers: {
           'User-Agent': 'Bot/1.0',
-          'X-Forwarded-For': '192.168.1.1, 10.0.0.1, 172.16.0.1'
-        }
+          'X-Forwarded-For': '192.168.1.1, 10.0.0.1, 172.16.0.1',
+        },
       });
 
       const response = await GET(request);
@@ -641,14 +654,14 @@ describe('Shared API Error Handling', () => {
         shares: [
           { contentId: 'content-1', contentType: 'document' },
           { contentId: 'invalid-content', contentType: 'document' },
-          { contentId: 'content-3', contentType: 'image' }
-        ]
+          { contentId: 'content-3', contentType: 'image' },
+        ],
       };
 
       const request = new NextRequest('http://localhost:3000/api/shared/batch', {
         method: 'POST',
         body: JSON.stringify(batchData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -669,13 +682,13 @@ describe('Shared API Error Handling', () => {
       });
 
       const batchData = {
-        shareIds: ['share-1', 'nonexistent-share', 'share-3']
+        shareIds: ['share-1', 'nonexistent-share', 'share-3'],
       };
 
       const request = new NextRequest('http://localhost:3000/api/shared/batch', {
         method: 'DELETE',
         body: JSON.stringify(batchData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await DELETE(request);
@@ -695,13 +708,13 @@ describe('Shared API Error Handling', () => {
       const validShareData = {
         contentId: 'content-123',
         contentType: 'document',
-        permissions: { read: true }
+        permissions: { read: true },
       };
 
       const request = new NextRequest('http://localhost:3000/api/shared', {
         method: 'POST',
         body: JSON.stringify(validShareData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -718,13 +731,13 @@ describe('Shared API Error Handling', () => {
       const validShareData = {
         contentId: 'content-123',
         contentType: 'document',
-        permissions: { read: true }
+        permissions: { read: true },
       };
 
       const request = new NextRequest('http://localhost:3000/api/shared', {
         method: 'POST',
         body: JSON.stringify(validShareData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       await POST(request);
@@ -740,13 +753,13 @@ describe('Shared API Error Handling', () => {
       const validShareData = {
         contentId: 'content-123',
         contentType: 'document',
-        permissions: { read: true }
+        permissions: { read: true },
       };
 
       const request = new NextRequest('http://localhost:3000/api/shared', {
         method: 'POST',
         body: JSON.stringify(validShareData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);

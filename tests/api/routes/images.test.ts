@@ -19,7 +19,7 @@ jest.mock('../../../lib/services/image-processor', () => ({
   generateThumbnail: jest.fn(),
   extractMetadata: jest.fn(),
   detectImageType: jest.fn(),
-  optimizeImage: jest.fn()
+  optimizeImage: jest.fn(),
 }));
 
 jest.mock('../../../lib/storage/image-store', () => ({
@@ -28,18 +28,18 @@ jest.mock('../../../lib/storage/image-store', () => ({
   deleteImage: jest.fn(),
   getImageMetadata: jest.fn(),
   checkStorageQuota: jest.fn(),
-  generateImageUrl: jest.fn()
+  generateImageUrl: jest.fn(),
 }));
 
 jest.mock('../../../lib/auth/session', () => ({
   validateSession: jest.fn(),
-  checkUploadPermissions: jest.fn()
+  checkUploadPermissions: jest.fn(),
 }));
 
 jest.mock('../../../lib/utils/file-validator', () => ({
   validateFileSize: jest.fn(),
   validateFileType: jest.fn(),
-  scanForMalware: jest.fn()
+  scanForMalware: jest.fn(),
 }));
 
 describe('Images API Error Handling', () => {
@@ -68,7 +68,7 @@ describe('Images API Error Handling', () => {
 
       const request = new NextRequest('http://localhost:3000/api/images', {
         method: 'POST',
-        body: validImageData
+        body: validImageData,
       });
 
       const response = await POST(request);
@@ -85,7 +85,7 @@ describe('Images API Error Handling', () => {
 
       const request = new NextRequest('http://localhost:3000/api/images', {
         method: 'POST',
-        body: validImageData
+        body: validImageData,
       });
 
       const response = await POST(request);
@@ -101,7 +101,7 @@ describe('Images API Error Handling', () => {
 
       const request = new NextRequest('http://localhost:3000/api/images', {
         method: 'POST',
-        body: validImageData
+        body: validImageData,
       });
 
       const response = await POST(request);
@@ -117,7 +117,7 @@ describe('Images API Error Handling', () => {
 
       const request = new NextRequest('http://localhost:3000/api/images', {
         method: 'POST',
-        body: validImageData
+        body: validImageData,
       });
 
       const response = await POST(request);
@@ -133,7 +133,7 @@ describe('Images API Error Handling', () => {
 
       const request = new NextRequest('http://localhost:3000/api/images', {
         method: 'POST',
-        body: validImageData
+        body: validImageData,
       });
 
       const response = await POST(request);
@@ -149,7 +149,7 @@ describe('Images API Error Handling', () => {
 
       const request = new NextRequest('http://localhost:3000/api/images', {
         method: 'POST',
-        body: validImageData
+        body: validImageData,
       });
 
       const response = await POST(request);
@@ -167,7 +167,7 @@ describe('Images API Error Handling', () => {
 
       const request = new NextRequest('http://localhost:3000/api/images', {
         method: 'POST',
-        body: incompleteData
+        body: incompleteData,
       });
 
       const response = await POST(request);
@@ -185,7 +185,7 @@ describe('Images API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/images', {
         method: 'POST',
         body: validImageData,
-        headers: { 'Authorization': 'Bearer user-token' }
+        headers: { Authorization: 'Bearer user-token' },
       });
 
       const response = await POST(request);
@@ -197,15 +197,16 @@ describe('Images API Error Handling', () => {
 
     it('should handle image processing timeout', async () => {
       const { processImage } = require('../../../lib/services/image-processor');
-      processImage.mockImplementation(() => 
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Image processing timeout')), 100)
-        )
+      processImage.mockImplementation(
+        () =>
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Image processing timeout')), 100)
+          )
       );
 
       const request = new NextRequest('http://localhost:3000/api/images', {
         method: 'POST',
-        body: validImageData
+        body: validImageData,
       });
 
       const response = await POST(request);
@@ -221,7 +222,7 @@ describe('Images API Error Handling', () => {
 
       const request = new NextRequest('http://localhost:3000/api/images', {
         method: 'POST',
-        body: validImageData
+        body: validImageData,
       });
 
       const response = await POST(request);
@@ -284,10 +285,9 @@ describe('Images API Error Handling', () => {
 
     it('should handle image download timeout', async () => {
       const { downloadImage } = require('../../../lib/storage/image-store');
-      downloadImage.mockImplementation(() => 
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Download timeout')), 100)
-        )
+      downloadImage.mockImplementation(
+        () =>
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Download timeout')), 100))
       );
 
       const request = new NextRequest('http://localhost:3000/api/images/test-id');

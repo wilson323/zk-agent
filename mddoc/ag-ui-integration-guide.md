@@ -10,10 +10,10 @@
 import { useAgUIChat } from '@/hooks/use-ag-ui-chat';
 
 function ChatComponent() {
-  const { handleFastGPTStreamResponse, eventStream } = useAgUIChat();
-  
-  // 使用handleFastGPTStreamResponse替代原有的处理函数
-  // 其余代码保持不变
+const { handleFastGPTStreamResponse, eventStream } = useAgUIChat();
+
+// 使用handleFastGPTStreamResponse替代原有的处理函数
+// 其余代码保持不变
 }
 \`\`\`
 
@@ -23,22 +23,23 @@ function ChatComponent() {
 import { AgUIEventListener } from '@/components/ag-ui/event-listener';
 
 function ChatComponent() {
-  const { handleFastGPTStreamResponse, eventStream } = useAgUIChat();
-  
-  return (
-    <>
-      {/* 现有UI组件保持不变 */}
-      <ExistingChatUI />
-      
+const { handleFastGPTStreamResponse, eventStream } = useAgUIChat();
+
+return (
+<>
+{/_ 现有UI组件保持不变 _/}
+<ExistingChatUI />
+
       {/* 添加不可见的事件监听器 */}
-      <AgUIEventListener 
+      <AgUIEventListener
         eventStream={eventStream}
         onTextContent={(messageId, content) => {
           console.log('Received content:', content);
         }}
       />
     </>
-  );
+
+);
 }
 \`\`\`
 
@@ -50,13 +51,13 @@ function ChatComponent() {
 
 \`\`\`tsx
 const { handleFastGPTStreamResponse } = useAgUIChat({
-  onEvent: (event) => {
-    if (event.type === 'TOOL_CALL_START') {
-      // 处理工具调用开始
-    } else if (event.type === 'TOOL_CALL_END') {
-      // 处理工具调用结束
-    }
-  }
+onEvent: (event) => {
+if (event.type === 'TOOL_CALL_START') {
+// 处理工具调用开始
+} else if (event.type === 'TOOL_CALL_END') {
+// 处理工具调用结束
+}
+}
 });
 \`\`\`
 
@@ -68,14 +69,14 @@ AG-UI支持状态同步，可以通过以下方式使用：
 const [state, setState] = useState({});
 
 const { handleFastGPTStreamResponse } = useAgUIChat({
-  onEvent: (event) => {
-    if (event.type === 'STATE_SNAPSHOT') {
-      setState(event.snapshot);
-    } else if (event.type === 'STATE_DELTA') {
-      // 应用JSON Patch增量更新
-      setState(applyPatch(state, event.delta));
-    }
-  }
+onEvent: (event) => {
+if (event.type === 'STATE_SNAPSHOT') {
+setState(event.snapshot);
+} else if (event.type === 'STATE_DELTA') {
+// 应用JSON Patch增量更新
+setState(applyPatch(state, event.delta));
+}
+}
 });
 \`\`\`
 

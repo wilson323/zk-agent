@@ -5,20 +5,20 @@
  */
 
 export interface AgentConfig {
-  id: string
-  name: string
-  appId: string
-  apiKey: string
-  baseUrl: string
-  description: string
-  enabled: boolean
-  capabilities: string[]
+  id: string;
+  name: string;
+  appId: string;
+  apiKey: string;
+  baseUrl: string;
+  description: string;
+  enabled: boolean;
+  capabilities: string[];
   config: {
-    temperature?: number
-    maxTokens?: number
-    systemPrompt?: string
-    model?: string
-  }
+    temperature?: number;
+    maxTokens?: number;
+    systemPrompt?: string;
+    model?: string;
+  };
 }
 
 // 第一个智能体配置
@@ -30,45 +30,31 @@ export const FIRST_AGENT_CONFIG: AgentConfig = {
   baseUrl: 'https://api.fastgpt.in',
   description: '第一个配置的FastGPT智能体，用于全功能测试',
   enabled: true,
-  capabilities: [
-    'text-chat',
-    'context-memory',
-    'file-upload',
-    'knowledge-base',
-    'tool-calling'
-  ],
+  capabilities: ['text-chat', 'context-memory', 'file-upload', 'knowledge-base', 'tool-calling'],
   config: {
     temperature: 0.7,
     maxTokens: 4000,
     systemPrompt: '你是一个专业的AI助手，能够帮助用户解决各种问题。',
-    model: 'gpt-3.5-turbo'
-  }
-}
+    model: 'gpt-3.5-turbo',
+  },
+};
 
 // 智能体配置列表
-export const AGENT_CONFIGS: AgentConfig[] = [
-  FIRST_AGENT_CONFIG
-]
+export const AGENT_CONFIGS: AgentConfig[] = [FIRST_AGENT_CONFIG];
 
 // 获取智能体配置
 export function getAgentConfig(id: string): AgentConfig | undefined {
-  return AGENT_CONFIGS.find(config => config.id === id)
+  return AGENT_CONFIGS.find(config => config.id === id);
 }
 
 // 获取默认智能体配置
 export function getDefaultAgentConfig(): AgentConfig {
-  return FIRST_AGENT_CONFIG
+  return FIRST_AGENT_CONFIG;
 }
 
 // 验证智能体配置
 export function validateAgentConfig(config: AgentConfig): boolean {
-  return !!(
-    config.id &&
-    config.appId &&
-    config.apiKey &&
-    config.baseUrl &&
-    config.name
-  )
+  return !!(config.id && config.appId && config.apiKey && config.baseUrl && config.name);
 }
 
 // 环境变量配置映射
@@ -76,4 +62,4 @@ export const ENV_CONFIG = {
   FASTGPT_BASE_URL: FIRST_AGENT_CONFIG.baseUrl,
   FASTGPT_API_KEY: FIRST_AGENT_CONFIG.apiKey,
   FASTGPT_APP_ID: FIRST_AGENT_CONFIG.appId,
-} 
+};

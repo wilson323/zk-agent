@@ -17,7 +17,7 @@ jest.mock('../../../lib/services/proxy-manager', () => ({
   transformResponse: jest.fn(),
   getProxyConfiguration: jest.fn(),
   updateProxyRules: jest.fn(),
-  logProxyActivity: jest.fn()
+  logProxyActivity: jest.fn(),
 }));
 
 jest.mock('../../../lib/security/proxy-security', () => ({
@@ -26,19 +26,19 @@ jest.mock('../../../lib/security/proxy-security', () => ({
   sanitizeHeaders: jest.fn(),
   validateRequestBody: jest.fn(),
   checkBlacklist: jest.fn(),
-  enforceSecurityPolicies: jest.fn()
+  enforceSecurityPolicies: jest.fn(),
 }));
 
 jest.mock('../../../lib/cache/proxy-cache', () => ({
   getCachedResponse: jest.fn(),
   setCachedResponse: jest.fn(),
   invalidateCache: jest.fn(),
-  checkCachePolicy: jest.fn()
+  checkCachePolicy: jest.fn(),
 }));
 
 jest.mock('../../../lib/auth/session', () => ({
   validateSession: jest.fn(),
-  checkProxyPermissions: jest.fn()
+  checkProxyPermissions: jest.fn(),
 }));
 
 describe('Proxy API Error Handling', () => {
@@ -79,7 +79,9 @@ describe('Proxy API Error Handling', () => {
       const { checkBlacklist } = require('../../../lib/security/proxy-security');
       checkBlacklist.mockRejectedValue(new Error('Target URL is blacklisted'));
 
-      const request = new NextRequest('http://localhost:3000/api/proxy?target=https://blacklisted.com');
+      const request = new NextRequest(
+        'http://localhost:3000/api/proxy?target=https://blacklisted.com'
+      );
       const response = await GET(request);
       const data = await response.json();
 
@@ -92,7 +94,9 @@ describe('Proxy API Error Handling', () => {
       const { checkRateLimits } = require('../../../lib/security/proxy-security');
       checkRateLimits.mockRejectedValue(new Error('Proxy rate limit exceeded'));
 
-      const request = new NextRequest('http://localhost:3000/api/proxy?target=https://api.example.com');
+      const request = new NextRequest(
+        'http://localhost:3000/api/proxy?target=https://api.example.com'
+      );
       const response = await GET(request);
       const data = await response.json();
 
@@ -105,7 +109,9 @@ describe('Proxy API Error Handling', () => {
       const { forwardRequest } = require('../../../lib/services/proxy-manager');
       forwardRequest.mockRejectedValue(new Error('Connection timeout to target server'));
 
-      const request = new NextRequest('http://localhost:3000/api/proxy?target=https://slow.example.com');
+      const request = new NextRequest(
+        'http://localhost:3000/api/proxy?target=https://slow.example.com'
+      );
       const response = await GET(request);
       const data = await response.json();
 
@@ -117,7 +123,9 @@ describe('Proxy API Error Handling', () => {
       const { forwardRequest } = require('../../../lib/services/proxy-manager');
       forwardRequest.mockRejectedValue(new Error('Target server unavailable'));
 
-      const request = new NextRequest('http://localhost:3000/api/proxy?target=https://down.example.com');
+      const request = new NextRequest(
+        'http://localhost:3000/api/proxy?target=https://down.example.com'
+      );
       const response = await GET(request);
       const data = await response.json();
 
@@ -129,7 +137,9 @@ describe('Proxy API Error Handling', () => {
       const { forwardRequest } = require('../../../lib/services/proxy-manager');
       forwardRequest.mockRejectedValue(new Error('DNS resolution failed for target'));
 
-      const request = new NextRequest('http://localhost:3000/api/proxy?target=https://nonexistent.example.com');
+      const request = new NextRequest(
+        'http://localhost:3000/api/proxy?target=https://nonexistent.example.com'
+      );
       const response = await GET(request);
       const data = await response.json();
 
@@ -141,7 +151,9 @@ describe('Proxy API Error Handling', () => {
       const { forwardRequest } = require('../../../lib/services/proxy-manager');
       forwardRequest.mockRejectedValue(new Error('SSL certificate verification failed'));
 
-      const request = new NextRequest('http://localhost:3000/api/proxy?target=https://invalid-ssl.example.com');
+      const request = new NextRequest(
+        'http://localhost:3000/api/proxy?target=https://invalid-ssl.example.com'
+      );
       const response = await GET(request);
       const data = await response.json();
 
@@ -153,9 +165,12 @@ describe('Proxy API Error Handling', () => {
       const { checkProxyPermissions } = require('../../../lib/auth/session');
       checkProxyPermissions.mockRejectedValue(new Error('Insufficient proxy permissions'));
 
-      const request = new NextRequest('http://localhost:3000/api/proxy?target=https://restricted.example.com', {
-        headers: { 'Authorization': 'Bearer user-token' }
-      });
+      const request = new NextRequest(
+        'http://localhost:3000/api/proxy?target=https://restricted.example.com',
+        {
+          headers: { Authorization: 'Bearer user-token' },
+        }
+      );
 
       const response = await GET(request);
       const data = await response.json();
@@ -168,7 +183,9 @@ describe('Proxy API Error Handling', () => {
       const { getProxyConfiguration } = require('../../../lib/services/proxy-manager');
       getProxyConfiguration.mockRejectedValue(new Error('Proxy configuration not found'));
 
-      const request = new NextRequest('http://localhost:3000/api/proxy?target=https://unconfigured.example.com');
+      const request = new NextRequest(
+        'http://localhost:3000/api/proxy?target=https://unconfigured.example.com'
+      );
       const response = await GET(request);
       const data = await response.json();
 
@@ -187,11 +204,11 @@ describe('Proxy API Error Handling', () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer target-token'
+          Authorization: 'Bearer target-token',
         },
         body: {
-          data: 'test data'
-        }
+          data: 'test data',
+        },
       };
     });
 
@@ -203,7 +220,7 @@ describe('Proxy API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/proxy', {
         method: 'POST',
         body: invalidBody,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -222,14 +239,14 @@ describe('Proxy API Error Handling', () => {
         ...validRequestBody,
         headers: {
           'X-Forwarded-For': '127.0.0.1; rm -rf /',
-          'Host': 'evil.com'
-        }
+          Host: 'evil.com',
+        },
       };
 
       const request = new NextRequest('http://localhost:3000/api/proxy', {
         method: 'POST',
         body: JSON.stringify(maliciousBody),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -245,13 +262,13 @@ describe('Proxy API Error Handling', () => {
 
       const largeBody = {
         ...validRequestBody,
-        body: 'x'.repeat(10 * 1024 * 1024) // 10MB
+        body: 'x'.repeat(10 * 1024 * 1024), // 10MB
       };
 
       const request = new NextRequest('http://localhost:3000/api/proxy', {
         method: 'POST',
         body: JSON.stringify(largeBody),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -268,7 +285,7 @@ describe('Proxy API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/proxy', {
         method: 'POST',
         body: JSON.stringify(validRequestBody),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -280,17 +297,19 @@ describe('Proxy API Error Handling', () => {
 
     it('should handle target server validation error', async () => {
       const { forwardRequest } = require('../../../lib/services/proxy-manager');
-      forwardRequest.mockRejectedValue(new Error('Target server validation error: Invalid data format'));
+      forwardRequest.mockRejectedValue(
+        new Error('Target server validation error: Invalid data format')
+      );
 
       const invalidDataBody = {
         ...validRequestBody,
-        body: { invalid: 'data' }
+        body: { invalid: 'data' },
       };
 
       const request = new NextRequest('http://localhost:3000/api/proxy', {
         method: 'POST',
         body: JSON.stringify(invalidDataBody),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -307,7 +326,7 @@ describe('Proxy API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/proxy', {
         method: 'POST',
         body: JSON.stringify(validRequestBody),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -324,7 +343,7 @@ describe('Proxy API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/proxy', {
         method: 'POST',
         body: JSON.stringify(validRequestBody),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -341,7 +360,7 @@ describe('Proxy API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/proxy', {
         method: 'POST',
         body: JSON.stringify(validRequestBody),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(request);
@@ -363,20 +382,20 @@ describe('Proxy API Error Handling', () => {
             target: 'https://external-api.example.com',
             methods: ['GET', 'POST'],
             headers: {
-              'X-API-Key': 'secret-key'
+              'X-API-Key': 'secret-key',
             },
             timeout: 30000,
-            retries: 3
-          }
+            retries: 3,
+          },
         ],
         security: {
           rateLimits: {
             requests: 100,
-            window: 3600
+            window: 3600,
           },
           blacklist: ['malicious.com'],
-          whitelist: ['trusted.com']
-        }
+          whitelist: ['trusted.com'],
+        },
       };
     });
 
@@ -388,7 +407,7 @@ describe('Proxy API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/proxy/config', {
         method: 'PUT',
         body: JSON.stringify(invalidConfig),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await PUT(request);
@@ -406,14 +425,14 @@ describe('Proxy API Error Handling', () => {
       const conflictingConfig = {
         rules: [
           { pattern: '/api/*', target: 'https://api1.example.com' },
-          { pattern: '/api/*', target: 'https://api2.example.com' }
-        ]
+          { pattern: '/api/*', target: 'https://api2.example.com' },
+        ],
       };
 
       const request = new NextRequest('http://localhost:3000/api/proxy/config', {
         method: 'PUT',
         body: JSON.stringify(conflictingConfig),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await PUT(request);
@@ -428,15 +447,13 @@ describe('Proxy API Error Handling', () => {
       updateProxyRules.mockRejectedValue(new Error('Invalid target URL in proxy rule'));
 
       const invalidTargetConfig = {
-        rules: [
-          { pattern: '/api/*', target: 'invalid-url' }
-        ]
+        rules: [{ pattern: '/api/*', target: 'invalid-url' }],
       };
 
       const request = new NextRequest('http://localhost:3000/api/proxy/config', {
         method: 'PUT',
         body: JSON.stringify(invalidTargetConfig),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await PUT(request);
@@ -453,7 +470,7 @@ describe('Proxy API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/proxy/config', {
         method: 'PUT',
         body: JSON.stringify(validProxyConfig),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await PUT(request);
@@ -465,15 +482,17 @@ describe('Proxy API Error Handling', () => {
 
     it('should handle insufficient permissions for configuration update', async () => {
       const { checkProxyPermissions } = require('../../../lib/auth/session');
-      checkProxyPermissions.mockRejectedValue(new Error('Admin permissions required for proxy configuration'));
+      checkProxyPermissions.mockRejectedValue(
+        new Error('Admin permissions required for proxy configuration')
+      );
 
       const request = new NextRequest('http://localhost:3000/api/proxy/config', {
         method: 'PUT',
         body: JSON.stringify(validProxyConfig),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer user-token'
-        }
+          Authorization: 'Bearer user-token',
+        },
       });
 
       const response = await PUT(request);
@@ -490,7 +509,7 @@ describe('Proxy API Error Handling', () => {
       invalidateCache.mockRejectedValue(new Error('Cache invalidation failed'));
 
       const request = new NextRequest('http://localhost:3000/api/proxy/cache', {
-        method: 'DELETE'
+        method: 'DELETE',
       });
 
       const response = await DELETE(request);
@@ -505,7 +524,7 @@ describe('Proxy API Error Handling', () => {
       invalidateCache.mockRejectedValue(new Error('Cache service unavailable'));
 
       const request = new NextRequest('http://localhost:3000/api/proxy/cache', {
-        method: 'DELETE'
+        method: 'DELETE',
       });
 
       const response = await DELETE(request);
@@ -517,11 +536,16 @@ describe('Proxy API Error Handling', () => {
 
     it('should handle partial cache invalidation', async () => {
       const { invalidateCache } = require('../../../lib/cache/proxy-cache');
-      invalidateCache.mockRejectedValue(new Error('Partial cache invalidation: some entries could not be cleared'));
+      invalidateCache.mockRejectedValue(
+        new Error('Partial cache invalidation: some entries could not be cleared')
+      );
 
-      const request = new NextRequest('http://localhost:3000/api/proxy/cache?pattern=/api/external/*', {
-        method: 'DELETE'
-      });
+      const request = new NextRequest(
+        'http://localhost:3000/api/proxy/cache?pattern=/api/external/*',
+        {
+          method: 'DELETE',
+        }
+      );
 
       const response = await DELETE(request);
       const data = await response.json();
@@ -534,7 +558,9 @@ describe('Proxy API Error Handling', () => {
   describe('Proxy Security Enforcement', () => {
     it('should handle security policy violation', async () => {
       const { enforceSecurityPolicies } = require('../../../lib/security/proxy-security');
-      enforceSecurityPolicies.mockRejectedValue(new Error('Security policy violation: SSRF attempt detected'));
+      enforceSecurityPolicies.mockRejectedValue(
+        new Error('Security policy violation: SSRF attempt detected')
+      );
 
       const request = new NextRequest('http://localhost:3000/api/proxy?target=http://localhost:22');
       const response = await GET(request);
@@ -548,7 +574,9 @@ describe('Proxy API Error Handling', () => {
       const { enforceSecurityPolicies } = require('../../../lib/security/proxy-security');
       enforceSecurityPolicies.mockRejectedValue(new Error('Suspicious request pattern detected'));
 
-      const request = new NextRequest('http://localhost:3000/api/proxy?target=https://api.example.com/../../../etc/passwd');
+      const request = new NextRequest(
+        'http://localhost:3000/api/proxy?target=https://api.example.com/../../../etc/passwd'
+      );
       const response = await GET(request);
       const data = await response.json();
 
@@ -558,11 +586,16 @@ describe('Proxy API Error Handling', () => {
 
     it('should handle IP address restriction violation', async () => {
       const { enforceSecurityPolicies } = require('../../../lib/security/proxy-security');
-      enforceSecurityPolicies.mockRejectedValue(new Error('IP address not allowed for proxy requests'));
+      enforceSecurityPolicies.mockRejectedValue(
+        new Error('IP address not allowed for proxy requests')
+      );
 
-      const request = new NextRequest('http://localhost:3000/api/proxy?target=https://restricted.example.com', {
-        headers: { 'X-Forwarded-For': '192.168.1.100' }
-      });
+      const request = new NextRequest(
+        'http://localhost:3000/api/proxy?target=https://restricted.example.com',
+        {
+          headers: { 'X-Forwarded-For': '192.168.1.100' },
+        }
+      );
 
       const response = await GET(request);
       const data = await response.json();
@@ -577,7 +610,9 @@ describe('Proxy API Error Handling', () => {
       const { checkCachePolicy } = require('../../../lib/cache/proxy-cache');
       checkCachePolicy.mockRejectedValue(new Error('Invalid cache policy for target'));
 
-      const request = new NextRequest('http://localhost:3000/api/proxy?target=https://no-cache.example.com');
+      const request = new NextRequest(
+        'http://localhost:3000/api/proxy?target=https://no-cache.example.com'
+      );
       const response = await GET(request);
       const data = await response.json();
 
@@ -589,7 +624,9 @@ describe('Proxy API Error Handling', () => {
       const { setCachedResponse } = require('../../../lib/cache/proxy-cache');
       setCachedResponse.mockRejectedValue(new Error('Cache storage failure'));
 
-      const request = new NextRequest('http://localhost:3000/api/proxy?target=https://cacheable.example.com');
+      const request = new NextRequest(
+        'http://localhost:3000/api/proxy?target=https://cacheable.example.com'
+      );
       const response = await GET(request);
       const data = await response.json();
 
@@ -601,7 +638,9 @@ describe('Proxy API Error Handling', () => {
       const { getCachedResponse } = require('../../../lib/cache/proxy-cache');
       getCachedResponse.mockRejectedValue(new Error('Corrupted cache data detected'));
 
-      const request = new NextRequest('http://localhost:3000/api/proxy?target=https://cached.example.com');
+      const request = new NextRequest(
+        'http://localhost:3000/api/proxy?target=https://cached.example.com'
+      );
       const response = await GET(request);
       const data = await response.json();
 
@@ -615,7 +654,9 @@ describe('Proxy API Error Handling', () => {
       const { logProxyActivity } = require('../../../lib/services/proxy-manager');
       logProxyActivity.mockRejectedValue(new Error('Proxy activity logging failed'));
 
-      const request = new NextRequest('http://localhost:3000/api/proxy?target=https://api.example.com');
+      const request = new NextRequest(
+        'http://localhost:3000/api/proxy?target=https://api.example.com'
+      );
       const response = await GET(request);
       const data = await response.json();
 
@@ -628,7 +669,9 @@ describe('Proxy API Error Handling', () => {
       const { logProxyActivity } = require('../../../lib/services/proxy-manager');
       logProxyActivity.mockRejectedValue(new Error('Log storage capacity exceeded'));
 
-      const request = new NextRequest('http://localhost:3000/api/proxy?target=https://api.example.com');
+      const request = new NextRequest(
+        'http://localhost:3000/api/proxy?target=https://api.example.com'
+      );
       await GET(request);
 
       // Should continue processing despite logging failure
@@ -641,7 +684,9 @@ describe('Proxy API Error Handling', () => {
       const { forwardRequest } = require('../../../lib/services/proxy-manager');
       forwardRequest.mockRejectedValue(new Error('Temporary proxy service outage'));
 
-      const request = new NextRequest('http://localhost:3000/api/proxy?target=https://api.example.com');
+      const request = new NextRequest(
+        'http://localhost:3000/api/proxy?target=https://api.example.com'
+      );
       const response = await GET(request);
       const data = await response.json();
 
@@ -653,7 +698,9 @@ describe('Proxy API Error Handling', () => {
       const { forwardRequest } = require('../../../lib/services/proxy-manager');
       forwardRequest.mockRejectedValue(new Error('Test error'));
 
-      const request = new NextRequest('http://localhost:3000/api/proxy?target=https://api.example.com');
+      const request = new NextRequest(
+        'http://localhost:3000/api/proxy?target=https://api.example.com'
+      );
       await GET(request);
 
       const stats = errorHandler.getErrorStats();
@@ -664,7 +711,9 @@ describe('Proxy API Error Handling', () => {
       const { forwardRequest } = require('../../../lib/services/proxy-manager');
       forwardRequest.mockRejectedValue(new Error('Test error'));
 
-      const request = new NextRequest('http://localhost:3000/api/proxy?target=https://api.example.com');
+      const request = new NextRequest(
+        'http://localhost:3000/api/proxy?target=https://api.example.com'
+      );
       const response = await GET(request);
       const data = await response.json();
 

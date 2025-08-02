@@ -14,6 +14,10 @@ export const UpdateAgentRequestSchema = AgentSchema.partial();
 
 export type UpdateAgentRequest = z.infer<typeof UpdateAgentRequestSchema>;
 
-export const CreateAgentRequestSchema = AgentSchema.omit({ id: true, createdAt: true, updatedAt: true });
+export const CreateAgentRequestSchema = AgentSchema.omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
 
 export type CreateAgentRequest = z.infer<typeof CreateAgentRequestSchema>;

@@ -11,24 +11,28 @@
 ## 🚀 主要功能特性
 
 ### CAD 文件支持
+
 - **DWG 文件解析** - 支持AutoCAD绘图文件的完整解析
 - **IGES 文件处理** - 支持IGES标准的3D模型文件
 - **STEP 文件分析** - 支持STEP标准的CAD文件格式
 - **多格式转换** - 支持各种CAD格式之间的相互转换
 
 ### 智能分析功能
+
 - **AI多模态分析** - 结合文本和图像的智能CAD文件分析
 - **自动报告生成** - 支持HTML和PDF格式的分析报告
 - **缩略图生成** - 自动生成CAD文件的预览图
 - **文件验证** - 完整的CAD文件格式验证和错误检测
 
 ### 性能优化
+
 - **批处理支持** - 高效的批量CAD文件处理
 - **缓存机制** - 智能缓存提升响应速度
 - **异步处理** - 非阻塞的文件处理流程
 - **性能监控** - 实时的系统性能监控和错误追踪
 
 ### 用户界面
+
 - **现代化UI** - 基于Next.js和Tailwind CSS的响应式界面
 - **实时聊天** - 流式的AI对话体验
 - **文件上传** - 拖拽式的CAD文件上传界面
@@ -37,18 +41,21 @@
 ## 🛠 技术栈
 
 ### 前端技术
+
 - **Next.js 13+** - React全栈框架
 - **TypeScript** - 类型安全的JavaScript
 - **Tailwind CSS** - 实用优先的CSS框架
 - **React Hooks** - 现代React状态管理
 
 ### 后端技术
+
 - **Node.js** - JavaScript运行时环境
 - **Express.js** - Web应用框架
 - **FastGPT Integration** - AI模型集成
 - **File Processing** - 多格式文件处理
 
 ### CAD处理引擎
+
 - **OpenCASCADE** - 3D建模和分析
 - **Three.js** - 3D可视化渲染
 - **Canvas API** - 2D图形处理
@@ -57,11 +64,13 @@
 ## 📦 安装和部署
 
 ### 环境要求
+
 - Node.js >= 18.0.0
 - npm >= 8.0.0 或 yarn >= 1.22.0
 - 操作系统: Windows 10+, macOS 10.15+, Linux Ubuntu 20.04+
 
 ### 本地开发
+
 ```bash
 # 克隆项目
 git clone https://github.com/wilson323/ai-chat-interface-cad-enhanced.git
@@ -78,6 +87,7 @@ npm run dev
 ```
 
 ### 生产部署
+
 ```bash
 # 构建项目
 npm run build
@@ -92,6 +102,7 @@ docker-compose -f docker-compose.prod.yml up -d
 ## 🔧 配置说明
 
 ### 环境变量配置
+
 参考 `.env.production.example` 文件配置以下关键变量：
 
 ```env
@@ -134,18 +145,21 @@ DATABASE_URL=your_database_url
 ## 🎯 使用指南
 
 ### CAD文件分析
+
 1. 访问CAD分析页面
 2. 上传支持的CAD文件（DWG/IGES/STEP）
 3. 等待AI智能分析完成
 4. 查看生成的分析报告和可视化结果
 
 ### AI聊天功能
+
 1. 进入聊天界面
 2. 可以询问CAD相关的技术问题
 3. 支持上传CAD文件进行实时分析讨论
 4. 获得专业的CAD设计建议
 
 ### 批量处理
+
 1. 使用管理后台的批处理功能
 2. 批量上传多个CAD文件
 3. 配置分析参数
@@ -182,11 +196,13 @@ DATABASE_URL=your_database_url
 ## UI主题色统一
 
 ### 主题色规范
+
 - **主色调**: `#6cb33f` (绿色)
 - **悬停色**: `#5da32f` (深绿色)
 - **透明色**: `rgba(108, 179, 63, 0.1)` / `rgba(108, 179, 63, 0.2)`
 
 ### CAD智能体主题色应用
+
 - ✅ 所有按钮使用统一主题色
 - ✅ 进度条和加载指示器使用主题色
 - ✅ 图标和强调元素使用主题色
@@ -195,6 +211,7 @@ DATABASE_URL=your_database_url
 - ✅ 3D查看器界面元素配色
 
 ### CSS变量配置
+
 ```css
 .cad-theme {
   --cad-primary: #6cb33f;
@@ -202,4 +219,4 @@ DATABASE_URL=your_database_url
   --cad-primary-light: rgba(108, 179, 63, 0.1);
   --cad-primary-dark: rgba(108, 179, 63, 0.2);
 }
-``` 
+```

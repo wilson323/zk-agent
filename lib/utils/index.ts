@@ -9,6 +9,9 @@ import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { REGEX_PATTERNS, TIME_INTERVALS } from '../constants';
 import type { ValidationResult, PaginationParams, PaginationResult } from '../types/interfaces';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
 
 // ============================================================================
 // 样式工具函数
@@ -44,11 +47,35 @@ export function generateRandomColor(seed?: string): string {
  * @param str - 输入字符串
  * @returns 0-1之间的数字
  */
+/**
+ * 延迟函数
+ * 异步等待指定毫秒数
+ * @param ms - 等待毫秒数，默认1000
+ * @returns Promise<void>
+ */
+export async function delay(ms: number = 1000): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * 生成唯一ID
+ * 使用时间戳和随机数生成唯一ID
+ * @param prefix - ID前缀，默认为空
+ * @returns 唯一ID字符串
+ */
+export function generateId(prefix: string = ''): string {
+  const timestamp = Date.now().toString(36);
+  const random = Math.random().toString(36).substr(2, 5);
+  return prefix + timestamp + random;
+}
+
+// groupBy函数已在array-utils.ts中定义并通过export * from './array-utils'导出
+
 function hashString(str: string): number {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash = hash & hash; // Convert to 32-bit integer
   }
   return Math.abs(hash) / 2147483647;
@@ -67,7 +94,7 @@ export function validateEmail(email: string): ValidationResult {
   const isValid = REGEX_PATTERNS.EMAIL.test(email);
   return {
     isValid,
-    errors: isValid ? [] : ['请输入有效的邮箱地址']
+    errors: isValid ? [] : ['请输入有效的邮箱地址'],
   };
 }
 
@@ -80,7 +107,7 @@ export function validatePhone(phone: string): ValidationResult {
   const isValid = REGEX_PATTERNS.PHONE.test(phone);
   return {
     isValid,
-    errors: isValid ? [] : ['请输入有效的手机号码']
+    errors: isValid ? [] : ['请输入有效的手机号码'],
   };
 }
 
@@ -96,7 +123,7 @@ export function validateUsername(username: string): ValidationResult {
   const isValid = REGEX_PATTERNS.USERNAME.test(username);
   return {
     isValid,
-    errors: isValid ? [] : ['用户名只能包含字母、数字和下划线，长度3-20位']
+    errors: isValid ? [] : ['用户名只能包含字母、数字和下划线，长度3-20位'],
   };
 }
 
@@ -109,7 +136,7 @@ export function validateUrl(url: string): ValidationResult {
   const isValid = REGEX_PATTERNS.URL.test(url);
   return {
     isValid,
-    errors: isValid ? [] : ['请输入有效的URL地址']
+    errors: isValid ? [] : ['请输入有效的URL地址'],
   };
 }
 
@@ -193,10 +220,7 @@ export { formatFileSize } from './file-utils';
  * @param options - 格式化选项
  * @returns 格式化后的数字字符串
  */
-export function formatNumber(
-  num: number,
-  options: Intl.NumberFormatOptions = {}
-): string {
+export function formatNumber(num: number, options: Intl.NumberFormatOptions = {}): string {
   return new Intl.NumberFormat('zh-CN', options).format(num);
 }
 
@@ -224,14 +248,14 @@ export function randomBetween(min: number, max: number, integer = true): number 
  */
 export function formatDate(date: Date | number | string, format = 'YYYY-MM-DD HH:mm:ss'): string {
   const d = new Date(date);
-  
+
   const year = d.getFullYear();
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   const hours = String(d.getHours()).padStart(2, '0');
   const minutes = String(d.getMinutes()).padStart(2, '0');
   const seconds = String(d.getSeconds()).padStart(2, '0');
-  
+
   return format
     .replace('YYYY', String(year))
     .replace('MM', month)
@@ -250,7 +274,7 @@ export function getRelativeTime(date: Date | number | string): string {
   const now = new Date();
   const target = new Date(date);
   const diff = now.getTime() - target.getTime();
-  
+
   if (diff < TIME_INTERVALS.MINUTE) {
     return '刚刚';
   } else if (diff < TIME_INTERVALS.HOUR) {
@@ -298,16 +322,20 @@ export function formatTimeDistance(dateString: string): string {
     const date = new Date(dateString);
     const now = new Date();
     const diff = now.getTime() - date.getTime();
-    
-    if (diff < 60000) { // 1分钟内
+
+    if (diff < 60000) {
+      // 1分钟内
       return '刚刚';
-    } else if (diff < 3600000) { // 1小时内
+    } else if (diff < 3600000) {
+      // 1小时内
       const minutes = Math.floor(diff / 60000);
       return `${minutes}分钟前`;
-    } else if (diff < 86400000) { // 1天内
+    } else if (diff < 86400000) {
+      // 1天内
       const hours = Math.floor(diff / 3600000);
       return `${hours}小时前`;
-    } else if (diff < 604800000) { // 1周内
+    } else if (diff < 604800000) {
+      // 1周内
       const days = Math.floor(diff / 86400000);
       return `${days}天前`;
     } else {
@@ -318,13 +346,7 @@ export function formatTimeDistance(dateString: string): string {
   }
 }
 
-/**
- * 生成唯一ID
- * @returns 唯一ID字符串
- */
-export function generateId(): string {
-  return `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-}
+
 
 /**
  * 生成短ID
@@ -332,17 +354,12 @@ export function generateId(): string {
  * @returns 短ID字符串
  */
 export function generateShortId(length: number = 8): string {
-  return Math.random().toString(36).substring(2, 2 + length);
+  return Math.random()
+    .toString(36)
+    .substring(2, 2 + length);
 }
 
-/**
- * 延迟执行
- * @param ms - 延迟毫秒数
- * @returns Promise
- */
-export function delay(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
+
 
 // ============================================================================
 // 数组处理工具函数
@@ -358,7 +375,7 @@ export function uniqueArray<T>(array: T[], key?: keyof T): T[] {
   if (!key) {
     return [...new Set(array)];
   }
-  
+
   const seen = new Set();
   return array.filter(item => {
     const value = item[key];
@@ -398,22 +415,7 @@ export function shuffleArray<T>(array: T[]): T[] {
   return shuffled;
 }
 
-/**
- * 数组分组
- * @param array - 输入数组
- * @param keyFn - 分组键函数
- * @returns 分组后的对象
- */
-export function groupBy<T>(array: T[], keyFn: (item: T) => string): Record<string, T[]> {
-  return array.reduce((groups, item) => {
-    const key = keyFn(item);
-    if (!groups[key]) {
-      groups[key] = [];
-    }
-    groups[key].push(item);
-    return groups;
-  }, {} as Record<string, T[]>);
-}
+
 
 /**
  * 数组排序
@@ -426,7 +428,7 @@ export function sortBy<T>(array: T[], keyFn: (item: T) => any, order: 'asc' | 'd
   return [...array].sort((a, b) => {
     const aVal = keyFn(a);
     const bVal = keyFn(b);
-    
+
     if (aVal < bVal) return order === 'asc' ? -1 : 1;
     if (aVal > bVal) return order === 'asc' ? 1 : -1;
     return 0;
@@ -442,29 +444,29 @@ export function sortBy<T>(array: T[], keyFn: (item: T) => any, order: 'asc' | 'd
  * @param obj - 输入对象
  * @returns 克隆后的对象
  */
-export function deepClone<T extends object>(obj: T): T {
+export function deepClone<T>(obj: T): T {
   if (obj === null || typeof obj !== 'object') {
     return obj;
   }
-  
+
   if (obj instanceof Date) {
     return new Date(obj.getTime()) as T;
   }
-  
+
   if (obj instanceof Array) {
     return obj.map(item => deepClone(item)) as T;
   }
-  
+
   if (typeof obj === 'object') {
     const cloned = {} as T;
     for (const key in obj) {
-      if (obj.hasOwnProperty(key)) {
-        cloned[key] = deepClone(obj[key]);
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        (cloned as any)[key] = deepClone((obj as any)[key]);
       }
     }
     return cloned;
   }
-  
+
   return obj;
 }
 
@@ -477,7 +479,7 @@ export function deepClone<T extends object>(obj: T): T {
 export function pickObject<T, K extends keyof T>(obj: T, keys: K[]): Pick<T, K> {
   const result = {} as Pick<T, K>;
   keys.forEach(key => {
-    if (key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
       result[key] = obj[key];
     }
   });
@@ -509,7 +511,7 @@ export function omitObject<T, K extends keyof T>(obj: T, keys: K[]): Omit<T, K> 
  */
 export function buildQueryString(params: Record<string, any>): string {
   const searchParams = new URLSearchParams();
-  
+
   Object.entries(params).forEach(([key, value]) => {
     if (value !== null && value !== undefined && value !== '') {
       if (Array.isArray(value)) {
@@ -519,7 +521,7 @@ export function buildQueryString(params: Record<string, any>): string {
       }
     }
   });
-  
+
   return searchParams.toString();
 }
 
@@ -531,7 +533,7 @@ export function buildQueryString(params: Record<string, any>): string {
 export function parseQueryString(queryString: string): Record<string, string | string[]> {
   const params: Record<string, string | string[]> = {};
   const searchParams = new URLSearchParams(queryString);
-  
+
   searchParams.forEach((value, key) => {
     if (params[key]) {
       if (Array.isArray(params[key])) {
@@ -543,7 +545,7 @@ export function parseQueryString(queryString: string): Record<string, string | s
       params[key] = value;
     }
   });
-  
+
   return params;
 }
 
@@ -566,15 +568,15 @@ export function calculatePagination<T>(
   const hasNext = page < totalPages;
   const hasPrev = page > 1;
   const offset = (page - 1) * limit;
-  
+
   return {
+    items: [] as T[], // 需要在调用时填充实际数据
+    total: totalCount,
     page,
     limit,
-    totalCount,
     totalPages,
     hasNext,
     hasPrev,
-    offset
   };
 }
 
@@ -588,14 +590,11 @@ export function calculatePagination<T>(
  * @param defaultValue - 默认返回值
  * @returns 执行结果或默认值
  */
-export async function safeAsync<T>(
-  fn: () => Promise<T>,
-  defaultValue: T
-): Promise<T> {
+export async function safeAsync<T>(fn: () => Promise<T>, defaultValue: T): Promise<T> {
   try {
     return await fn();
   } catch (error) {
-    console.error('Safe async execution failed:', error);
+    logger.error('Safe async execution failed:', error);
     return defaultValue;
   }
 }
@@ -613,7 +612,7 @@ export async function retryAsync<T>(
   delayMs = 1000
 ): Promise<T> {
   let lastError: Error;
-  
+
   for (let i = 0; i <= maxRetries; i++) {
     try {
       return await fn();
@@ -624,7 +623,7 @@ export async function retryAsync<T>(
       }
     }
   }
-  
+
   throw lastError!;
 }
 
@@ -639,11 +638,11 @@ export async function retryAsync<T>(
  */
 export function createTimer(label: string): () => number {
   const start = performance.now();
-  
+
   return () => {
     const end = performance.now();
     const duration = end - start;
-    console.log(`${label}: ${duration.toFixed(2)}ms`);
+
     return duration;
   };
 }
@@ -654,10 +653,7 @@ export function createTimer(label: string): () => number {
  * @param label - 标签
  * @returns 包装后的函数
  */
-export function measureTime<T extends (...args: any[]) => any>(
-  fn: T,
-  label?: string
-): T {
+export function measureTime<T extends (...args: any[]) => any>(fn: T, label?: string): T {
   return ((...args: Parameters<T>) => {
     const timer = createTimer(label || fn.name || 'Anonymous function');
     const result = fn(...args);
@@ -675,3 +671,7 @@ export * from './crypto-utils';
 export * from './device-utils';
 export * from './api-utils';
 export * from './array-utils'; // Add array-utils export
+export { default as logger, getLogger } from './logger';
+
+// 明确导出关键函数以解决导入问题
+export { groupBy } from './array-utils';

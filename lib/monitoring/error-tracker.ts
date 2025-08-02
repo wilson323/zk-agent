@@ -8,6 +8,9 @@
 import { EventEmitter } from 'events';
 import { enhancedDb, dbTransaction } from '@/lib/database';
 import { LogLevel } from '@prisma/client';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
 
 // 错误上下文接口
 export interface ErrorContext {
@@ -63,12 +66,12 @@ export class ErrorTracker extends EventEmitter {
    */
   startTracking(): void {
     if (this.isTracking) {
-      console.warn('Error tracking is already running');
+      logger.warn('Error tracking is already running');
       return;
     }
 
     this.isTracking = true;
-    console.log('Starting error tracking...');
+
     this.emit('trackingStarted');
   }
 
@@ -86,7 +89,6 @@ export class ErrorTracker extends EventEmitter {
       this.cacheCleanupInterval = null;
     }
 
-    console.log('Error tracking stopped');
     this.emit('trackingStopped');
   }
 
@@ -130,7 +132,7 @@ export class ErrorTracker extends EventEmitter {
       // 检查是否需要告警
       this.checkErrorAlerts(errorData);
     } catch (trackingError) {
-      console.error('Failed to track error:', trackingError);
+      logger.error('Failed to track error:', trackingError);
       this.emit('trackingError', trackingError);
     }
   }
@@ -140,7 +142,10 @@ export class ErrorTracker extends EventEmitter {
    */
   async getErrorStats(timeRangeMs: number = 86400000): Promise<ErrorStats> {
     try {
-      const prisma = productionDatabaseManager.getPrismaClient();
+      const prisma = enhancedDb.getClient();
+      if (!prisma) {
+        throw new Error('Database client is not available');
+      }
       const cutoffTime = new Date(Date.now() - timeRangeMs);
 
       const errors = await prisma.errorLog.findMany({
@@ -151,18 +156,12 @@ export class ErrorTracker extends EventEmitter {
         },
       });
 
-      const totalErrors = errors.length;
-      const unresolvedErrors = errors.filter((e: any) => !e.resolved).length;
-      const errorsByLevel = errors.reduce(
-        (acc: Record<LogLevel, number>, error: any) => {
-          acc[error.level] = (acc[error.level] || 0) + 1;
-          return acc;
-        },
-        {} as Record<LogLevel, number>
-      );
+      const totalErrors = errors?.length || 0;
+      const unresolvedErrors = errors?.filter((e: any) => !e.resolved).length || 0;
+      const errorsByLevel = this.getErrorLevelCounts(errors || []);
 
-      const errorsByType = errors.reduce(
-        (acc: Record<LogLevel, number>, error: any) => {
+      const errorsByType = (errors || []).reduce(
+        (acc: Record<string, number>, error: any) => {
           const type = this.extractErrorType(error.message);
           acc[type] = (acc[type] || 0) + 1;
           return acc;
@@ -174,13 +173,13 @@ export class ErrorTracker extends EventEmitter {
       const errorRate = totalErrors / timeRangeHours;
 
       // 计算MTTR（简化版本）
-      const resolvedErrors = errors.filter((e: any) => e.resolved);
+      const resolvedErrors = (errors || []).filter((e: any) => e.resolved);
       const mttr =
         resolvedErrors.length > 0
           ? resolvedErrors.reduce((acc: number) => {
-              // 假设解决时间为创建后24小时（实际应该有解决时间字段）
-              return acc + 24;
-            }, 0) / resolvedErrors.length
+            // 假设解决时间为创建后24小时（实际应该有解决时间字段）
+            return acc + 24;
+          }, 0) / resolvedErrors.length
           : 0;
 
       return {
@@ -192,7 +191,7 @@ export class ErrorTracker extends EventEmitter {
         unresolvedErrors,
       };
     } catch (error) {
-      console.error('Failed to get error stats:', error);
+      logger.error('Failed to get error stats:', error);
       throw error;
     }
   }
@@ -202,7 +201,10 @@ export class ErrorTracker extends EventEmitter {
    */
   async analyzeErrorPatterns(timeRangeMs: number = 86400000): Promise<ErrorAnalysis[]> {
     try {
-      const prisma = productionDatabaseManager.getPrismaClient();
+      const prisma = enhancedDb.getClient();
+      if (!prisma) {
+        throw new Error('Database client is not available');
+      }
       const cutoffTime = new Date(Date.now() - timeRangeMs);
 
       const errors = await prisma.errorLog.findMany({
@@ -215,6 +217,10 @@ export class ErrorTracker extends EventEmitter {
           createdAt: 'desc',
         },
       });
+
+      if (!errors || errors.length === 0) {
+        return [];
+      }
 
       const errorGroups = this.groupErrorsByPattern(errors);
       const analyses: ErrorAnalysis[] = [];
@@ -230,7 +236,7 @@ export class ErrorTracker extends EventEmitter {
 
       return analyses.sort((a, b) => b.frequency - a.frequency);
     } catch (error) {
-      console.error('Failed to analyze error patterns:', error);
+      logger.error('Failed to analyze error patterns:', error);
       throw error;
     }
   }
@@ -240,7 +246,10 @@ export class ErrorTracker extends EventEmitter {
    */
   async resolveError(errorId: string, resolvedBy?: string): Promise<void> {
     try {
-      const prisma = productionDatabaseManager.getPrismaClient();
+      const prisma = enhancedDb.getClient();
+      if (!prisma) {
+        throw new Error('Database client not available');
+      }
       await prisma.errorLog.update({
         where: { id: errorId },
         data: {
@@ -254,7 +263,7 @@ export class ErrorTracker extends EventEmitter {
 
       this.emit('errorResolved', { errorId, resolvedBy });
     } catch (error) {
-      console.error('Failed to resolve error:', error);
+      logger.error('Failed to resolve error:', error);
       throw error;
     }
   }
@@ -288,8 +297,13 @@ export class ErrorTracker extends EventEmitter {
    * 保存错误到数据库
    */
   private async saveErrorToDatabase(errorData: any): Promise<void> {
-    const prisma = enhancedDb.prisma;
-    await prisma.errorLog.create({
+    const prismaClient = enhancedDb.getClient();
+
+    if (!prismaClient) {
+      throw new Error('Database client not available');
+    }
+
+    await prismaClient.errorLog.create({
       data: {
         level: errorData.level,
         message: errorData.message,
@@ -355,6 +369,9 @@ export class ErrorTracker extends EventEmitter {
    */
   private groupErrorsByPattern(errors: any[]): Map<string, any[]> {
     const groups = new Map<string, any[]>();
+    if (!errors) {
+      return groups;
+    }
 
     for (const error of errors) {
       const pattern = this.extractErrorType(error.message);
@@ -365,6 +382,28 @@ export class ErrorTracker extends EventEmitter {
     }
 
     return groups;
+  }
+
+  /**
+   * 获取错误级别统计
+   */
+  private getErrorLevelCounts(errors: any[]): Record<LogLevel, number> {
+    const counts: Record<LogLevel, number> = {
+      [LogLevel.DEBUG]: 0,
+      [LogLevel.INFO]: 0,
+      [LogLevel.WARN]: 0,
+      [LogLevel.ERROR]: 0,
+      [LogLevel.FATAL]: 0,
+    };
+
+    errors.forEach(error => {
+      const level = error.level || LogLevel.ERROR;
+      if (counts[level] !== undefined) {
+        counts[level]++;
+      }
+    });
+
+    return counts;
   }
 
   /**

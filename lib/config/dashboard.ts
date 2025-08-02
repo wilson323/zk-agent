@@ -9,13 +9,7 @@ export const DASHBOARD_CONFIG = {
   // 实时指标
   realTimeMetrics: {
     updateInterval: 5000, // 5秒更新
-    metrics: [
-      'responseTime',
-      'throughput',
-      'errorRate',
-      'memoryUsage',
-      'cacheHitRate',
-    ],
+    metrics: ['responseTime', 'throughput', 'errorRate', 'memoryUsage', 'cacheHitRate'],
   },
   // 历史数据
   historicalData: {

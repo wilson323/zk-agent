@@ -37,7 +37,7 @@ export interface RunConfig {
 
 // 运行相关事件
 export interface RunStartedEvent extends BaseEvent {
-  type: "run-started" | "RUN_STARTED";
+  type: 'run-started' | 'RUN_STARTED';
   threadId: string;
   runId: string;
   agentId?: string;
@@ -45,7 +45,7 @@ export interface RunStartedEvent extends BaseEvent {
 }
 
 export interface RunFinishedEvent extends BaseEvent {
-  type: "run-finished" | "RUN_FINISHED";
+  type: 'run-finished' | 'RUN_FINISHED';
   threadId: string;
   runId: string;
   duration?: number;
@@ -60,7 +60,7 @@ export interface RunFinishedEvent extends BaseEvent {
 }
 
 export interface RunErrorEvent extends BaseEvent {
-  type: "run-error" | "RUN_ERROR";
+  type: 'run-error' | 'RUN_ERROR';
   threadId?: string;
   runId?: string;
   message: string;
@@ -74,7 +74,7 @@ export interface RunErrorEvent extends BaseEvent {
 }
 
 export interface RunCancelledEvent extends BaseEvent {
-  type: "run-cancelled";
+  type: 'run-cancelled';
   threadId: string;
   runId: string;
   reason?: string;
@@ -82,39 +82,39 @@ export interface RunCancelledEvent extends BaseEvent {
 
 // 消息相关事件
 export interface TextMessageStartEvent extends BaseEvent {
-  type: "text-message-start";
+  type: 'text-message-start';
   messageId: string;
-  role: "user" | "assistant" | "system";
+  role: 'user' | 'assistant' | 'system';
 }
 
 export interface TextMessageContentEvent extends BaseEvent {
-  type: "text-message-content";
+  type: 'text-message-content';
   messageId: string;
   delta: string;
 }
 
 export interface TextMessageEndEvent extends BaseEvent {
-  type: "text-message-end";
+  type: 'text-message-end';
   messageId: string;
 }
 
 // 工具调用相关事件
 export interface ToolCallStartEvent extends BaseEvent {
-  type: "tool-call-start";
+  type: 'tool-call-start';
   toolCallId: string;
   toolName: string;
   args: Record<string, any>;
 }
 
 export interface ToolCallEndEvent extends BaseEvent {
-  type: "tool-call-end";
+  type: 'tool-call-end';
   toolCallId: string;
   result?: any;
   error?: string;
 }
 
 // 联合类型
-export type AgUiEvent = 
+export type AgUiEvent =
   | RunStartedEvent
   | RunFinishedEvent
   | RunErrorEvent
@@ -126,7 +126,7 @@ export type AgUiEvent =
   | ToolCallEndEvent;
 
 // 协议版本
-export const AG_UI_PROTOCOL_VERSION = "1.0.0";
+export const AG_UI_PROTOCOL_VERSION = '1.0.0';
 
 // 事件处理器类型
 export type EventHandler<T extends BaseEvent = BaseEvent> = (event: T) => void | Promise<void>;

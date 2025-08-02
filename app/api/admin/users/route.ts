@@ -24,9 +24,9 @@ export const GET = createApiRoute(
       }
 
       const { searchParams } = new URL(req.url);
-  const validationResult = getUsersSchema.safeParse(Object.fromEntries(searchParams));
+      const validationResult = getUsersSchema.safeParse(Object.fromEntries(searchParams));
 
-  if (!validationResult.success) {
+      if (!validationResult.success) {
         return ApiResponseWrapper.error(
           ErrorCode.VALIDATION_ERROR,
           validationResult.error.errors[0]?.message || '验证失败',
@@ -75,7 +75,8 @@ export const GET = createApiRoute(
         },
       });
     } catch (error) {
-      return ApiResponseWrapper.error(ErrorCode.INTERNAL_SERVER_ERROR,
+      return ApiResponseWrapper.error(
+        ErrorCode.INTERNAL_SERVER_ERROR,
         '获取用户列表失败',
         null,
         500

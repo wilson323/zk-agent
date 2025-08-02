@@ -34,10 +34,10 @@ export default defineConfig({
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
-    
+
     /* Take screenshot on failure */
     screenshot: 'only-on-failure',
-    
+
     /* Record video on failure */
     video: 'retain-on-failure',
   },
@@ -87,17 +87,17 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,
   },
-  
+
   /* Global setup and teardown */
   globalSetup: require.resolve('./e2e/global-setup'),
   globalTeardown: require.resolve('./e2e/global-teardown'),
-  
+
   /* Test timeout */
   timeout: 30 * 1000,
   expect: {
     timeout: 5 * 1000,
   },
-  
+
   /* Output directory */
   outputDir: 'test-results/',
-}); 
+});

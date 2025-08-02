@@ -3,9 +3,11 @@
 ## 🚨 核心开发铁律（必须严格遵守）
 
 ### 🔥 基于现有代码优化的绝对原则
+
 > **关键要求：尽可能基于现有代码进行优化调整，确保没有代码冗余，是在本系统上优化而不是新建一个系统**
 
 #### 📁 必须基于的现有文件清单：
+
 ```typescript
 const EXISTING_FILES_TO_ENHANCE = {
   // 🔥 核心UI组件（必须扩展，绝不重写）
@@ -14,16 +16,16 @@ const EXISTING_FILES_TO_ENHANCE = {
   'components/ui/card.tsx': '卡片组件 - 需添加多断点适配',
   'components/ui/badge.tsx': '徽章组件 - 需移动端优化',
   'components/ui/progress.tsx': '进度条 - 需3D可视化增强',
-  
+
   // 🎯 状态管理（必须复用）
   'lib/stores/agent-store.ts': '453行 - 智能体状态管理 - 前端使用',
   'hooks/use-toast.ts': '现有toast hook - 需智能体个性化',
-  
+
   // 🌟 页面文件（必须增强）
   'app/page.tsx': '主页面 - 需宇宙级设计改造',
   'app/(user)/chat/page.tsx': '对话页面 - 需智能体切换器',
   'app/(user)/cad-analyzer/page.tsx': 'CAD页面 - 需灵魂设计',
-  
+
   // 🎨 样式文件（必须基于扩展）
   'styles/globals.css': '全局样式 - 需智能体主题色彩',
   'tailwind.config.ts': 'Tailwind配置 - 需10断点系统',
@@ -31,6 +33,7 @@ const EXISTING_FILES_TO_ENHANCE = {
 ```
 
 #### 实施要求：
+
 1. **扩展现有组件，绝不重复造轮子** - 在969行的`CADAnalyzerContainer.tsx`基础上增强，不创建新的分析器
 2. **复用现有hooks和状态** - 利用已有的`useAgentStore`、`useToast`等，现有store已有完整的智能体管理功能
 3. **保持现有API接口** - 现有的props和状态管理必须完全兼容
@@ -38,6 +41,7 @@ const EXISTING_FILES_TO_ENHANCE = {
 5. **代码去重合并** - 发现重复代码立即合并优化
 
 #### 🔍 代码审查检查清单：
+
 - [ ] 是否基于现有组件进行扩展？
 - [ ] 是否复用了现有的工具函数？
 - [ ] 是否保持了接口向后兼容？
@@ -47,71 +51,75 @@ const EXISTING_FILES_TO_ENHANCE = {
 ## 🌟 多智能体平台灵魂设计理念
 
 ### 🎯 设计哲学：直击人类灵魂的体验
+
 这不是一个单一的AI工具，而是一个**多智能体宇宙**！每个智能体都有独特的人格和专业能力：
 
 - **💬 对话智能体** - 温暖的绿色光晕，像朋友一样聊天
-- **📐 CAD解读智能体** - 蓝色科技感，精密工程的化身  
+- **📐 CAD解读智能体** - 蓝色科技感，精密工程的化身
 - **🎨 海报设计智能体** - 紫色创意光环，艺术大师的灵感
 
 ### 🎨 视觉设计核心（主题色：绿色 #6cb33f）
+
 ```typescript
 // 基于现有Tailwind配置扩展，不替换
 // 在 tailwind.config.ts 中增强
 export default {
   // 保持现有配置不变
   ...existingConfig,
-  
+
   theme: {
     extend: {
       // 保持现有主题，添加智能体色彩系统
       colors: {
         // 保持现有所有颜色
         ...existingColors,
-        
+
         // 新增：智能体专属色彩（不替换现有）
         'agent-fastgpt': '#6cb33f',
         'agent-cad': '#3b82f6',
         'agent-poster': '#8b5cf6',
-        
+
         // 新增：宇宙背景色谱
         'universe-bg': '#0f172a',
         'universe-stars': '#f8fafc',
         'universe-nebula': 'rgba(108, 179, 63, 0.1)',
       },
-      
+
       // 新增：10断点响应式系统（扩展现有）
       screens: {
         // 保持现有断点
         ...existingScreens,
-        
+
         // 新增断点（精确覆盖所有设备）
-        'xs': '320px',    // iPhone SE
-        '3xl': '1440px',  // 大屏笔记本
-        '4xl': '1920px',  // 全高清显示器
-        '5xl': '2560px',  // 2K显示器
-        '6xl': '3840px',  // 4K显示器
+        xs: '320px', // iPhone SE
+        '3xl': '1440px', // 大屏笔记本
+        '4xl': '1920px', // 全高清显示器
+        '5xl': '2560px', // 2K显示器
+        '6xl': '3840px', // 4K显示器
       },
-      
+
       // 新增：智能体个性化动画
       animation: {
         'agent-pulse': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'universe-float': 'float 6s ease-in-out infinite',
         'soul-glow': 'glow 3s ease-in-out infinite alternate',
       },
-      
+
       // 新增：智能体特效
       boxShadow: {
         'agent-glow': '0 0 30px rgba(108, 179, 63, 0.4)',
         'cad-glow': '0 0 30px rgba(59, 130, 246, 0.4)',
         'poster-glow': '0 0 30px rgba(139, 92, 246, 0.4)',
-      }
-    }
-  }
+      },
+    },
+  },
 };
 ```
 
 ### 🌌 欢迎页面：智能体宇宙展示
+
 **文件基础**: 基于现有的`app/page.tsx`进行增强
+
 ```typescript
 // ✅ 正确做法：扩展现有主页面（保持原有所有功能）
 'use client';
@@ -130,7 +138,7 @@ export default function HomePage() {
   // 保持所有现有状态和逻辑完全不变
   const { agents, currentAgent, setCurrentAgent } = useAgentStore();
   const { toast } = useToast();
-  
+
   // 新增：宇宙动画状态（可选功能，不影响现有）
   const [enableSoulfulDesign, setEnableSoulfulDesign] = useState(false);
   const [universeAnimation, setUniverseAnimation] = useState({
@@ -157,19 +165,19 @@ export default function HomePage() {
     <div className="relative min-h-screen overflow-hidden">
       {/* 新增：宇宙背景效果（可选，叠加层） */}
       {enableSoulfulDesign && <UniverseBackground />}
-      
+
       {/* 保持现有的所有页面内容完全不变 */}
       <div className={cn("relative z-10", enableSoulfulDesign && "bg-transparent")}>
         {/* 现有的Header组件保持不变 */}
         <Header />
-        
+
         {/* 现有的主要内容区域保持不变 */}
         <main className="container mx-auto px-4 py-8">
           {/* 保持现有的所有sections不变 */}
-          
+
           {/* 新增：智能体宇宙展示（如果启用） */}
           {enableSoulfulDesign ? (
-            <AgentUniverseShowcase 
+            <AgentUniverseShowcase
               agents={agents}
               currentAgent={currentAgent}
               onAgentSelect={setCurrentAgent}
@@ -178,14 +186,14 @@ export default function HomePage() {
             // 保持现有的智能体展示区域不变
             <ExistingAgentSection />
           )}
-          
+
           {/* 保持所有其他现有sections不变 */}
         </main>
-        
+
         {/* 保持现有的Footer不变 */}
         <Footer />
       </div>
-      
+
       {/* 新增：灵魂设计切换按钮（不影响现有布局） */}
       <button
         onClick={toggleSoulfulDesign}
@@ -205,18 +213,19 @@ export default function HomePage() {
 ## 📱 响应式设计：10断点完美适配
 
 ### 断点体系：覆盖所有设备
+
 ```typescript
 // 基于现有的Tailwind配置扩展（在tailwind.config.ts中）
 const ENHANCED_BREAKPOINTS = {
   // 移动设备
-  xs: '320px',    // iPhone SE - 紧凑型手机
-  sm: '375px',    // iPhone 12/13 - 标准手机（保持现有）
-  md: '414px',    // iPhone 12 Pro Max - 大屏手机
-  
-  // 平板设备  
-  lg: '768px',    // iPad 竖屏 - 平板竖屏（保持现有）
-  xl: '1024px',   // iPad Pro - 平板横屏（保持现有）
-  
+  xs: '320px', // iPhone SE - 紧凑型手机
+  sm: '375px', // iPhone 12/13 - 标准手机（保持现有）
+  md: '414px', // iPhone 12 Pro Max - 大屏手机
+
+  // 平板设备
+  lg: '768px', // iPad 竖屏 - 平板竖屏（保持现有）
+  xl: '1024px', // iPad Pro - 平板横屏（保持现有）
+
   // 桌面设备
   '2xl': '1280px', // 13寸笔记本 - 标准桌面（保持现有）
   '3xl': '1440px', // 15寸笔记本 - 大屏桌面
@@ -229,6 +238,7 @@ const ENHANCED_BREAKPOINTS = {
 ### 🎯 你的核心任务矩阵
 
 #### P0 任务：响应式基础设施（第1周）
+
 ```typescript
 // 1. 增强现有的UI组件（不重写）
 // 文件：components/ui/button.tsx（已存在，需增强）
@@ -257,7 +267,7 @@ const buttonVariants = cva(
         lg: "h-10 rounded-md px-8",
         icon: "h-9 w-9",
       },
-      
+
       // 新增：智能体主题variant（不影响现有）
       agentTheme: {
         none: '', // 默认，保持现有样式
@@ -280,7 +290,7 @@ const buttonVariants = cva(
           'text-white font-medium'
         ),
       },
-      
+
       // 新增：触摸优化（基于现有size系统）
       touchOptimized: {
         false: '',
@@ -290,7 +300,7 @@ const buttonVariants = cva(
           'select-none' // 防止文本选择
         )
       },
-      
+
       // 新增：响应式尺寸（基于现有断点）
       responsive: {
         false: '',
@@ -304,7 +314,7 @@ const buttonVariants = cva(
         )
       }
     },
-    
+
     // 复合variants：智能响应式组合
     compoundVariants: [
       {
@@ -328,7 +338,7 @@ const buttonVariants = cva(
         class: 'shadow-lg shadow-purple-500/40 active:shadow-purple-500/60'
       }
     ],
-    
+
     defaultVariants: {
       variant: "default",
       size: "default",
@@ -351,45 +361,45 @@ export interface ButtonProps
 
 // 增强Button组件（保持现有逻辑完全不变）
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ 
-    className, 
-    variant, 
-    size, 
+  ({
+    className,
+    variant,
+    size,
     agentTheme = 'none',
     touchOptimized = false,
     responsive = false,
     agentId,
     enableSoulfulDesign = false,
-    asChild = false, 
-    ...props 
+    asChild = false,
+    ...props
   }, ref) => {
     // 新增：触摸设备检测
     const [isTouchDevice, setIsTouchDevice] = useState(false);
-    
+
     useEffect(() => {
       setIsTouchDevice('ontouchstart' in window || navigator.maxTouchPoints > 0);
     }, []);
-    
+
     // 智能触摸优化：自动启用触摸优化
     const shouldOptimizeForTouch = touchOptimized || isTouchDevice;
-    
+
     // 灵魂设计模式：自动应用智能体主题
-    const effectiveAgentTheme = enableSoulfulDesign && agentId 
-      ? getAgentTheme(agentId) 
+    const effectiveAgentTheme = enableSoulfulDesign && agentId
+      ? getAgentTheme(agentId)
       : agentTheme;
-    
+
     const Comp = asChild ? Slot : "button";
-    
+
     return (
       <Comp
         className={cn(
-          buttonVariants({ 
-            variant, 
-            size, 
+          buttonVariants({
+            variant,
+            size,
             agentTheme: effectiveAgentTheme,
             touchOptimized: shouldOptimizeForTouch,
             responsive,
-            className 
+            className
           })
         )}
         ref={ref}
@@ -416,6 +426,7 @@ function getAgentTheme(agentId: string): 'fastgpt' | 'cad' | 'poster' | 'none' {
 ```
 
 #### P1 任务：智能体个性化UI（第2周）
+
 ```typescript
 // 2. 智能体卡片组件（基于现有card组件增强）
 // 文件：components/agents/agent-card.tsx（新建，但基于现有Card组件）
@@ -434,20 +445,20 @@ interface AgentCardProps {
   enableSoulfulDesign?: boolean; // 新增：灵魂设计模式
 }
 
-export const AgentCard = ({ 
-  agent, 
+export const AgentCard = ({
+  agent,
   onSelect,
-  variant = 'compact', 
+  variant = 'compact',
   showPersonality = true,
-  enableSoulfulDesign = false 
+  enableSoulfulDesign = false
 }: AgentCardProps) => {
   const { touchOptimized, currentBreakpoint } = useResponsive();
   const { currentAgent } = useAgentStore(); // 复用现有store
-  
+
   // 根据智能体类型获取个性化配置
   const agentPersonality = getAgentPersonality(agent.type);
   const isSelected = currentAgent?.id === agent.id;
-  
+
   return (
     <motion.div
       className={cn(
@@ -461,7 +472,7 @@ export const AgentCard = ({
           'w-96': currentBreakpoint >= 'lg'
         }
       )}
-      whileHover={{ 
+      whileHover={{
         scale: touchOptimized ? 1.02 : 1.05,
         y: -4,
       }}
@@ -469,7 +480,7 @@ export const AgentCard = ({
       onClick={() => onSelect(agent)}
     >
       {/* 基于现有Card组件构建 */}
-      <Card 
+      <Card
         className={cn(
           "relative overflow-hidden border-2 transition-all duration-300",
           // 选中状态
@@ -489,7 +500,7 @@ export const AgentCard = ({
       >
         {/* 智能体个性化背景纹理（如果启用） */}
         {enableSoulfulDesign && showPersonality && (
-          <div 
+          <div
             className="absolute inset-0 opacity-5 pointer-events-none"
             style={{
               backgroundImage: agentPersonality.pattern,
@@ -497,12 +508,12 @@ export const AgentCard = ({
             }}
           />
         )}
-        
+
         <CardHeader className="relative z-10 pb-2">
           <div className="flex items-center gap-4">
             {/* 智能体头像/图标 */}
             <div className="relative">
-              <div 
+              <div
                 className={cn(
                   "w-12 h-12 rounded-full flex items-center justify-center text-2xl font-bold",
                   "bg-gradient-to-br shadow-lg",
@@ -518,40 +529,40 @@ export const AgentCard = ({
                 }}
               >
                 {agent.avatarUrl ? (
-                  <img 
-                    src={agent.avatarUrl} 
-                    alt={agent.name} 
-                    className="w-full h-full rounded-full object-cover" 
+                  <img
+                    src={agent.avatarUrl}
+                    alt={agent.name}
+                    className="w-full h-full rounded-full object-cover"
                   />
                 ) : (
                   <span className="text-white">{agentPersonality.icon}</span>
                 )}
               </div>
-              
+
               {/* 状态指示器 */}
               <div className={cn(
                 "absolute -top-1 -right-1 w-4 h-4 rounded-full border-2 border-white",
                 agent.status === 'active' ? "bg-green-500 animate-pulse" : "bg-gray-400",
                 currentBreakpoint <= 'sm' && "w-3 h-3"
               )} />
-              
+
               {/* 智能体思考气泡（如果启用灵魂设计） */}
               {enableSoulfulDesign && agent.status === 'active' && (
                 <motion.div
                   className="absolute -top-2 -right-2 w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-lg text-xs"
-                  animate={{ 
+                  animate={{
                     scale: [1, 1.2, 1],
                     rotate: [0, 10, -10, 0]
                   }}
                   transition={{ repeat: Infinity, duration: 3 }}
                 >
-                  {agentPersonality.mood === 'analyzing' ? '🧠' : 
+                  {agentPersonality.mood === 'analyzing' ? '🧠' :
                    agentPersonality.mood === 'completed' ? '✅' :
                    agentPersonality.mood === 'error' ? '❌' : '🤔'}
                 </motion.div>
               )}
             </div>
-            
+
             <div className="flex-1 min-w-0">
               <CardTitle className={cn(
                 "truncate",
@@ -570,14 +581,14 @@ export const AgentCard = ({
             </div>
           </div>
         </CardHeader>
-        
+
         <CardContent className="pt-0">
           {/* 智能体能力标签 */}
           <div className="flex flex-wrap gap-1 mb-3">
             {agent.capabilities?.slice(0, variant === 'compact' ? 2 : 4).map(cap => (
-              <Badge 
-                key={cap.name} 
-                variant="secondary" 
+              <Badge
+                key={cap.name}
+                variant="secondary"
                 className={cn(
                   "text-xs",
                   currentBreakpoint <= 'sm' && "text-[10px] px-1 py-0",
@@ -588,7 +599,7 @@ export const AgentCard = ({
               </Badge>
             ))}
           </div>
-          
+
           {/* 选择按钮 */}
           <Button
             size={currentBreakpoint <= 'sm' ? 'sm' : 'default'}
@@ -600,7 +611,7 @@ export const AgentCard = ({
           >
             {isSelected ? '当前选择' : '选择智能体'}
           </Button>
-          
+
           {/* 详细模式下的额外信息 */}
           {variant === 'detailed' && (
             <div className="mt-3 pt-3 border-t">
@@ -647,7 +658,7 @@ function getAgentPersonality(agentType: string) {
       pattern: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none'%3E%3Cg fill='%238b5cf6' fill-opacity='0.1'%3E%3Cpolygon points='30,15 45,30 30,45 15,30'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
     }
   };
-  
+
   return personalities[agentType as keyof typeof personalities] || personalities.fastgpt;
 }
 
@@ -656,6 +667,7 @@ function getAgentPersonality(agentType: string) {
 ```
 
 #### P2 任务：CAD分析器UI增强（第3周）
+
 **文件基础**: `components/agui/CADAnalyzerContainer.tsx`（969行，必须基于此增强）
 
 ```typescript
@@ -682,7 +694,7 @@ export interface CADAnalyzerContainerProps {
   enableAIInsights?: boolean;
   enableManufacturingAnalysis?: boolean;
   enableCostEstimation?: boolean;
-  
+
   // 新增：UI增强选项（向后兼容，默认关闭）
   enableSoulfulDesign?: boolean; // 是否启用灵魂设计
   enableAgentPersonality?: boolean; // 智能体个性化
@@ -700,14 +712,14 @@ export function CADAnalyzerContainer({
   enableAIInsights = true,
   enableManufacturingAnalysis = true,
   enableCostEstimation = true,
-  
+
   // 新增参数：默认关闭，确保向后兼容
   enableSoulfulDesign = false,
   enableAgentPersonality = false,
   uiTheme = 'standard',
   showAgentMood = false
 }: CADAnalyzerContainerProps) {
-  
+
   // 保持所有现有状态完全不变
   const { agents } = useAgentStore();
   const [uploading, setUploading] = useState(false);
@@ -734,14 +746,14 @@ export function CADAnalyzerContainer({
   const [aiInsights, setAiInsights] = useState<any>(null);
   const [qualityMetrics, setQualityMetrics] = useState<any>(null);
   const [costEstimate, setCostEstimate] = useState<any>(null);
-  
+
   // 新增：UI增强状态（不影响现有功能）
   const [agentMood, setAgentMood] = useState<'focused' | 'analyzing' | 'completed' | 'error'>('focused');
   const [interactionFeedback, setInteractionFeedback] = useState<string[]>([]);
   const [soulfulAnimations, setSoulfulAnimations] = useState(enableSoulfulDesign);
-  
+
   const { touchOptimized, currentBreakpoint } = useResponsive();
-  
+
   // 保持所有现有的useCallback和useEffect完全不变
   const initializeAnalysisStages = useCallback((fileType: string): CADAnalysisStage[] => {
     // 保持现有逻辑完全不变
@@ -755,23 +767,23 @@ export function CADAnalyzerContainer({
       },
       // ... 保持现有的所有stages定义不变
     ];
-    
+
     return stages;
   }, [enableAIInsights, enableManufacturingAnalysis, enableCostEstimation]);
-  
+
   // 保持所有现有的处理函数完全不变
   const handleFileUpload = useCallback(async (file: File) => {
     // 保持现有逻辑完全不变...
-    
+
     // 新增：智能体情绪反应（如果启用）
     if (enableAgentPersonality) {
       setAgentMood('analyzing');
       setInteractionFeedback(['正在解析文件格式...', '初始化分析引擎...']);
     }
-    
+
     // 继续执行现有的上传逻辑...
   }, [/* 保持现有依赖 */]);
-  
+
   // 扩展现有的renderProgress函数（保持原有功能，添加增强选项）
   const renderProgress = useCallback(() => {
     // 保持现有的进度显示逻辑完全不变
@@ -781,13 +793,13 @@ export function CADAnalyzerContainer({
           <Loader2 className="h-4 w-4 animate-spin text-[#6cb33f]" />
           <span className="text-sm font-medium">{progressStage}</span>
         </div>
-        
+
         <div className="space-y-2">
           {analysisStages.map((stage, index) => {
             const isActive = currentStage === index;
             const isCompleted = stage.status === 'completed';
             const isFailed = stage.status === 'failed';
-            
+
             return (
               <div key={stage.id} className="flex items-center space-x-3">
                 <div className={cn(
@@ -801,7 +813,7 @@ export function CADAnalyzerContainer({
                    isFailed ? <AlertTriangle className="w-3 h-3" /> :
                    index + 1}
                 </div>
-                
+
                 <div className="flex-1">
                   <div className="flex items-center justify-between">
                     <span className={cn(
@@ -817,14 +829,14 @@ export function CADAnalyzerContainer({
                       {stage.progress}%
                     </span>
                   </div>
-                  
+
                   <p className="text-xs text-gray-500 mt-1">
                     {stage.description}
                   </p>
-                  
+
                   {(isActive || isCompleted) && (
-                    <Progress 
-                      value={stage.progress} 
+                    <Progress
+                      value={stage.progress}
                       className="h-1 mt-2"
                     />
                   )}
@@ -835,16 +847,16 @@ export function CADAnalyzerContainer({
         </div>
       </div>
     );
-    
+
     // 如果启用灵魂设计，在现有内容基础上添加增强效果
     if (enableSoulfulDesign && uiTheme === 'soulful') {
       return (
         <div className="space-y-6">
           {/* 保持现有内容完全不变 */}
           {existingProgressContent}
-          
+
           {/* 新增：灵魂化进度效果（叠加层，不替换现有） */}
-          <motion.div 
+          <motion.div
             className="relative mt-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -853,13 +865,13 @@ export function CADAnalyzerContainer({
             <div className="flex items-center gap-4 p-4 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200">
               <div className="relative">
                 {/* 3D智能体头像 */}
-                <motion.div 
+                <motion.div
                   className="w-16 h-16 rounded-full flex items-center justify-center text-2xl relative overflow-hidden"
-                  style={{ 
+                  style={{
                     background: 'linear-gradient(135deg, #3b82f6 0%, #1e40af 100%)',
-                    boxShadow: '0 8px 25px rgba(59, 130, 246, 0.4)' 
+                    boxShadow: '0 8px 25px rgba(59, 130, 246, 0.4)'
                   }}
-                  animate={{ 
+                  animate={{
                     boxShadow: [
                       '0 8px 25px rgba(59, 130, 246, 0.4)',
                       '0 8px 35px rgba(59, 130, 246, 0.6)',
@@ -869,7 +881,7 @@ export function CADAnalyzerContainer({
                   transition={{ duration: 2, repeat: Infinity }}
                 >
                   📐
-                  
+
                   {/* 粒子效果背景 */}
                   <div className="absolute inset-0 opacity-20">
                     {[...Array(8)].map((_, i) => (
@@ -893,22 +905,22 @@ export function CADAnalyzerContainer({
                     ))}
                   </div>
                 </motion.div>
-                
+
                 {/* 思考气泡 */}
                 <motion.div
                   className="absolute -top-2 -right-2 w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-lg"
-                  animate={{ 
+                  animate={{
                     scale: [1, 1.2, 1],
                     rotate: [0, 10, -10, 0]
                   }}
                   transition={{ repeat: Infinity, duration: 3 }}
                 >
-                  {agentMood === 'analyzing' ? '🧠' : 
+                  {agentMood === 'analyzing' ? '🧠' :
                    agentMood === 'completed' ? '✅' :
                    agentMood === 'error' ? '❌' : '🤔'}
                 </motion.div>
               </div>
-              
+
               <div className="flex-1">
                 <h4 className="font-medium text-blue-800 mb-1">
                   {showAgentMood && agentMood === 'analyzing' && 'CAD专家正在深度分析中...'}
@@ -918,7 +930,7 @@ export function CADAnalyzerContainer({
                   {!showAgentMood && 'CAD分析进行中...'}
                 </h4>
                 <p className="text-sm text-blue-600 mb-2">{progressStage}</p>
-                
+
                 {/* 实时反馈标签 */}
                 {enableAgentPersonality && interactionFeedback.length > 0 && (
                   <div className="flex flex-wrap gap-1">
@@ -939,10 +951,10 @@ export function CADAnalyzerContainer({
                 )}
               </div>
             </div>
-            
+
             {/* 智能体分析过程可视化 */}
             {enableAgentPersonality && (
-              <motion.div 
+              <motion.div
                 className="mt-4 p-3 bg-white/50 rounded-lg backdrop-blur-sm border border-blue-100"
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
@@ -968,13 +980,13 @@ export function CADAnalyzerContainer({
         </div>
       );
     }
-    
+
     // 默认返回现有内容（确保向后兼容）
     return existingProgressContent;
   }, [
     // 保持现有依赖
-    progressStage, 
-    analysisStages, 
+    progressStage,
+    analysisStages,
     currentStage,
     // 新增依赖
     enableSoulfulDesign,
@@ -984,10 +996,10 @@ export function CADAnalyzerContainer({
     agentMood,
     interactionFeedback
   ]);
-  
+
   // 保持所有其他现有函数完全不变...
   // renderOverview, renderManufacturingAnalysis, renderAIInsights, etc.
-  
+
   // 扩展现有的主渲染函数（保持所有现有布局）
   return (
     <div className={cn(
@@ -996,11 +1008,11 @@ export function CADAnalyzerContainer({
       uiTheme === 'soulful' && "relative overflow-hidden",
       className
     )}>
-      
+
       {/* 新增：灵魂化背景效果（如果启用，作为背景层） */}
       {enableSoulfulDesign && uiTheme === 'soulful' && (
         <div className="absolute inset-0 pointer-events-none z-0">
-          <div 
+          <div
             className="absolute inset-0 opacity-5"
             style={{
               background: 'radial-gradient(circle at 30% 50%, rgba(59, 130, 246, 0.1) 0%, transparent 50%)',
@@ -1030,7 +1042,7 @@ export function CADAnalyzerContainer({
           </div>
         </div>
       )}
-      
+
       {/* 保持现有的头部布局完全不变 */}
       <div className="relative z-10">
         <div className="flex items-center justify-between mb-6">
@@ -1063,12 +1075,12 @@ export function CADAnalyzerContainer({
               </p>
             </div>
           </div>
-          
+
           {/* 新增：智能体状态指示器（如果启用个性化） */}
           {enableAgentPersonality && (
             <div className="flex items-center gap-2">
-              <Badge 
-                variant="outline" 
+              <Badge
+                variant="outline"
                 className={cn(
                   "bg-blue-50 text-blue-700 border-blue-200",
                   currentBreakpoint <= 'sm' && "text-xs px-2 py-1"
@@ -1084,9 +1096,9 @@ export function CADAnalyzerContainer({
                  agentMood === 'completed' ? '分析完成' :
                  agentMood === 'error' ? '需要协助' : '就绪'}
               </Badge>
-              
+
               {showAgentMood && (
-                <motion.div 
+                <motion.div
                   className={cn(
                     "w-8 h-8 rounded-full flex items-center justify-center text-sm",
                     currentBreakpoint <= 'sm' && "w-6 h-6 text-xs"
@@ -1108,7 +1120,7 @@ export function CADAnalyzerContainer({
         {/* 保持现有的主要内容区域完全不变 */}
         {renderMainContent()}
       </div>
-      
+
       {/* 新增：灵魂设计切换控制（不影响现有布局） */}
       {enableSoulfulDesign && (
         <div className="fixed bottom-4 left-4 z-50 flex flex-col gap-2">
@@ -1120,13 +1132,13 @@ export function CADAnalyzerContainer({
           >
             {soulfulAnimations ? '🌟' : '⭐'} 灵魂特效
           </Button>
-          
+
           {enableAgentPersonality && (
             <Button
               size="sm"
               variant="outline"
               onClick={() => setAgentMood(
-                agentMood === 'focused' ? 'analyzing' : 
+                agentMood === 'focused' ? 'analyzing' :
                 agentMood === 'analyzing' ? 'completed' : 'focused'
               )}
               className="bg-white/80 backdrop-blur-sm"
@@ -1147,18 +1159,21 @@ export function CADAnalyzerContainer({
 ## 🎯 关键绩效指标（KPI）
 
 ### 用户体验指标
+
 - **首屏加载时间** < 1.5秒（所有断点）
 - **动画流畅度** ≥ 60FPS（硬件加速）
 - **触摸响应** < 100ms延迟
 - **跨断点一致性** 100%功能可用
 
 ### 技术质量指标
+
 - **代码复用率** ≥ 80%（基于现有代码扩展）
 - **TypeScript覆盖** 100%类型安全
 - **组件测试覆盖** ≥ 85%
 - **无障碍合规** WCAG 2.1 AA级
 
 ### 多智能体体验指标
+
 - **智能体切换流畅度** < 300ms
 - **个性化展示一致性** 100%
 - **跨平台设计统一性** ≥ 95%
@@ -1175,85 +1190,58 @@ export function CADAnalyzerContainer({
 ## 🤝 与开发者B的协同接口
 
 ### 📡 前后端数据接口
+
 ```typescript
 // 你需要使用开发者B提供的类型和API
 interface AgentAPIContract {
   // 智能体数据类型（由开发者B定义和维护）
-  Agent: '使用现有的Agent类型定义',
-  CADAnalysisResult: '使用扩展后的分析结果类型',
-  
+  Agent: '使用现有的Agent类型定义';
+  CADAnalysisResult: '使用扩展后的分析结果类型';
+
   // Store接口（由开发者B增强，你负责使用）
   useAgentStore: {
-    agents: 'Agent[]',
-    currentAgent: 'Agent | null',
-    setCurrentAgent: '(agent: Agent) => void',
+    agents: 'Agent[]';
+    currentAgent: 'Agent | null';
+    setCurrentAgent: '(agent: Agent) => void';
     // ... 其他现有方法
     // 新增方法（开发者B负责实现）
-    registerAgent: '(agent: Agent, service: AgentService) => void',
-    getAgentHealth: '(agentId: string) => ServiceHealth',
-  },
-  
+    registerAgent: '(agent: Agent, service: AgentService) => void';
+    getAgentHealth: '(agentId: string) => ServiceHealth';
+  };
+
   // API端点（由开发者B增强，你负责调用）
   '/api/cad/upload': {
-    request: 'FormData + 三项目整合参数',
-    response: 'CADAnalysisResult + enhancedResults'
-  }
-};
+    request: 'FormData + 三项目整合参数';
+    response: 'CADAnalysisResult + enhancedResults';
+  };
+}
 ```
 
 ### 📋 协同任务分工
+
 ```typescript
 const COLLABORATION_TASKS = {
   Week1: {
     你负责: [
       '响应式基础组件增强（Button, Card, Badge）',
       'useResponsive hook开发',
-      '10断点系统配置'
+      '10断点系统配置',
     ],
-    等待开发者B: [
-      'CAD上传API三项目整合参数支持',
-      'Agent类型定义扩展',
-      '项目A算法集成测试'
-    ],
-    协同任务: [
-      '确认Agent接口定义',
-      '测试组件与API的集成'
-    ]
+    等待开发者B: ['CAD上传API三项目整合参数支持', 'Agent类型定义扩展', '项目A算法集成测试'],
+    协同任务: ['确认Agent接口定义', '测试组件与API的集成'],
   },
-  
+
   Week2: {
-    你负责: [
-      'AgentCard组件开发（基于现有Card）',
-      'AgentSwitcher组件开发',
-      '智能体个性化视觉效果'
-    ],
-    等待开发者B: [
-      'Agent Store注册中心功能',
-      '智能体服务发现算法',
-      '健康检查接口'
-    ],
-    协同任务: [
-      '测试智能体切换流程',
-      '验证状态同步机制'
-    ]
+    你负责: ['AgentCard组件开发（基于现有Card）', 'AgentSwitcher组件开发', '智能体个性化视觉效果'],
+    等待开发者B: ['Agent Store注册中心功能', '智能体服务发现算法', '健康检查接口'],
+    协同任务: ['测试智能体切换流程', '验证状态同步机制'],
   },
-  
+
   Week3: {
-    你负责: [
-      'CADAnalyzerContainer灵魂设计增强',
-      '3D进度可视化效果',
-      '智能体情绪状态显示'
-    ],
-    等待开发者B: [
-      '三项目算法整合完成',
-      'CAD分析增强结果结构',
-      '实时分析状态推送'
-    ],
-    协同任务: [
-      '测试增强分析流程',
-      '验证新旧功能兼容性'
-    ]
-  }
+    你负责: ['CADAnalyzerContainer灵魂设计增强', '3D进度可视化效果', '智能体情绪状态显示'],
+    等待开发者B: ['三项目算法整合完成', 'CAD分析增强结果结构', '实时分析状态推送'],
+    协同任务: ['测试增强分析流程', '验证新旧功能兼容性'],
+  },
 };
 ```
 
@@ -1261,6 +1249,7 @@ const COLLABORATION_TASKS = {
 
 ```markdown
 ### 今日开发检查 ✅
+
 - [ ] 是否基于现有代码进行扩展？
 - [ ] 是否体现了多智能体平台的灵魂？
 - [ ] 响应式设计是否覆盖10个断点？
@@ -1276,13 +1265,15 @@ const COLLABORATION_TASKS = {
 ## 📋 详细开发时间线
 
 ### 第1周：响应式基础设施 (Day 1-5)
+
 - **Day 1**: 扩展Button组件智能体主题支持
-- **Day 2**: 增强Card组件多断点适配  
+- **Day 2**: 增强Card组件多断点适配
 - **Day 3**: 开发useResponsive hook和触摸检测
 - **Day 4**: 配置10断点Tailwind系统
 - **Day 5**: 基础组件测试和文档，与开发者B接口对接
 
 ### 第2周：智能体个性化UI (Day 6-10)
+
 - **Day 6**: AgentCard组件开发（基于现有Card）
 - **Day 7**: AgentSwitcher组件和动画效果
 - **Day 8**: 智能体个性化视觉系统
@@ -1290,6 +1281,7 @@ const COLLABORATION_TASKS = {
 - **Day 10**: 智能体UI系统整合测试
 
 ### 第3周：CAD分析器增强 (Day 11-15)
+
 - **Day 11**: CADAnalyzerContainer灵魂设计选项
 - **Day 12**: 3D进度可视化和智能体指导
 - **Day 13**: 智能体情绪状态和实时反馈
@@ -1297,6 +1289,7 @@ const COLLABORATION_TASKS = {
 - **Day 15**: CAD UI增强功能测试
 
 ### 第4周：宇宙设计和最终整合 (Day 16-20)
+
 - **Day 16**: 宇宙背景系统开发
 - **Day 17**: 智能体宇宙展示组件
 - **Day 18**: 主页面宇宙级改造
@@ -1305,4 +1298,4 @@ const COLLABORATION_TASKS = {
 
 记住：你不只是在写代码，你在创造一个能够**直击人类灵魂**的多智能体宇宙！每一个像素、每一个动画、每一个交互都要让用户感受到智能体的独特个性和专业能力。
 
-让用户在第一眼看到这个平台时就被震撼到，被感动到，被吸引到！这是一个多智能体的世界，不是一个冷冰冰的工具。 
+让用户在第一眼看到这个平台时就被震撼到，被感动到，被吸引到！这是一个多智能体的世界，不是一个冷冰冰的工具。

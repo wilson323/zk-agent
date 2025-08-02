@@ -8,7 +8,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { Logger } from '@/lib/utils/logger';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
 
 interface PerformanceMetrics {
   requestId: string;
@@ -34,8 +36,8 @@ class PerformanceMonitor {
   private static instance: PerformanceMonitor;
   private metrics: Map<string, PerformanceMetrics> = new Map();
   private qpsCounter: QpsMetrics[] = [];
-  private logger = new Logger('PerformanceMonitor');
-  
+  private logger = getLogger();
+
   // 性能阈值配置
   private readonly THRESHOLDS = {
     API_RESPONSE_TIME: 500, // 500ms
@@ -110,13 +112,13 @@ class PerformanceMonitor {
    */
   private async checkQpsLimit(): Promise<void> {
     const currentQps = this.getCurrentQps();
-    
+
     if (currentQps > this.THRESHOLDS.QPS_LIMIT) {
       this.logger.warn('QPS limit exceeded', {
         currentQps,
         limit: this.THRESHOLDS.QPS_LIMIT,
       });
-      
+
       // 可以选择抛出错误或实施限流
       throw new Error(`QPS limit exceeded: ${currentQps}/${this.THRESHOLDS.QPS_LIMIT}`);
     }
@@ -125,11 +127,7 @@ class PerformanceMonitor {
   /**
    * 记录请求开始
    */
-  private recordRequestStart(
-    requestId: string,
-    request: NextRequest,
-    startTime: number
-  ): void {
+  private recordRequestStart(requestId: string, request: NextRequest, startTime: number): void {
     // 更新QPS计数器
     this.updateQpsCounter();
 
@@ -155,7 +153,7 @@ class PerformanceMonitor {
     cpuUsage: NodeJS.CpuUsage
   ): Promise<void> {
     const memoryUsage = process.memoryUsage();
-    
+
     const metrics: PerformanceMetrics = {
       requestId,
       method: request.method,
@@ -244,12 +242,10 @@ class PerformanceMonitor {
   private updateQpsCounter(): void {
     const now = Date.now();
     const windowSize = 1000; // 1秒窗口
-    
+
     // 清理过期的计数器
-    this.qpsCounter = this.qpsCounter.filter(
-      metric => now - metric.timestamp < windowSize
-    );
-    
+    this.qpsCounter = this.qpsCounter.filter(metric => now - metric.timestamp < windowSize);
+
     // 添加新的计数
     this.qpsCounter.push({
       timestamp: now,
@@ -264,12 +260,10 @@ class PerformanceMonitor {
   private getCurrentQps(): number {
     const now = Date.now();
     const windowSize = 1000; // 1秒窗口
-    
+
     // 清理过期的计数器
-    this.qpsCounter = this.qpsCounter.filter(
-      metric => now - metric.timestamp < windowSize
-    );
-    
+    this.qpsCounter = this.qpsCounter.filter(metric => now - metric.timestamp < windowSize);
+
     return this.qpsCounter.length;
   }
 
@@ -277,11 +271,7 @@ class PerformanceMonitor {
    * 获取客户端IP
    */
   private getClientIp(request: NextRequest): string {
-    return (
-      request.headers.get('x-forwarded-for') ||
-      request.headers.get('x-real-ip') ||
-      'unknown'
-    );
+    return request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
   }
 
   /**
@@ -314,11 +304,7 @@ class PerformanceMonitor {
   /**
    * 发送错误指标
    */
-  private async sendErrorMetrics(
-    requestId: string,
-    error: any,
-    duration: number
-  ): Promise<void> {
+  private async sendErrorMetrics(requestId: string, error: any, duration: number): Promise<void> {
     try {
       await fetch('/api/metrics/record', {
         method: 'POST',
@@ -340,8 +326,9 @@ class PerformanceMonitor {
    * 获取性能统计
    */
   public getPerformanceStats(): any {
-    const recentMetrics = Array.from(this.metrics.values())
-      .filter(m => Date.now() - m.endTime < 60000); // 最近1分钟
+    const recentMetrics = Array.from(this.metrics.values()).filter(
+      m => Date.now() - m.endTime < 60000
+    ); // 最近1分钟
 
     if (recentMetrics.length === 0) {
       return {
@@ -353,7 +340,8 @@ class PerformanceMonitor {
     }
 
     const totalRequests = recentMetrics.length;
-    const averageResponseTime = recentMetrics.reduce((sum, m) => sum + m.duration, 0) / totalRequests;
+    const averageResponseTime =
+      recentMetrics.reduce((sum, m) => sum + m.duration, 0) / totalRequests;
     const errorCount = recentMetrics.filter(m => m.statusCode >= 400).length;
     const errorRate = (errorCount / totalRequests) * 100;
 
@@ -377,8 +365,8 @@ export function withPerformanceMonitoring<T extends any[]>(
 ) {
   return async (...args: T): Promise<NextResponse> => {
     const [request] = args;
-    return performanceMonitor.middleware()(request as NextRequest, async (req) => {
+    return performanceMonitor.middleware()(request as NextRequest, async req => {
       return handler(...args);
     });
   };
-} 
+}

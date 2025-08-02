@@ -29,27 +29,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { 
+import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { 
-  Shield, 
-  Play, 
-  Pause, 
-  RefreshCw, 
-  Download, 
-  Settings, 
+import {
+  Shield,
+  Play,
+  Pause,
+  RefreshCw,
+  Download,
+  Settings,
   AlertTriangle,
   CheckCircle,
   XCircle,
   Clock,
   FileSearch,
   Target,
-  BarChart3
+  BarChart3,
 } from 'lucide-react';
 
 // Types
@@ -118,11 +118,7 @@ const SecurityCodeReview: React.FC = () => {
     setIsLoading(true);
     try {
       // Load scan jobs, configs, and rules
-      await Promise.all([
-        loadScanJobs(),
-        loadScanConfigs(),
-        loadSecurityRules(),
-      ]);
+      await Promise.all([loadScanJobs(), loadScanConfigs(), loadSecurityRules()]);
     } catch (error) {
       console.error('Failed to load dashboard data:', error);
     } finally {
@@ -241,39 +237,31 @@ const SecurityCodeReview: React.FC = () => {
     }
   };
 
-  import { getSeverityColor, getStatusIcon, formatDuration } from "@/lib/admin/security-utils"
+  import { getSeverityColor, getStatusIcon, formatDuration } from '@/lib/admin/security-utils';
 
   const DashboardTab = () => {
     const recentJobs = scanJobs.slice(0, 5);
-    const totalViolations = scanJobs.reduce((sum, job) => 
-      sum + (job.results?.violations.total || 0), 0);
-    const criticalIssues = scanJobs.reduce((sum, job) => 
-      sum + (job.results?.violations.critical || 0), 0);
+    const totalViolations = scanJobs.reduce(
+      (sum, job) => sum + (job.results?.violations.total || 0),
+      0
+    );
+    const criticalIssues = scanJobs.reduce(
+      (sum, job) => sum + (job.results?.violations.critical || 0),
+      0
+    );
 
     return (
-      <div className="space-y-6">
+      <div className='space-y-6'>
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <StatCard
-            title="Total Scans"
-            icon={Shield}
-            value={scanJobs.length}
-          />
+        <div className='grid grid-cols-1 md:grid-cols-4 gap-4'>
+          <StatCard title='Total Scans' icon={Shield} value={scanJobs.length} />
+
+          <StatCard title='Critical Issues' icon={AlertTriangle} value={criticalIssues} />
+
+          <StatCard title='Total Violations' icon={Target} value={totalViolations} />
 
           <StatCard
-            title="Critical Issues"
-            icon={AlertTriangle}
-            value={criticalIssues}
-          />
-
-          <StatCard
-            title="Total Violations"
-            icon={Target}
-            value={totalViolations}
-          />
-
-          <StatCard
-            title="Active Rules"
+            title='Active Rules'
             icon={BarChart3}
             value={securityRules.filter(r => r.enabled).length}
           />
@@ -285,10 +273,10 @@ const SecurityCodeReview: React.FC = () => {
             <CardTitle>Quick Actions</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex space-x-4">
+            <div className='flex space-x-4'>
               <Select value={selectedConfig} onValueChange={setSelectedConfig}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Select configuration" />
+                <SelectTrigger className='w-48'>
+                  <SelectValue placeholder='Select configuration' />
                 </SelectTrigger>
                 <SelectContent>
                   {scanConfigs.map(config => (
@@ -298,21 +286,17 @@ const SecurityCodeReview: React.FC = () => {
                   ))}
                 </SelectContent>
               </Select>
-              
-              <Button 
-                onClick={() => startScan()} 
+
+              <Button
+                onClick={() => startScan()}
                 disabled={isLoading}
-                className="flex items-center space-x-2"
+                className='flex items-center space-x-2'
               >
-                <Play className="h-4 w-4" />
+                <Play className='h-4 w-4' />
                 <span>Start Scan</span>
               </Button>
-              
-              <Button 
-                variant="outline" 
-                onClick={loadDashboardData}
-                disabled={isLoading}
-              >
+
+              <Button variant='outline' onClick={loadDashboardData} disabled={isLoading}>
                 <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
               </Button>
             </div>
@@ -341,9 +325,9 @@ const SecurityCodeReview: React.FC = () => {
                 {recentJobs.map(job => (
                   <TableRow key={job.id}>
                     <TableCell>
-                      <div className="flex items-center space-x-2">
+                      <div className='flex items-center space-x-2'>
                         {getStatusIcon(job.status)}
-                        <span className="capitalize">{job.status}</span>
+                        <span className='capitalize'>{job.status}</span>
                       </div>
                     </TableCell>
                     <TableCell>{job.configId}</TableCell>
@@ -355,40 +339,40 @@ const SecurityCodeReview: React.FC = () => {
                     </TableCell>
                     <TableCell>
                       {job.results ? (
-                        <div className="flex space-x-1">
+                        <div className='flex space-x-1'>
                           {job.results.violations.critical > 0 && (
-                            <Badge variant="destructive" className="text-xs">
+                            <Badge variant='destructive' className='text-xs'>
                               {job.results.violations.critical}C
                             </Badge>
                           )}
                           {job.results.violations.high > 0 && (
-                            <Badge variant="destructive" className="text-xs">
+                            <Badge variant='destructive' className='text-xs'>
                               {job.results.violations.high}H
                             </Badge>
                           )}
                           {job.results.violations.medium > 0 && (
-                            <Badge variant="default" className="text-xs">
+                            <Badge variant='default' className='text-xs'>
                               {job.results.violations.medium}M
                             </Badge>
                           )}
                         </div>
-                      ) : '-'}
+                      ) : (
+                        '-'
+                      )}
                     </TableCell>
                     <TableCell>
                       {job.results ? (
                         <Badge variant={job.results.riskScore > 7 ? 'destructive' : 'secondary'}>
                           {job.results.riskScore.toFixed(1)}
                         </Badge>
-                      ) : '-'}
+                      ) : (
+                        '-'
+                      )}
                     </TableCell>
                     <TableCell>
                       {job.status === 'completed' && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => downloadReport(job.id)}
-                        >
-                          <Download className="h-4 w-4" />
+                        <Button variant='outline' size='sm' onClick={() => downloadReport(job.id)}>
+                          <Download className='h-4 w-4' />
                         </Button>
                       )}
                     </TableCell>
@@ -403,7 +387,7 @@ const SecurityCodeReview: React.FC = () => {
   };
 
   const RulesTab = () => (
-    <div className="space-y-6">
+    <div className='space-y-6'>
       <Card>
         <CardHeader>
           <CardTitle>Security Rules</CardTitle>
@@ -425,22 +409,20 @@ const SecurityCodeReview: React.FC = () => {
                 <TableRow key={rule.id}>
                   <TableCell>
                     <div>
-                      <p className="font-medium">{rule.name}</p>
-                      <p className="text-sm text-muted-foreground">{rule.description}</p>
+                      <p className='font-medium'>{rule.name}</p>
+                      <p className='text-sm text-muted-foreground'>{rule.description}</p>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline">{rule.category}</Badge>
+                    <Badge variant='outline'>{rule.category}</Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={getSeverityColor(rule.severity)}>
-                      {rule.severity}
-                    </Badge>
+                    <Badge variant={getSeverityColor(rule.severity)}>{rule.severity}</Badge>
                   </TableCell>
                   <TableCell>
-                    <div className="flex flex-wrap gap-1">
+                    <div className='flex flex-wrap gap-1'>
                       {rule.fileExtensions.map(ext => (
-                        <Badge key={ext} variant="secondary" className="text-xs">
+                        <Badge key={ext} variant='secondary' className='text-xs'>
                           {ext}
                         </Badge>
                       ))}
@@ -453,11 +435,11 @@ const SecurityCodeReview: React.FC = () => {
                   </TableCell>
                   <TableCell>
                     <Button
-                      variant="outline"
-                      size="sm"
+                      variant='outline'
+                      size='sm'
                       onClick={() => toggleRule(rule.id, !rule.enabled)}
                     >
-                      {rule.enabled ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                      {rule.enabled ? <Pause className='h-4 w-4' /> : <Play className='h-4 w-4' />}
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -470,7 +452,7 @@ const SecurityCodeReview: React.FC = () => {
   );
 
   const ConfigsTab = () => (
-    <div className="space-y-6">
+    <div className='space-y-6'>
       <Card>
         <CardHeader>
           <CardTitle>Scan Configurations</CardTitle>
@@ -491,8 +473,8 @@ const SecurityCodeReview: React.FC = () => {
                 <TableRow key={config.id}>
                   <TableCell>
                     <div>
-                      <p className="font-medium">{config.name}</p>
-                      <p className="text-sm text-muted-foreground">{config.id}</p>
+                      <p className='font-medium'>{config.name}</p>
+                      <p className='text-sm text-muted-foreground'>{config.id}</p>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -502,39 +484,36 @@ const SecurityCodeReview: React.FC = () => {
                   </TableCell>
                   <TableCell>
                     {config.schedule ? (
-                      <Badge variant="outline">{config.schedule}</Badge>
+                      <Badge variant='outline'>{config.schedule}</Badge>
                     ) : (
-                      <span className="text-muted-foreground">Manual</span>
+                      <span className='text-muted-foreground'>Manual</span>
                     )}
                   </TableCell>
                   <TableCell>
-                    <div className="flex space-x-1">
-                      <Badge variant="destructive" className="text-xs">
+                    <div className='flex space-x-1'>
+                      <Badge variant='destructive' className='text-xs'>
                         C:{config.thresholds.critical}
                       </Badge>
-                      <Badge variant="destructive" className="text-xs">
+                      <Badge variant='destructive' className='text-xs'>
                         H:{config.thresholds.high}
                       </Badge>
-                      <Badge variant="default" className="text-xs">
+                      <Badge variant='default' className='text-xs'>
                         M:{config.thresholds.medium}
                       </Badge>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex space-x-2">
+                    <div className='flex space-x-2'>
                       <Button
-                        variant="outline"
-                        size="sm"
+                        variant='outline'
+                        size='sm'
                         onClick={() => startScan(config.id)}
                         disabled={isLoading}
                       >
-                        <Play className="h-4 w-4" />
+                        <Play className='h-4 w-4' />
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                      >
-                        <Settings className="h-4 w-4" />
+                      <Button variant='outline' size='sm'>
+                        <Settings className='h-4 w-4' />
                       </Button>
                     </div>
                   </TableCell>
@@ -548,16 +527,16 @@ const SecurityCodeReview: React.FC = () => {
   );
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className='space-y-6'>
+      <div className='flex items-center justify-between'>
         <div>
-          <h1 className="text-3xl font-bold">Security Code Review</h1>
-          <p className="text-muted-foreground">
+          <h1 className='text-3xl font-bold'>Security Code Review</h1>
+          <p className='text-muted-foreground'>
             Automated security scanning and code review system
           </p>
         </div>
-        <div className="flex space-x-2">
-          <Button variant="outline" onClick={loadDashboardData} disabled={isLoading}>
+        <div className='flex space-x-2'>
+          <Button variant='outline' onClick={loadDashboardData} disabled={isLoading}>
             <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
@@ -565,29 +544,29 @@ const SecurityCodeReview: React.FC = () => {
       </div>
 
       <Alert>
-        <Shield className="h-4 w-4" />
+        <Shield className='h-4 w-4' />
         <AlertDescription>
-          This system provides automated security code review and vulnerability detection.
-          All scans are logged and results are encrypted at rest.
+          This system provides automated security code review and vulnerability detection. All scans
+          are logged and results are encrypted at rest.
         </AlertDescription>
       </Alert>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-          <TabsTrigger value="rules">Security Rules</TabsTrigger>
-          <TabsTrigger value="configs">Configurations</TabsTrigger>
+          <TabsTrigger value='dashboard'>Dashboard</TabsTrigger>
+          <TabsTrigger value='rules'>Security Rules</TabsTrigger>
+          <TabsTrigger value='configs'>Configurations</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="dashboard">
+        <TabsContent value='dashboard'>
           <DashboardTab />
         </TabsContent>
 
-        <TabsContent value="rules">
+        <TabsContent value='rules'>
           <RulesTab />
         </TabsContent>
 
-        <TabsContent value="configs">
+        <TabsContent value='configs'>
           <ConfigsTab />
         </TabsContent>
       </Tabs>

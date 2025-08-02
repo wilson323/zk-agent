@@ -10,6 +10,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import { jwtConfig } from '@/config/env';
 import { ERROR_CODES } from '@/config/constants';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
+
+const logger = getLogger();
 
 export interface IUser {
   id: string;
@@ -29,25 +34,25 @@ export function withAuth(handler: (req: IAuthenticatedRequest) => Promise<NextRe
   return async (req: IAuthenticatedRequest): Promise<NextResponse> => {
     try {
       const token = extractToken(req);
-      
+
       if (!token) {
         return NextResponse.json(
-          { 
-            error: ERROR_CODES.AUTH_INVALID_CREDENTIALS, 
-            message: '缺少认证令牌' 
+          {
+            error: ERROR_CODES.AUTH_INVALID_CREDENTIALS,
+            message: '缺少认证令牌',
           },
           { status: 401 }
         );
       }
 
       const decoded = jwt.verify(token, jwtConfig.secret) as any;
-      
+
       // 验证令牌格式
       if (!decoded.id || !decoded.email || !decoded.role) {
         return NextResponse.json(
-          { 
-            error: ERROR_CODES.AUTH_INVALID_CREDENTIALS, 
-            message: '无效的认证令牌' 
+          {
+            error: ERROR_CODES.AUTH_INVALID_CREDENTIALS,
+            message: '无效的认证令牌',
           },
           { status: 401 }
         );
@@ -65,9 +70,9 @@ export function withAuth(handler: (req: IAuthenticatedRequest) => Promise<NextRe
     } catch (error) {
       if (error instanceof jwt.TokenExpiredError) {
         return NextResponse.json(
-          { 
-            error: ERROR_CODES.AUTH_TOKEN_EXPIRED, 
-            message: '认证令牌已过期' 
+          {
+            error: ERROR_CODES.AUTH_TOKEN_EXPIRED,
+            message: '认证令牌已过期',
           },
           { status: 401 }
         );
@@ -75,19 +80,19 @@ export function withAuth(handler: (req: IAuthenticatedRequest) => Promise<NextRe
 
       if (error instanceof jwt.JsonWebTokenError) {
         return NextResponse.json(
-          { 
-            error: ERROR_CODES.AUTH_INVALID_CREDENTIALS, 
-            message: '无效的认证令牌' 
+          {
+            error: ERROR_CODES.AUTH_INVALID_CREDENTIALS,
+            message: '无效的认证令牌',
           },
           { status: 401 }
         );
       }
 
-      console.error('认证中间件错误:', error);
+      logger.error('认证中间件错误:', error);
       return NextResponse.json(
-        { 
-          error: ERROR_CODES.INTERNAL_SERVER_ERROR, 
-          message: '认证服务异常' 
+        {
+          error: ERROR_CODES.INTERNAL_SERVER_ERROR,
+          message: '认证服务异常',
         },
         { status: 500 }
       );
@@ -102,9 +107,9 @@ export function withAdminAuth(handler: (req: IAuthenticatedRequest) => Promise<N
   return withAuth(async (req: IAuthenticatedRequest): Promise<NextResponse> => {
     if (!req.user) {
       return NextResponse.json(
-        { 
-          error: ERROR_CODES.AUTH_INVALID_CREDENTIALS, 
-          message: '用户信息缺失' 
+        {
+          error: ERROR_CODES.AUTH_INVALID_CREDENTIALS,
+          message: '用户信息缺失',
         },
         { status: 401 }
       );
@@ -112,9 +117,9 @@ export function withAdminAuth(handler: (req: IAuthenticatedRequest) => Promise<N
 
     if (!['ADMIN', 'SUPER_ADMIN'].includes(req.user.role)) {
       return NextResponse.json(
-        { 
-          error: ERROR_CODES.AUTH_INSUFFICIENT_PERMISSIONS, 
-          message: '权限不足，需要管理员权限' 
+        {
+          error: ERROR_CODES.AUTH_INSUFFICIENT_PERMISSIONS,
+          message: '权限不足，需要管理员权限',
         },
         { status: 403 }
       );
@@ -131,9 +136,9 @@ export function withSuperAdminAuth(handler: (req: IAuthenticatedRequest) => Prom
   return withAuth(async (req: IAuthenticatedRequest): Promise<NextResponse> => {
     if (!req.user) {
       return NextResponse.json(
-        { 
-          error: ERROR_CODES.AUTH_INVALID_CREDENTIALS, 
-          message: '用户信息缺失' 
+        {
+          error: ERROR_CODES.AUTH_INVALID_CREDENTIALS,
+          message: '用户信息缺失',
         },
         { status: 401 }
       );
@@ -141,9 +146,9 @@ export function withSuperAdminAuth(handler: (req: IAuthenticatedRequest) => Prom
 
     if (req.user.role !== 'SUPER_ADMIN') {
       return NextResponse.json(
-        { 
-          error: ERROR_CODES.AUTH_INSUFFICIENT_PERMISSIONS, 
-          message: '权限不足，需要超级管理员权限' 
+        {
+          error: ERROR_CODES.AUTH_INSUFFICIENT_PERMISSIONS,
+          message: '权限不足，需要超级管理员权限',
         },
         { status: 403 }
       );
@@ -157,13 +162,13 @@ export function withSuperAdminAuth(handler: (req: IAuthenticatedRequest) => Prom
  * 权限检查中间件
  */
 export function withPermission(permission: string) {
-  return function(handler: (req: IAuthenticatedRequest) => Promise<NextResponse>) {
+  return function (handler: (req: IAuthenticatedRequest) => Promise<NextResponse>) {
     return withAuth(async (req: IAuthenticatedRequest): Promise<NextResponse> => {
       if (!req.user) {
         return NextResponse.json(
-          { 
-            error: ERROR_CODES.AUTH_INVALID_CREDENTIALS, 
-            message: '用户信息缺失' 
+          {
+            error: ERROR_CODES.AUTH_INVALID_CREDENTIALS,
+            message: '用户信息缺失',
           },
           { status: 401 }
         );
@@ -171,9 +176,9 @@ export function withPermission(permission: string) {
 
       if (!req.user.permissions.includes(permission) && req.user.role !== 'SUPER_ADMIN') {
         return NextResponse.json(
-          { 
-            error: ERROR_CODES.AUTH_INSUFFICIENT_PERMISSIONS, 
-            message: `权限不足，需要 ${permission} 权限` 
+          {
+            error: ERROR_CODES.AUTH_INSUFFICIENT_PERMISSIONS,
+            message: `权限不足，需要 ${permission} 权限`,
           },
           { status: 403 }
         );
@@ -191,10 +196,10 @@ export function withOptionalAuth(handler: (req: IAuthenticatedRequest) => Promis
   return async (req: IAuthenticatedRequest): Promise<NextResponse> => {
     try {
       const token = extractToken(req);
-      
+
       if (token) {
         const decoded = jwt.verify(token, jwtConfig.secret) as any;
-        
+
         if (decoded.id && decoded.email && decoded.role) {
           req.user = {
             id: decoded.id,
@@ -208,7 +213,7 @@ export function withOptionalAuth(handler: (req: IAuthenticatedRequest) => Promis
       return await handler(req);
     } catch (error) {
       // 可选认证失败时不返回错误，继续处理请求
-      console.warn('可选认证失败:', error);
+      logger.warn('可选认证失败:', error);
       return await handler(req);
     }
   };
@@ -242,7 +247,9 @@ function extractToken(req: NextRequest): string | null {
 /**
  * 生成JWT令牌
  */
-export function generateToken(user: Omit<IUser, 'permissions'> & { permissions?: string[] }): string {
+export function generateToken(
+  user: Omit<IUser, 'permissions'> & { permissions?: string[] }
+): string {
   return jwt.sign(
     {
       id: user.id,
@@ -263,15 +270,11 @@ export function generateToken(user: Omit<IUser, 'permissions'> & { permissions?:
  * 生成刷新令牌
  */
 export function generateRefreshToken(userId: string): string {
-  return jwt.sign(
-    { userId, type: 'refresh' },
-    jwtConfig.secret,
-    {
-      expiresIn: jwtConfig.refreshExpiresIn,
-      issuer: 'zk-agent',
-      audience: 'zk-agent-refresh',
-    }
-  );
+  return jwt.sign({ userId, type: 'refresh' }, jwtConfig.secret, {
+    expiresIn: jwtConfig.refreshExpiresIn,
+    issuer: 'zk-agent',
+    audience: 'zk-agent-refresh',
+  });
 }
 
 /**
@@ -280,7 +283,7 @@ export function generateRefreshToken(userId: string): string {
 export function verifyRefreshToken(token: string): { userId: string } | null {
   try {
     const decoded = jwt.verify(token, jwtConfig.secret) as any;
-    
+
     if (decoded.type !== 'refresh' || !decoded.userId) {
       return null;
     }
@@ -289,4 +292,4 @@ export function verifyRefreshToken(token: string): { userId: string } | null {
   } catch (error) {
     return null;
   }
-} 
+}

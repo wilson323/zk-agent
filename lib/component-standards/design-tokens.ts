@@ -40,7 +40,7 @@ export const colors = {
     800: '#1f2937',
     900: '#111827',
   },
-} as const
+} as const;
 
 // 间距系统
 export const spacing = {
@@ -58,7 +58,7 @@ export const spacing = {
   20: '80px',
   24: '96px',
   32: '128px',
-} as const
+} as const;
 
 // 字体系统
 export const typography = {
@@ -82,7 +82,7 @@ export const typography = {
     semibold: '600',
     bold: '700',
   },
-} as const
+} as const;
 
 // 圆角系统
 export const borderRadius = {
@@ -95,7 +95,7 @@ export const borderRadius = {
   '2xl': '16px',
   '3xl': '24px',
   full: '9999px',
-} as const
+} as const;
 
 // 阴影系统
 export const shadows = {
@@ -106,7 +106,7 @@ export const shadows = {
   xl: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
   '2xl': '0 25px 50px -12px rgb(0 0 0 / 0.25)',
   inner: 'inset 0 2px 4px 0 rgb(0 0 0 / 0.05)',
-} as const
+} as const;
 
 // 动画系统
 export const animations = {
@@ -121,7 +121,7 @@ export const animations = {
     easeOut: 'cubic-bezier(0, 0, 0.2, 1)',
     easeInOut: 'cubic-bezier(0.4, 0, 0.2, 1)',
   },
-} as const
+} as const;
 
 // 断点系统
 export const breakpoints = {
@@ -130,7 +130,7 @@ export const breakpoints = {
   lg: '1024px',
   xl: '1280px',
   '2xl': '1536px',
-} as const
+} as const;
 
 // Z-index 系统
 export const zIndex = {
@@ -147,7 +147,7 @@ export const zIndex = {
   skipLink: 1600,
   toast: 1700,
   tooltip: 1800,
-} as const
+} as const;
 
 // 组件尺寸系统
 export const componentSizes = {
@@ -169,7 +169,7 @@ export const componentSizes = {
     xl: '64px',
     '2xl': '80px',
   },
-} as const
+} as const;
 
 // 导出所有设计令牌
 export const designTokens = {
@@ -182,11 +182,11 @@ export const designTokens = {
   breakpoints,
   zIndex,
   componentSizes,
-} as const
+} as const;
 
 // 类型定义
-export type ColorToken = keyof typeof colors.primary
-export type SpacingToken = keyof typeof spacing
-export type FontSizeToken = keyof typeof typography.fontSize
-export type ShadowToken = keyof typeof shadows
-export type ComponentSize = 'sm' | 'md' | 'lg'
+export type ColorToken = keyof typeof colors.primary;
+export type SpacingToken = keyof typeof spacing;
+export type FontSizeToken = keyof typeof typography.fontSize;
+export type ShadowToken = keyof typeof shadows;
+export type ComponentSize = 'sm' | 'md' | 'lg';

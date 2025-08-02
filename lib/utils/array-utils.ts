@@ -12,7 +12,7 @@ export function uniqueArray<T>(array: T[], key?: keyof T): T[] {
   if (!key) {
     return [...new Set(array)];
   }
-  
+
   const seen = new Set();
   return array.filter(item => {
     const value = item[key];
@@ -59,14 +59,17 @@ export function shuffleArray<T>(array: T[]): T[] {
  * @returns 分组后的对象
  */
 export function groupBy<T>(array: T[], keyFn: (item: T) => string): Record<string, T[]> {
-  return array.reduce((groups, item) => {
-    const key = keyFn(item);
-    if (!groups[key]) {
-      groups[key] = [];
-    }
-    groups[key].push(item);
-    return groups;
-  }, {} as Record<string, T[]>);
+  return array.reduce(
+    (groups, item) => {
+      const key = keyFn(item);
+      if (!groups[key]) {
+        groups[key] = [];
+      }
+      groups[key].push(item);
+      return groups;
+    },
+    {} as Record<string, T[]>
+  );
 }
 
 /**
@@ -80,7 +83,7 @@ export function sortBy<T>(array: T[], keyFn: (item: T) => any, order: 'asc' | 'd
   return [...array].sort((a, b) => {
     const aVal = keyFn(a);
     const bVal = keyFn(b);
-    
+
     if (aVal < bVal) return order === 'asc' ? -1 : 1;
     if (aVal > bVal) return order === 'asc' ? 1 : -1;
     return 0;

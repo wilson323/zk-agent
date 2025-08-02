@@ -6,27 +6,32 @@
  */
 
 // 核心数据库管理器
-export { enhancedDatabaseManager, enhancedDb } from './enhanced-database-manager';
-export { databaseSecurityManager } from './security-manager';
-export { databaseMonitoringEnhancer } from './performance-monitor-enhancer';
+export { enhancedDatabaseManager, getDb, getEnhancedDb, dbTransaction } from './enhanced-database-manager';
 
+// 导出enhancedDb实例
+export { enhancedDb } from './enhanced-connection';
 
 // 连接相关
 export { EnhancedConnection, ConnectionState } from './enhanced-connection';
-export type { ConnectionPoolConfig, ReconnectionConfig, HealthCheckConfig } from './enhanced-connection';
+export type {
+  ConnectionPoolConfig,
+  ReconnectionConfig,
+  HealthCheckConfig,
+} from './enhanced-connection';
 
 // 监控系统
 export { databaseMonitor, DatabaseMonitor } from './monitoring';
-export type { DatabaseMetrics, PerformanceThresholds, AlertLevel, Alert } from './monitoring';
+export type { DatabaseMetrics, PerformanceThresholds, Alert } from './unified-interfaces';
+export { AlertLevel } from '@/lib/types/enums';
 
 // 性能优化协调器
 export { PerformanceOptimizationCoordinator } from './performance-optimization-coordinator';
 export type {
-  PerformanceOptimizationConfig,
   OptimizationResult,
   OptimizationStrategy as CoordinatorOptimizationStrategy,
   ComponentStatus,
   CoordinatorConfig,
+  OptimizationStatus,
 } from './performance-optimization-coordinator';
 
 // 连接池分析器
@@ -96,8 +101,6 @@ export type {
   MonitoringAlert,
   PerformanceMetrics,
   AnomalyType,
-  Trend,
-  ThresholdConfig,
   AdvancedMonitoringConfig,
   PerformanceTrend,
   AnomalyDetectionResult,
@@ -108,7 +111,7 @@ export type {
 
 // 旧版组件
 export { ConnectionPoolEnhancer } from './connection-pool-enhancer';
-export type { PoolConfig, LoadMetrics, OptimizationStrategy } from './connection-pool-enhancer';
+export type { LoadMetrics, OptimizationStrategy, PoolConfig } from './connection-pool-enhancer';
 
 export { QueryOptimizer } from './query-optimizer';
 export type {
@@ -119,11 +122,8 @@ export type {
 } from './query-optimizer';
 
 export { CacheStrategyManager } from './cache-strategy-manager';
-export type {
-  CacheStrategy,
-  CachePerformanceMetrics,
-  CacheLevel,
-} from './cache-strategy-manager';
+export type { CacheStrategy, CachePerformanceMetrics } from './cache-strategy-manager';
+export { CacheLevel } from './intelligent-cache-manager';
 
 export { DatabaseSecurityManager, databaseSecurityManager } from './security-manager';
 export type {
@@ -232,23 +232,31 @@ export class DatabasePerformanceUtils {
 // 默认导出主要组件
 const db = {
   databaseMonitor,
-  enhancedDatabaseManager,
-  enhancedDb,
+  get enhancedDatabaseManager() {
+    return enhancedDatabaseManager;
+  },
+  get enhancedDb() {
+    return getEnhancedDb();
+  },
+  get db() {
+    return getDb();
+  },
   DatabasePerformanceUtils,
   get connectionPoolEnhancer() {
-    const { ConnectionPoolEnhancer } = require('./connection-pool-enhancer');
-    return new ConnectionPoolEnhancer({});
+    return enhancedDatabaseManager.connectionPoolEnhancer;
   },
   get queryOptimizer() {
-    const { QueryOptimizer } = require('./query-optimizer');
-    return new QueryOptimizer();
+    return enhancedDatabaseManager.queryOptimizer;
   },
   get cacheStrategyManager() {
-    const { CacheStrategyManager } = require('./cache-strategy-manager');
-    return new CacheStrategyManager();
+    return enhancedDatabaseManager.cacheStrategyManager;
   },
-  databaseSecurityManager,
-  databaseMonitoringEnhancer,
+  get databaseSecurityManager() {
+    return databaseSecurityManager;
+  },
+  get databaseMonitoringEnhancer() {
+    return databaseMonitoringEnhancer;
+  },
 };
 
 export default db;

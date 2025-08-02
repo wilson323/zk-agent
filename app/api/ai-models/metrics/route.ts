@@ -9,27 +9,26 @@ import { NextRequest } from 'next/server';
 import { createApiRoute, RouteConfigs } from '@/lib/middleware/api-route-wrapper';
 import { ApiResponseWrapper } from '@/lib/utils/api-helper';
 import { ErrorCode } from '@/types/core';
-import { aiModelManager } from "@/lib/ai-models/model-manager"
+import { aiModelManager } from '@/lib/ai-models/model-manager';
 
 export const GET = createApiRoute(
   RouteConfigs.publicGet(),
   async (req: NextRequest, { validatedQuery }) => {
     try {
-
       const modelId = validatedQuery?.modelId;
-    
+
       if (modelId) {
         // 获取单个模型指标
         const metrics = aiModelManager.getModelMetrics(modelId);
         if (!metrics) {
           return ApiResponseWrapper.error(
             ErrorCode.NOT_FOUND,
-            "Model metrics not found",
+            'Model metrics not found',
             null,
             404
           );
         }
-    
+
         return ApiResponseWrapper.success({
           success: true,
           data: metrics,
@@ -37,7 +36,7 @@ export const GET = createApiRoute(
       } else {
         // 获取所有模型指标
         const allMetrics = aiModelManager.getAllMetrics();
-    
+
         return ApiResponseWrapper.success({
           success: true,
           data: allMetrics,
@@ -47,11 +46,10 @@ export const GET = createApiRoute(
     } catch (error) {
       return ApiResponseWrapper.error(
         ErrorCode.INTERNAL_SERVER_ERROR,
-        "Failed to get AI model metrics",
+        'Failed to get AI model metrics',
         null,
         500
       );
     }
   }
 );
-

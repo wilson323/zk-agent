@@ -4,9 +4,9 @@ const { performance } = require('perf_hooks');
 // 内存监控配置
 const MEMORY_TEST_CONFIG = {
   duration: 5 * 60 * 1000, // 5分钟测试
-  interval: 10 * 1000,     // 每10秒检查一次
-  maxMemoryMB: 512,        // 最大内存限制512MB
-  baseUrl: process.env.BASE_URL || 'http://localhost:3000'
+  interval: 10 * 1000, // 每10秒检查一次
+  maxMemoryMB: 512, // 最大内存限制512MB
+  baseUrl: process.env.BASE_URL || 'http://localhost:3000',
 };
 
 class MemoryTester {
@@ -26,7 +26,7 @@ class MemoryTester {
       heapTotal: Math.round(usage.heapTotal / 1024 / 1024), // MB
       heapUsed: Math.round(usage.heapUsed / 1024 / 1024), // MB
       external: Math.round(usage.external / 1024 / 1024), // MB
-      arrayBuffers: Math.round(usage.arrayBuffers / 1024 / 1024) // MB
+      arrayBuffers: Math.round(usage.arrayBuffers / 1024 / 1024), // MB
     };
   }
 
@@ -41,32 +41,32 @@ class MemoryTester {
         method: method,
         headers: {
           'Content-Type': 'application/json',
-          'User-Agent': 'Memory-Test-Agent'
-        }
+          'User-Agent': 'Memory-Test-Agent',
+        },
       };
 
-      const req = http.request(options, (res) => {
+      const req = http.request(options, res => {
         let responseData = '';
-        
-        res.on('data', (chunk) => {
+
+        res.on('data', chunk => {
           responseData += chunk;
         });
-        
+
         res.on('end', () => {
           this.requestCount++;
           resolve({
             statusCode: res.statusCode,
             data: responseData,
-            headers: res.headers
+            headers: res.headers,
           });
         });
       });
 
-      req.on('error', (error) => {
+      req.on('error', error => {
         this.errors.push({
           timestamp: Date.now(),
           error: error.message,
-          path: path
+          path: path,
         });
         reject(error);
       });
@@ -74,7 +74,7 @@ class MemoryTester {
       if (data) {
         req.write(JSON.stringify(data));
       }
-      
+
       req.end();
     });
   }
@@ -86,19 +86,21 @@ class MemoryTester {
       () => this.makeRequest('/api/agents'),
       () => this.makeRequest('/api/cad/templates'),
       () => this.makeRequest('/api/poster/templates'),
-      () => this.makeRequest('/api/chat/sessions', 'POST', {
-        agentId: 'test-agent',
-        title: 'Memory Test Session'
-      }),
-      () => this.makeRequest('/api/chat/messages', 'POST', {
-        message: 'Memory test message ' + Math.random(),
-        sessionId: 'test-session-' + Math.random()
-      })
+      () =>
+        this.makeRequest('/api/chat/sessions', 'POST', {
+          agentId: 'test-agent',
+          title: 'Memory Test Session',
+        }),
+      () =>
+        this.makeRequest('/api/chat/messages', 'POST', {
+          message: 'Memory test message ' + Math.random(),
+          sessionId: 'test-session-' + Math.random(),
+        }),
     ];
 
     // 随机执行场景
     const scenario = scenarios[Math.floor(Math.random() * scenarios.length)];
-    
+
     try {
       await scenario();
     } catch (error) {
@@ -134,27 +136,31 @@ class MemoryTester {
         totalRequests: this.requestCount,
         totalErrors: this.errors.length,
         errorRate: this.errors.length / this.requestCount,
-        requestsPerSecond: this.requestCount / (duration / 1000)
+        requestsPerSecond: this.requestCount / (duration / 1000),
       },
       memory: {
         initial: initialMemory,
         final: finalMemory,
-        peak: this.memorySnapshots.reduce((max, snap) => 
-          snap.heapUsed > max.heapUsed ? snap : max, initialMemory),
+        peak: this.memorySnapshots.reduce(
+          (max, snap) => (snap.heapUsed > max.heapUsed ? snap : max),
+          initialMemory
+        ),
         growth: {
           rss: finalMemory.rss - initialMemory.rss,
           heapUsed: finalMemory.heapUsed - initialMemory.heapUsed,
-          heapTotal: finalMemory.heapTotal - initialMemory.heapTotal
-        }
+          heapTotal: finalMemory.heapTotal - initialMemory.heapTotal,
+        },
       },
       analysis: {
         memoryLeakDetected: this.checkMemoryLeak(),
         memoryLimitExceeded: finalMemory.heapUsed > MEMORY_TEST_CONFIG.maxMemoryMB,
-        averageMemoryGrowthPerRequest: this.memorySnapshots.length > 1 ? 
-          (finalMemory.heapUsed - initialMemory.heapUsed) / this.requestCount : 0
+        averageMemoryGrowthPerRequest:
+          this.memorySnapshots.length > 1
+            ? (finalMemory.heapUsed - initialMemory.heapUsed) / this.requestCount
+            : 0,
       },
       snapshots: this.memorySnapshots,
-      errors: this.errors.slice(0, 10) // 只显示前10个错误
+      errors: this.errors.slice(0, 10), // 只显示前10个错误
     };
 
     return report;
@@ -174,19 +180,25 @@ class MemoryTester {
     const memoryMonitor = setInterval(() => {
       const usage = this.getMemoryUsage();
       this.memorySnapshots.push(usage);
-      
-      console.log(`Memory: ${usage.heapUsed}MB (RSS: ${usage.rss}MB) | Requests: ${this.requestCount} | Errors: ${this.errors.length}`);
-      
+
+      console.log(
+        `Memory: ${usage.heapUsed}MB (RSS: ${usage.rss}MB) | Requests: ${this.requestCount} | Errors: ${this.errors.length}`
+      );
+
       // 检查内存限制
       if (usage.heapUsed > MEMORY_TEST_CONFIG.maxMemoryMB) {
-        console.warn(`⚠️  Memory limit exceeded: ${usage.heapUsed}MB > ${MEMORY_TEST_CONFIG.maxMemoryMB}MB`);
+        console.warn(
+          `⚠️  Memory limit exceeded: ${usage.heapUsed}MB > ${MEMORY_TEST_CONFIG.maxMemoryMB}MB`
+        );
       }
     }, MEMORY_TEST_CONFIG.interval);
 
     // 持续发送请求
     const requestInterval = setInterval(async () => {
       // 并发发送多个请求
-      const promises = Array(5).fill().map(() => this.simulateUserBehavior());
+      const promises = Array(5)
+        .fill()
+        .map(() => this.simulateUserBehavior());
       await Promise.allSettled(promises);
     }, 1000); // 每秒发送请求
 
@@ -202,7 +214,7 @@ class MemoryTester {
 
     // 生成并输出报告
     const report = this.generateReport();
-    
+
     console.log('\n📊 Memory Test Report:');
     console.log('='.repeat(50));
     console.log(`Duration: ${report.summary.duration}s`);
@@ -216,13 +228,17 @@ class MemoryTester {
     console.log(`Growth: ${report.memory.growth.heapUsed}MB`);
     console.log('\nAnalysis:');
     console.log(`Memory Leak Detected: ${report.analysis.memoryLeakDetected ? '❌ YES' : '✅ NO'}`);
-    console.log(`Memory Limit Exceeded: ${report.analysis.memoryLimitExceeded ? '❌ YES' : '✅ NO'}`);
-    console.log(`Avg Growth/Request: ${report.analysis.averageMemoryGrowthPerRequest.toFixed(4)}MB`);
+    console.log(
+      `Memory Limit Exceeded: ${report.analysis.memoryLimitExceeded ? '❌ YES' : '✅ NO'}`
+    );
+    console.log(
+      `Avg Growth/Request: ${report.analysis.averageMemoryGrowthPerRequest.toFixed(4)}MB`
+    );
 
     // 保存详细报告
     const fs = require('fs');
     const reportPath = './test-reports/memory-test-report.json';
-    
+
     try {
       fs.mkdirSync('./test-reports', { recursive: true });
       fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
@@ -232,12 +248,15 @@ class MemoryTester {
     }
 
     // 返回测试结果
-    const passed = !report.analysis.memoryLeakDetected && 
-                   !report.analysis.memoryLimitExceeded && 
-                   report.summary.errorRate < 0.05;
+    const passed =
+      !report.analysis.memoryLeakDetected &&
+      !report.analysis.memoryLimitExceeded &&
+      report.summary.errorRate < 0.05;
 
-    console.log(`\n${passed ? '✅ PASSED' : '❌ FAILED'}: Memory test ${passed ? 'passed' : 'failed'}`);
-    
+    console.log(
+      `\n${passed ? '✅ PASSED' : '❌ FAILED'}: Memory test ${passed ? 'passed' : 'failed'}`
+    );
+
     process.exit(passed ? 0 : 1);
   }
 }
@@ -251,4 +270,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = MemoryTester; 
+module.exports = MemoryTester;

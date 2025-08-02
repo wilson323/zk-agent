@@ -10,38 +10,38 @@ import { ErrorType } from '../types/enums';
 
 // 重试策略
 export interface RetryStrategy {
-  maxRetries: number
-  baseDelay: number
-  maxDelay: number
-  backoffMultiplier: number
-  jitter: boolean
-  retryableErrors: ErrorType[]
+  maxRetries: number;
+  baseDelay: number;
+  maxDelay: number;
+  backoffMultiplier: number;
+  jitter: boolean;
+  retryableErrors: ErrorType[];
 }
 
 import { ErrorInfo } from '../types/interfaces';
 
 // 重试结果
 export interface RetryResult<T> {
-  success: boolean
-  data?: T
-  error?: ErrorInfo
-  totalRetries: number
-  totalDuration: number
+  success: boolean;
+  data?: T;
+  error?: ErrorInfo;
+  totalRetries: number;
+  totalDuration: number;
   attempts: Array<{
-    attempt: number
-    error?: ErrorInfo
-    duration: number
-    timestamp: Date
-  }>
+    attempt: number;
+    error?: ErrorInfo;
+    duration: number;
+    timestamp: Date;
+  }>;
 }
 
 // 重试配置
 export interface RetryConfig {
-  strategy?: Partial<RetryStrategy>
-  onRetry?: (error: ErrorInfo, attempt: number) => void
-  onSuccess?: (result: any, attempts: number) => void
-  onFailure?: (error: ErrorInfo, attempts: number) => void
-  shouldRetry?: (error: ErrorInfo) => boolean
+  strategy?: Partial<RetryStrategy>;
+  onRetry?: (error: ErrorInfo, attempt: number) => void;
+  onSuccess?: (result: any, attempts: number) => void;
+  onFailure?: (error: ErrorInfo, attempts: number) => void;
+  shouldRetry?: (error: ErrorInfo) => boolean;
 }
 
 /**
@@ -50,109 +50,113 @@ export interface RetryConfig {
 export class ErrorRetryManager {
   private defaultStrategy: RetryStrategy = {
     maxRetries: 3,
-      baseDelay: 1000,
-      maxDelay: 30000,
-      backoffMultiplier: 2,
+    baseDelay: 1000,
+    maxDelay: 30000,
+    backoffMultiplier: 2,
     jitter: true,
-      retryableErrors: [
-      ErrorType.NETWORK,
-      ErrorType.TIMEOUT,
-      ErrorType.RATE_LIMIT,
-      ErrorType.SERVER
-    ]
-  }
+    retryableErrors: [ErrorType.NETWORK, ErrorType.TIMEOUT, ErrorType.RATE_LIMIT, ErrorType.SERVER],
+  };
 
-  private errorStats = new Map<string, {
-    count: number
-    lastOccurred: Date
-    successRate: number
-    averageRetries: number
-  }>()
+  private errorStats = new Map<
+    string,
+    {
+      count: number;
+      lastOccurred: Date;
+      successRate: number;
+      averageRetries: number;
+    }
+  >();
+
+  private globalErrorStats = {
+    totalErrors: 0,
+    retryAttempts: 0,
+    errorTypes: new Map<string, number>(),
+  };
 
   constructor(defaultStrategy?: Partial<RetryStrategy>) {
     if (defaultStrategy) {
-      this.defaultStrategy = { ...this.defaultStrategy, ...defaultStrategy }
+      this.defaultStrategy = { ...this.defaultStrategy, ...defaultStrategy };
     }
   }
 
   /**
-   * 执行带重试的异步操作
+   * 执行带重试的异步操作（返回详细结果）
    */
-  async executeWithRetry<T>(
+  async executeWithRetryDetailed<T>(
     operation: () => Promise<T>,
     config: RetryConfig = {}
   ): Promise<RetryResult<T>> {
-    const strategy = { ...this.defaultStrategy, ...config.strategy }
-    const startTime = Date.now()
-    const attempts: RetryResult<T>['attempts'] = []
-    
-    let lastError: ErrorInfo | undefined
+    const strategy = { ...this.defaultStrategy, ...config.strategy };
+    const startTime = Date.now();
+    const attempts: RetryResult<T>['attempts'] = [];
+
+    let lastError: ErrorInfo | undefined;
 
     for (let attempt = 0; attempt <= strategy.maxRetries; attempt++) {
-      const attemptStartTime = Date.now()
-      
+      const attemptStartTime = Date.now();
+
       try {
-        const result = await operation()
-        const duration = Date.now() - attemptStartTime
-        
+        const result = await operation();
+        const duration = Date.now() - attemptStartTime;
+
         attempts.push({
           attempt: attempt + 1,
           duration,
-          timestamp: new Date()
-        })
+          timestamp: new Date(),
+        });
 
         // 记录成功
         if (config.onSuccess) {
-          config.onSuccess(result, attempt + 1)
+          config.onSuccess(result, attempt + 1);
         }
 
         // 更新统计
-        this.updateSuccessStats(operation.name || 'anonymous', attempt)
+        this.updateSuccessStats(operation.name || 'anonymous', attempt);
 
         return {
-            success: true,
+          success: true,
           data: result,
           totalRetries: attempt,
           totalDuration: Date.now() - startTime,
-          attempts
-        }
-        } catch (error) {
-        const duration = Date.now() - attemptStartTime
-        const errorInfo = this.parseError(error, attempt)
-        
+          attempts,
+        };
+      } catch (error) {
+        const duration = Date.now() - attemptStartTime;
+        const errorInfo = this.parseError(error, attempt);
+
         attempts.push({
           attempt: attempt + 1,
           error: errorInfo,
           duration,
-          timestamp: new Date()
-        })
+          timestamp: new Date(),
+        });
 
-        lastError = errorInfo
+        lastError = errorInfo;
 
         // 更新错误统计
-        this.updateErrorStats(operation.name || 'anonymous', errorInfo)
+        this.updateErrorStats(operation.name || 'anonymous', errorInfo);
 
-          // 检查是否应该重试
-        const shouldRetry = this.shouldRetry(errorInfo, attempt, strategy, config.shouldRetry)
-        
+        // 检查是否应该重试
+        const shouldRetry = this.shouldRetry(errorInfo, attempt, strategy, config.shouldRetry);
+
         if (!shouldRetry || attempt >= strategy.maxRetries) {
-          break
+          break;
         }
 
         // 执行重试回调
         if (config.onRetry) {
-          config.onRetry(errorInfo, attempt + 1)
+          config.onRetry(errorInfo, attempt + 1);
         }
 
         // 等待重试延迟
-        const delay = this.calculateDelay(attempt, strategy)
-        await this.sleep(delay)
+        const delay = this.calculateDelayInternal(attempt, strategy);
+        await this.sleep(delay);
       }
     }
 
     // 执行失败回调
     if (config.onFailure && lastError) {
-      config.onFailure(lastError, attempts.length)
+      config.onFailure(lastError, attempts.length);
     }
 
     return {
@@ -160,7 +164,24 @@ export class ErrorRetryManager {
       error: lastError,
       totalRetries: attempts.length - 1,
       totalDuration: Date.now() - startTime,
-      attempts
+      attempts,
+    };
+  }
+
+  /**
+   * 执行带重试的异步操作（简化版本，成功返回数据，失败抛出错误）
+   */
+  async executeWithRetry<T>(operation: () => Promise<T>, config: RetryConfig = {}): Promise<T> {
+    const result = await this.executeWithRetryDetailed(operation, config);
+
+    if (result.success) {
+      return result.data!;
+    } else {
+      const error = new Error(result.error?.message || 'Operation failed');
+      if (result.error?.code) {
+        error.name = result.error.code.toString();
+      }
+      throw error;
     }
   }
 
@@ -173,23 +194,14 @@ export class ErrorRetryManager {
       propertyKey: string,
       descriptor: TypedPropertyDescriptor<T>
     ) => {
-      const originalMethod = descriptor.value!
+      const originalMethod = descriptor.value!;
 
       descriptor.value = async function (this: any, ...args: any[]) {
-        const result = await this.executeWithRetry(
-          () => originalMethod.apply(this, args),
-          config
-        )
+        return await this.executeWithRetry(() => originalMethod.apply(this, args), config);
+      } as T;
 
-        if (result.success) {
-          return result.data
-        } else {
-          throw result.error
-        }
-      } as T
-
-      return descriptor
-    }
+      return descriptor;
+    };
   }
 
   /**
@@ -198,30 +210,30 @@ export class ErrorRetryManager {
   async executeBatch<T>(
     operations: Array<() => Promise<T>>,
     config: RetryConfig & {
-      concurrency?: number
-      failFast?: boolean
+      concurrency?: number;
+      failFast?: boolean;
     } = {}
   ): Promise<Array<RetryResult<T>>> {
-    const { concurrency = 3, failFast = false } = config
-    const results: Array<RetryResult<T>> = []
-    
+    const { concurrency = 3, failFast = false } = config;
+    const results: Array<RetryResult<T>> = [];
+
     // 分批执行
     for (let i = 0; i < operations.length; i += concurrency) {
-      const batch = operations.slice(i, i + concurrency)
-      
-      const batchPromises = batch.map(operation => 
-        this.executeWithRetry(operation, config)
-      )
+      const batch = operations.slice(i, i + concurrency);
 
-      const batchResults = await Promise.allSettled(batchPromises)
-      
+      const batchPromises = batch.map(operation =>
+        this.executeWithRetryDetailed(operation, config)
+      );
+
+      const batchResults = await Promise.allSettled(batchPromises);
+
       for (const result of batchResults) {
         if (result.status === 'fulfilled') {
-          results.push(result.value)
-          
+          results.push(result.value);
+
           // 如果启用快速失败且有失败，停止执行
           if (failFast && !result.value.success) {
-            return results
+            return results;
           }
         } else {
           // Promise被拒绝，创建失败结果
@@ -230,17 +242,17 @@ export class ErrorRetryManager {
             error: this.parseError(result.reason, 0),
             totalRetries: 0,
             totalDuration: 0,
-            attempts: []
-          })
-          
+            attempts: [],
+          });
+
           if (failFast) {
-            return results
+            return results;
           }
         }
       }
     }
 
-    return results
+    return results;
   }
 
   /**
@@ -248,17 +260,22 @@ export class ErrorRetryManager {
    */
   getErrorStats(operationName?: string) {
     if (operationName) {
-      return this.errorStats.get(operationName)
+      return this.errorStats.get(operationName);
     }
-    
-    return Object.fromEntries(this.errorStats.entries())
+
+    return {
+      totalErrors: this.globalErrorStats.totalErrors,
+      retryAttempts: this.globalErrorStats.retryAttempts,
+      errorTypes: Object.fromEntries(this.globalErrorStats.errorTypes.entries()),
+      operations: Object.fromEntries(this.errorStats.entries()),
+    };
   }
 
   /**
    * 获取所有操作的统计信息
    */
   getAllStats() {
-    return this.errorStats
+    return this.errorStats;
   }
 
   /**
@@ -266,113 +283,177 @@ export class ErrorRetryManager {
    */
   clearErrorStats(operationName?: string) {
     if (operationName) {
-      this.errorStats.delete(operationName)
+      this.errorStats.delete(operationName);
     } else {
-      this.errorStats.clear()
+      this.errorStats.clear();
+      this.globalErrorStats = {
+        totalErrors: 0,
+        retryAttempts: 0,
+        errorTypes: new Map<string, number>(),
+      };
     }
+  }
+
+  /**
+   * 检查错误是否可重试
+   */
+  isRetryableError(error: any): boolean {
+    const errorInfo = this.parseError(error, 0);
+    return this.defaultStrategy.retryableErrors.includes(errorInfo.type);
+  }
+
+  /**
+   * 获取当前配置
+   */
+  getConfig(): RetryStrategy {
+    return { ...this.defaultStrategy };
+  }
+
+  /**
+   * 更新配置
+   */
+  updateConfig(newConfig: Partial<RetryStrategy>): void {
+    // 验证配置
+    if (newConfig.maxRetries !== undefined && newConfig.maxRetries < 0) {
+      throw new Error('Invalid configuration: maxRetries must be >= 0');
+    }
+    if (newConfig.baseDelay !== undefined && newConfig.baseDelay < 0) {
+      throw new Error('Invalid configuration: baseDelay must be >= 0');
+    }
+    if (newConfig.maxDelay !== undefined && newConfig.maxDelay < 0) {
+      throw new Error('Invalid configuration: maxDelay must be >= 0');
+    }
+    if (newConfig.backoffMultiplier !== undefined && newConfig.backoffMultiplier <= 0) {
+      throw new Error('Invalid configuration: backoffMultiplier must be > 0');
+    }
+
+    this.defaultStrategy = { ...this.defaultStrategy, ...newConfig };
+  }
+
+  /**
+   * 记录错误（用于测试和统计）
+   */
+  recordError(error: any, operationName: string = 'anonymous'): void {
+    const errorInfo = this.parseError(error, 0);
+    this.updateErrorStats(operationName, errorInfo);
+
+    // 更新全局统计
+    this.globalErrorStats.totalErrors++;
+    const errorTypeName = error.name || error.constructor.name || 'UnknownError';
+    const currentCount = this.globalErrorStats.errorTypes.get(errorTypeName) || 0;
+    this.globalErrorStats.errorTypes.set(errorTypeName, currentCount + 1);
+  }
+
+  /**
+   * 计算延迟（公共方法用于测试）
+   */
+  calculateDelay(attempt: number, strategy?: RetryStrategy): number {
+    const strategyToUse = strategy || this.defaultStrategy;
+    return this.calculateDelayInternal(attempt, strategyToUse);
   }
 
   /**
    * 创建断路器模式
    */
   createCircuitBreaker(config: {
-    failureThreshold: number
-    resetTimeout: number
-    monitoringPeriod: number
+    failureThreshold: number;
+    resetTimeout: number;
+    monitoringPeriod: number;
   }) {
-    let state: 'closed' | 'open' | 'half-open' = 'closed'
-    let failureCount = 0
-    let lastFailureTime = 0
-    let successCount = 0
+    let state: 'closed' | 'open' | 'half-open' = 'closed';
+    let failureCount = 0;
+    let lastFailureTime = 0;
+    let successCount = 0;
 
     return async <T>(operation: () => Promise<T>): Promise<T> => {
-      const now = Date.now()
+      const now = Date.now();
 
       // 检查是否应该重置
       if (state === 'open' && now - lastFailureTime > config.resetTimeout) {
-        state = 'half-open'
-        successCount = 0
+        state = 'half-open';
+        successCount = 0;
       }
 
       // 如果断路器开启，直接抛出错误
       if (state === 'open') {
-        throw new Error('Circuit breaker is open')
+        throw new Error('Circuit breaker is open');
       }
 
       try {
-        const result = await operation()
-        
+        const result = await operation();
+
         // 成功执行
         if (state === 'half-open') {
-          successCount++
-          if (successCount >= 3) { // 连续3次成功后关闭断路器
-            state = 'closed'
-            failureCount = 0
+          successCount++;
+          if (successCount >= 3) {
+            // 连续3次成功后关闭断路器
+            state = 'closed';
+            failureCount = 0;
           }
         } else {
-          failureCount = 0
+          failureCount = 0;
         }
 
-        return result
+        return result;
       } catch (error) {
-        failureCount++
-        lastFailureTime = now
+        failureCount++;
+        lastFailureTime = now;
 
         if (failureCount >= config.failureThreshold) {
-          state = 'open'
+          state = 'open';
         }
 
-        throw error
+        throw error;
       }
-    }
+    };
   }
 
   // 私有方法
 
   private parseError(error: any, retryCount: number): ErrorInfo {
-    let type = ErrorType.UNKNOWN
-    let message = 'Unknown error'
-    let code: string | number | undefined
-    let statusCode: number | undefined
+    let type = ErrorType.UNKNOWN;
+    let message = 'Unknown error';
+    let code: string | number | undefined;
+    let statusCode: number | undefined;
 
     if (error instanceof Error) {
-      message = error.message
-      
+      message = error.message;
+
       // 根据错误消息判断类型
       if (error.message.includes('network') || error.message.includes('fetch')) {
-        type = ErrorType.NETWORK
+        type = ErrorType.NETWORK;
       } else if (error.message.includes('timeout')) {
-        type = ErrorType.TIMEOUT
+        type = ErrorType.TIMEOUT;
       } else if (error.message.includes('401') || error.message.includes('unauthorized')) {
-        type = ErrorType.AUTH
+        type = ErrorType.AUTHENTICATION;
       }
     }
 
     // 处理HTTP错误
     if (error.response) {
-      statusCode = error.response.status
-      
+      statusCode = error.response.status;
+
       if (statusCode && statusCode >= 400 && statusCode < 500) {
-        type = statusCode === 401 ? ErrorType.AUTH : ErrorType.CLIENT
+        type = statusCode === 401 ? ErrorType.AUTHENTICATION : ErrorType.VALIDATION;
       } else if (statusCode && statusCode >= 500) {
-        type = ErrorType.SERVER
+        type = ErrorType.SERVER;
       } else if (statusCode === 429) {
-        type = ErrorType.RATE_LIMIT
+        type = ErrorType.RATE_LIMIT;
       }
     }
 
     // 处理网络错误
     if (error.code) {
-      code = error.code
-      
+      code = error.code;
+
       if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
-        type = ErrorType.NETWORK
+        type = ErrorType.NETWORK;
       } else if (error.code === 'ETIMEDOUT') {
-        type = ErrorType.TIMEOUT
+        type = ErrorType.TIMEOUT;
       }
     }
 
-    const isRetryable = this.defaultStrategy.retryableErrors.includes(type)
+    const isRetryable = this.defaultStrategy.retryableErrors.includes(type);
 
     return {
       type,
@@ -383,9 +464,9 @@ export class ErrorRetryManager {
       retryCount,
       isRetryable,
       metadata: {
-        originalError: error
-      }
-    }
+        originalError: error,
+      },
+    };
   }
 
   private shouldRetry(
@@ -396,34 +477,34 @@ export class ErrorRetryManager {
   ): boolean {
     // 如果有自定义重试逻辑，优先使用
     if (customShouldRetry) {
-      return customShouldRetry(error)
+      return customShouldRetry(error);
     }
 
     // 检查是否达到最大重试次数
     if (attempt >= strategy.maxRetries) {
-      return false
+      return false;
     }
 
     // 检查错误类型是否可重试
-    return strategy.retryableErrors.includes(error.type)
+    return strategy.retryableErrors.includes(error.type);
   }
 
-  private calculateDelay(attempt: number, strategy: RetryStrategy): number {
-    let delay = strategy.baseDelay * Math.pow(strategy.backoffMultiplier, attempt)
-    
+  private calculateDelayInternal(attempt: number, strategy: RetryStrategy): number {
+    let delay = strategy.baseDelay * Math.pow(strategy.backoffMultiplier, attempt);
+
     // 限制最大延迟
-    delay = Math.min(delay, strategy.maxDelay)
-    
+    delay = Math.min(delay, strategy.maxDelay);
+
     // 添加抖动
     if (strategy.jitter) {
-      delay = delay * (0.5 + Math.random() * 0.5)
+      delay = delay * (0.5 + Math.random() * 0.5);
     }
-    
-    return Math.floor(delay)
+
+    return Math.floor(delay);
   }
 
   private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms))
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   private updateErrorStats(operationName: string, error: ErrorInfo) {
@@ -431,14 +512,23 @@ export class ErrorRetryManager {
       count: 0,
       lastOccurred: new Date(),
       successRate: 1.0,
-      averageRetries: 0
-    }
+      averageRetries: 0,
+    };
 
-    stats.count++
-    stats.lastOccurred = error.timestamp
-    stats.averageRetries = (stats.averageRetries * (stats.count - 1) + error.retryCount) / stats.count
+    stats.count++;
+    stats.lastOccurred = error.timestamp;
+    stats.averageRetries =
+      (stats.averageRetries * (stats.count - 1) + error.retryCount) / stats.count;
 
-    this.errorStats.set(operationName, stats)
+    this.errorStats.set(operationName, stats);
+
+    // 更新全局统计
+    this.globalErrorStats.totalErrors++;
+    this.globalErrorStats.retryAttempts += error.retryCount;
+
+    const errorTypeName = error.type || 'UnknownError';
+    const currentCount = this.globalErrorStats.errorTypes.get(errorTypeName) || 0;
+    this.globalErrorStats.errorTypes.set(errorTypeName, currentCount + 1);
   }
 
   private updateSuccessStats(operationName: string, retries: number) {
@@ -446,29 +536,28 @@ export class ErrorRetryManager {
       count: 0,
       lastOccurred: new Date(),
       successRate: 1.0,
-      averageRetries: 0
-    }
+      averageRetries: 0,
+    };
 
     // 更新成功率（简化计算）
-    const totalOperations = stats.count + 1
-    stats.successRate = (stats.successRate * stats.count + 1) / totalOperations
-    stats.averageRetries = (stats.averageRetries * stats.count + retries) / totalOperations
+    const totalOperations = stats.count + 1;
+    stats.successRate = (stats.successRate * stats.count + 1) / totalOperations;
+    stats.averageRetries = (stats.averageRetries * stats.count + retries) / totalOperations;
 
-    this.errorStats.set(operationName, stats)
+    this.errorStats.set(operationName, stats);
   }
 }
 
 // 创建默认实例
-export const errorRetryManager = new ErrorRetryManager()
+export const errorRetryManager = new ErrorRetryManager();
 
 // 导出装饰器
-export const retry = (config?: RetryConfig) => 
-  errorRetryManager.createRetryDecorator(config)
+export const retry = (config?: RetryConfig) => errorRetryManager.createRetryDecorator(config);
 
 // 导出类型（避免重复导出冲突）
 export type {
   RetryStrategy as IRetryStrategy,
   ErrorInfo as IErrorInfo,
   RetryResult as IRetryResult,
-  RetryConfig as IRetryConfig
-}
+  RetryConfig as IRetryConfig,
+};

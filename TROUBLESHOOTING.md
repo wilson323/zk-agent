@@ -7,11 +7,13 @@
 ### 1. 数据库相关问题
 
 #### 问题：数据库连接失败
+
 ```
 Error: connect ECONNREFUSED 127.0.0.1:5432
 ```
 
 **解决方案：**
+
 ```bash
 # 1. 检查 PostgreSQL 是否运行
 sudo systemctl status postgresql
@@ -27,11 +29,13 @@ echo $DATABASE_URL
 ```
 
 #### 问题：Prisma 迁移失败
+
 ```
 Error: P3009 migrate found failed migration
 ```
 
 **解决方案：**
+
 ```bash
 # 1. 重置数据库（开发环境）
 npm run db:reset
@@ -44,11 +48,13 @@ npm run db:generate
 ```
 
 #### 问题：数据库权限错误
+
 ```
 Error: permission denied for table users
 ```
 
 **解决方案：**
+
 ```sql
 -- 授予用户权限
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO your_user;
@@ -58,11 +64,13 @@ GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO your_user;
 ### 2. 环境变量问题
 
 #### 问题：环境变量未加载
+
 ```
 Error: Environment variable DATABASE_URL is not defined
 ```
 
 **解决方案：**
+
 ```bash
 # 1. 检查 .env 文件是否存在
 ls -la .env*
@@ -75,11 +83,13 @@ npm run dev
 ```
 
 #### 问题：Next.js 环境变量不可用
+
 ```
 Error: process.env.CUSTOM_VAR is undefined
 ```
 
 **解决方案：**
+
 ```javascript
 // next.config.js
 module.exports = {
@@ -90,17 +100,19 @@ module.exports = {
   publicRuntimeConfig: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
   },
-}
+};
 ```
 
 ### 3. 依赖包问题
 
 #### 问题：npm 安装失败
+
 ```
 Error: ERESOLVE unable to resolve dependency tree
 ```
 
 **解决方案：**
+
 ```bash
 # 1. 清理缓存
 npm cache clean --force
@@ -116,11 +128,13 @@ npm install --legacy-peer-deps
 ```
 
 #### 问题：TypeScript 类型错误
+
 ```
 Error: Cannot find module '@types/node'
 ```
 
 **解决方案：**
+
 ```bash
 # 1. 安装缺失的类型定义
 npm install -D @types/node @types/react @types/react-dom
@@ -135,11 +149,13 @@ npm run db:generate
 ### 4. 构建和部署问题
 
 #### 问题：Next.js 构建失败
+
 ```
 Error: Build optimization failed
 ```
 
 **解决方案：**
+
 ```bash
 # 1. 清理构建缓存
 rm -rf .next
@@ -155,11 +171,13 @@ npm run build
 ```
 
 #### 问题：内存不足
+
 ```
 Error: JavaScript heap out of memory
 ```
 
 **解决方案：**
+
 ```bash
 # 1. 增加 Node.js 内存限制
 export NODE_OPTIONS="--max-old-space-size=4096"
@@ -175,6 +193,7 @@ export NODE_OPTIONS="--max-old-space-size=4096"
 #### 问题：页面加载缓慢
 
 **诊断步骤：**
+
 ```bash
 # 1. 启用性能监控
 export ENABLE_PERFORMANCE_MONITORING=true
@@ -187,6 +206,7 @@ npm run db:performance-report
 ```
 
 **优化方案：**
+
 - 启用代码分割
 - 优化图片加载
 - 使用 Redis 缓存
@@ -195,6 +215,7 @@ npm run db:performance-report
 #### 问题：数据库查询慢
 
 **解决方案：**
+
 ```sql
 -- 1. 添加索引
 CREATE INDEX idx_users_email ON users(email);
@@ -212,11 +233,13 @@ EXPLAIN ANALYZE SELECT * FROM users WHERE email = 'user@example.com';
 ### 6. 安全问题
 
 #### 问题：CORS 错误
+
 ```
 Error: Access to fetch blocked by CORS policy
 ```
 
 **解决方案：**
+
 ```javascript
 // next.config.js
 module.exports = {
@@ -230,17 +253,19 @@ module.exports = {
           { key: 'Access-Control-Allow-Headers', value: 'Content-Type,Authorization' },
         ],
       },
-    ]
+    ];
   },
-}
+};
 ```
 
 #### 问题：JWT 令牌验证失败
+
 ```
 Error: JsonWebTokenError: invalid signature
 ```
 
 **解决方案：**
+
 ```bash
 # 1. 检查 JWT_SECRET 环境变量
 echo $JWT_SECRET
@@ -253,6 +278,7 @@ echo $JWT_SECRET
 ## 🔍 调试技巧
 
 ### 1. 启用详细日志
+
 ```bash
 # 设置日志级别
 export LOG_LEVEL=debug
@@ -263,45 +289,49 @@ npm run dev
 ```
 
 ### 2. 数据库调试
+
 ```javascript
 // 启用 Prisma 查询日志
 const prisma = new PrismaClient({
   log: ['query', 'info', 'warn', 'error'],
-})
+});
 ```
 
 ### 3. 网络请求调试
+
 ```javascript
 // 添加请求拦截器
 axios.interceptors.request.use(request => {
-  console.log('Starting Request:', request)
-  return request
-})
+  console.log('Starting Request:', request);
+  return request;
+});
 
 axios.interceptors.response.use(
   response => {
-    console.log('Response:', response)
-    return response
+    console.log('Response:', response);
+    return response;
   },
   error => {
-    console.error('Request Error:', error)
-    return Promise.reject(error)
+    console.error('Request Error:', error);
+    return Promise.reject(error);
   }
-)
+);
 ```
 
 ### 4. 性能分析
+
 ```javascript
 // 使用 Performance API
-const start = performance.now()
+const start = performance.now();
 // 执行操作
-const end = performance.now()
-console.log(`操作耗时: ${end - start} 毫秒`)
+const end = performance.now();
+console.log(`操作耗时: ${end - start} 毫秒`);
 ```
 
 ## 🛠️ 诊断工具
 
 ### 1. 健康检查脚本
+
 ```bash
 #!/bin/bash
 # health-check.sh
@@ -335,6 +365,7 @@ echo "✅ 健康检查完成"
 ```
 
 ### 2. 日志分析脚本
+
 ```bash
 #!/bin/bash
 # analyze-logs.sh
@@ -357,35 +388,37 @@ grep "slow query" logs/app.log | wc -l
 ## 📊 监控和告警
 
 ### 1. 设置监控指标
+
 ```javascript
 // 监控关键指标
 const metrics = {
   responseTime: [],
   errorRate: 0,
   activeUsers: 0,
-  databaseConnections: 0
-}
+  databaseConnections: 0,
+};
 
 // 定期收集指标
 setInterval(() => {
-  collectMetrics()
-}, 60000) // 每分钟收集一次
+  collectMetrics();
+}, 60000); // 每分钟收集一次
 ```
 
 ### 2. 告警配置
+
 ```javascript
 // 设置告警阈值
 const ALERT_THRESHOLDS = {
   RESPONSE_TIME: 5000, // 5秒
-  ERROR_RATE: 0.05,    // 5%
-  CPU_USAGE: 0.8,      // 80%
-  MEMORY_USAGE: 0.9    // 90%
-}
+  ERROR_RATE: 0.05, // 5%
+  CPU_USAGE: 0.8, // 80%
+  MEMORY_USAGE: 0.9, // 90%
+};
 
 // 检查告警条件
 function checkAlerts(metrics) {
   if (metrics.responseTime > ALERT_THRESHOLDS.RESPONSE_TIME) {
-    sendAlert('响应时间过长', metrics)
+    sendAlert('响应时间过长', metrics);
   }
   // ... 其他检查
 }
@@ -394,6 +427,7 @@ function checkAlerts(metrics) {
 ## 🆘 紧急情况处理
 
 ### 1. 服务宕机
+
 ```bash
 # 快速重启服务
 sudo systemctl restart zk-agent
@@ -406,6 +440,7 @@ sudo systemctl status zk-agent
 ```
 
 ### 2. 数据库问题
+
 ```bash
 # 数据库备份
 pg_dump zkagent > backup_$(date +%Y%m%d_%H%M%S).sql
@@ -415,6 +450,7 @@ psql zkagent < backup_file.sql
 ```
 
 ### 3. 回滚部署
+
 ```bash
 # Git 回滚
 git revert HEAD

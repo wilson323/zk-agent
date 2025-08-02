@@ -12,18 +12,18 @@ import { PosterGenerationFailed, PosterResourceLimit } from '../../../lib/errors
 jest.mock('../../../lib/services/poster-generator', () => ({
   generatePoster: jest.fn(),
   validateTemplate: jest.fn(),
-  checkResourceLimits: jest.fn()
+  checkResourceLimits: jest.fn(),
 }));
 
 jest.mock('../../../lib/storage/file-manager', () => ({
   uploadFile: jest.fn(),
   deleteFile: jest.fn(),
-  getFileUrl: jest.fn()
+  getFileUrl: jest.fn(),
 }));
 
 jest.mock('../../../lib/auth/session', () => ({
   validateSession: jest.fn(),
-  getUserLimits: jest.fn()
+  getUserLimits: jest.fn(),
 }));
 
 describe('Poster Generation API Error Handling', () => {
@@ -37,19 +37,19 @@ describe('Poster Generation API Error Handling', () => {
       content: 'Test content',
       style: {
         theme: 'corporate',
-        colors: ['#1f2937', '#3b82f6']
-      }
+        colors: ['#1f2937', '#3b82f6'],
+      },
     };
-    
+
     mockRequest = new NextRequest('http://localhost:3000/api/poster/generate', {
       method: 'POST',
       body: JSON.stringify(requestBody),
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer valid-token'
-      }
+        Authorization: 'Bearer valid-token',
+      },
     });
-    
+
     errorHandler = GlobalErrorHandler.getInstance();
     jest.clearAllMocks();
   });
@@ -72,7 +72,7 @@ describe('Poster Generation API Error Handling', () => {
       const invalidRequest = new NextRequest('http://localhost:3000/api/poster/generate', {
         method: 'POST',
         body: JSON.stringify({ template: 'security-awareness' }), // Missing required fields
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(invalidRequest);
@@ -139,10 +139,9 @@ describe('Poster Generation API Error Handling', () => {
   describe('Generation Process Errors', () => {
     it('should handle poster generation timeout', async () => {
       const { generatePoster } = require('../../../lib/services/poster-generator');
-      generatePoster.mockImplementation(() => 
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Generation timeout')), 100)
-        )
+      generatePoster.mockImplementation(
+        () =>
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Generation timeout')), 100))
       );
 
       const response = await POST(mockRequest);
@@ -197,7 +196,7 @@ describe('Poster Generation API Error Handling', () => {
       const unauthRequest = new NextRequest('http://localhost:3000/api/poster/generate', {
         method: 'POST',
         body: JSON.stringify({ template: 'test' }),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(unauthRequest);
@@ -245,7 +244,7 @@ describe('Poster Generation API Error Handling', () => {
     it('should handle file upload failure', async () => {
       const { generatePoster } = require('../../../lib/services/poster-generator');
       const { uploadFile } = require('../../../lib/storage/file-manager');
-      
+
       generatePoster.mockResolvedValue({ imageBuffer: Buffer.from('test') });
       uploadFile.mockRejectedValue(new Error('Upload failed'));
 
@@ -284,7 +283,7 @@ describe('Poster Generation API Error Handling', () => {
       const malformedRequest = new NextRequest('http://localhost:3000/api/poster/generate', {
         method: 'POST',
         body: '{invalid json}',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(malformedRequest);
@@ -300,7 +299,7 @@ describe('Poster Generation API Error Handling', () => {
       const largeRequest = new NextRequest('http://localhost:3000/api/poster/generate', {
         method: 'POST',
         body: JSON.stringify({ template: 'test', content: largeContent }),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(largeRequest);
@@ -317,9 +316,9 @@ describe('Poster Generation API Error Handling', () => {
           template: 'security-awareness',
           title: 'Test',
           content: 'Test',
-          style: { colors: ['invalid-color'] }
+          style: { colors: ['invalid-color'] },
         }),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
       });
 
       const response = await POST(invalidColorRequest);
@@ -365,7 +364,7 @@ describe('Poster Generation API Error Handling', () => {
     it('should clean up resources on failure', async () => {
       const { generatePoster } = require('../../../lib/services/poster-generator');
       const { deleteFile } = require('../../../lib/storage/file-manager');
-      
+
       generatePoster.mockRejectedValue(new Error('Generation failed'));
 
       await POST(mockRequest);
@@ -409,8 +408,8 @@ describe('Poster Generation API Error Handling', () => {
         metrics: {
           generationTime: 1500,
           memoryUsed: '128MB',
-          templateComplexity: 'medium'
-        }
+          templateComplexity: 'medium',
+        },
       });
 
       const response = await POST(mockRequest);
@@ -423,11 +422,12 @@ describe('Poster Generation API Error Handling', () => {
     it('should log performance warnings for slow generation', async () => {
       const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
       const { generatePoster } = require('../../../lib/services/poster-generator');
-      
-      generatePoster.mockImplementation(() => 
-        new Promise(resolve => 
-          setTimeout(() => resolve({ imageBuffer: Buffer.from('test') }), 5000)
-        )
+
+      generatePoster.mockImplementation(
+        () =>
+          new Promise(resolve =>
+            setTimeout(() => resolve({ imageBuffer: Buffer.from('test') }), 5000)
+          )
       );
 
       await POST(mockRequest);

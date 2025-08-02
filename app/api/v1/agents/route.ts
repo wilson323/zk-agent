@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @file v1\agents\route.ts
  * @description Migrated API route with global error handling
  * @author ZK-Agent Team
@@ -18,26 +18,32 @@ export const POST = createApiRoute(
     try {
       const agentService = new AgentService();
       const createRequest = validatedBody as CreateAgentRequest;
-      
+
       // 验证请求数据
       if (!createRequest.name) {
-        return ApiResponseWrapper.error(UnifiedErrorCode.VALIDATION_ERROR, 'Agent name is required', { status: 400 });
+        return ApiResponseWrapper.error(
+          UnifiedErrorCode.VALIDATION_ERROR,
+          'Agent name is required',
+          { status: 400 }
+        );
       }
-      
+
       // 创建新的Agent
       const newAgent = await agentService.createAgent({
         name: createRequest.name,
         description: createRequest.description || '',
       });
-      
+
       return ApiResponseWrapper.success(newAgent, 'Agent created successfully');
     } catch (error) {
-      console.error('Error creating agent:', error);
-      return ApiResponseWrapper.error(UnifiedErrorCode.INTERNAL_SERVER_ERROR, 'Failed to create agent', {
-        status: 500,
-        details: error instanceof Error ? error.message : 'Unknown error'
-      });
+      return ApiResponseWrapper.error(
+        UnifiedErrorCode.INTERNAL_SERVER_ERROR,
+        'Failed to create agent',
+        {
+          status: 500,
+          details: error instanceof Error ? error.message : 'Unknown error',
+        }
+      );
     }
   }
 );
-

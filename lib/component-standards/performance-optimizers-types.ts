@@ -1,7 +1,7 @@
 /**
  * Performance Optimizers Types
  * 性能优化工具类型定义
- * 
+ *
  * 这个文件包含了性能优化工具的所有类型定义，
  * 用于在TypeScript文件中导入，避免直接导入TSX文件的问题。
  */
@@ -133,47 +133,47 @@ export interface PerformanceOptimizers {
     isVisible: boolean;
     isLoaded: boolean;
   };
-  
+
   // 虚拟化
   VirtualList: React.ComponentType<any>;
   useVirtualization: (config: VirtualizationConfig) => any;
-  
+
   // 防抖节流
   useDebounce: <T extends (...args: any[]) => any>(callback: T, options: DebounceOptions) => T;
   useThrottle: <T extends (...args: any[]) => any>(callback: T, options: ThrottleOptions) => T;
-  
+
   // 内存监控
   useMemoryMonitor: (config?: MemoryMonitorConfig) => {
     usage: number;
     isHigh: boolean;
     cleanup: () => void;
   };
-  
+
   // 性能监控
   usePerformanceMonitor: () => {
     metrics: PerformanceMetrics;
     startMeasure: (name: string) => void;
     endMeasure: (name: string) => number;
   };
-  
+
   // 组件大小监控
   useComponentSizeMonitor: (ref: React.RefObject<HTMLElement>) => {
     width: number;
     height: number;
   };
-  
+
   // 批量更新
   useBatchedUpdates: () => {
     batchUpdate: (callback: () => void) => void;
     flushUpdates: () => void;
   };
-  
+
   // 批量DOM操作
   BatchedDOMOperations: {
     batch: (operations: (() => void)[]) => void;
     flush: () => void;
   };
-  
+
   getBatchedDOMOperations: () => {
     batch: (operations: (() => void)[]) => void;
     flush: () => void;

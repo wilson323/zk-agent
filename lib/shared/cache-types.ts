@@ -28,17 +28,17 @@ export interface CacheItem<T = any> {
 // 统一的缓存配置接口
 export interface CacheConfig {
   // 基础配置
-  readonly maxSize?: number;           // 最大缓存大小（字节）
-  readonly maxMemorySize?: number;     // 最大内存大小（字节）
-  readonly maxItems?: number;          // 最大缓存项数
-  readonly maxMemoryItems?: number;    // 最大内存项数
-  readonly defaultTTL: number;         // 默认TTL（毫秒）
-  readonly ttl?: number;               // 兼容字段
-  
+  readonly maxSize?: number; // 最大缓存大小（字节）
+  readonly maxMemorySize?: number; // 最大内存大小（字节）
+  readonly maxItems?: number; // 最大缓存项数
+  readonly maxMemoryItems?: number; // 最大内存项数
+  readonly defaultTTL: number; // 默认TTL（毫秒）
+  readonly ttl?: number; // 兼容字段
+
   // 策略配置
   readonly strategy?: CacheStrategy;
   readonly evictionPolicy?: CacheStrategy;
-  
+
   // 功能开关
   readonly enableCompression?: boolean;
   readonly compressionEnabled?: boolean;
@@ -48,14 +48,14 @@ export interface CacheConfig {
   readonly metricsEnabled?: boolean;
   readonly enableRedis?: boolean;
   readonly persistenceEnabled?: boolean;
-  
+
   // 时间配置
-  readonly checkPeriod?: number;       // 检查周期（毫秒）
-  readonly cleanupInterval?: number;   // 清理间隔（毫秒）
-  
+  readonly checkPeriod?: number; // 检查周期（毫秒）
+  readonly cleanupInterval?: number; // 清理间隔（毫秒）
+
   // Redis 配置
   readonly redisUrl?: string;
-  
+
   // 预加载配置
   readonly preloadKeys?: string[];
 }
@@ -80,7 +80,7 @@ export interface CacheStats {
   readonly deletes?: number;
   readonly evictions: number;
   readonly hitRate: number;
-  
+
   // 分层统计
   readonly memoryHits?: number;
   readonly memoryMisses?: number;
@@ -88,18 +88,18 @@ export interface CacheStats {
   readonly redisMisses?: number;
   readonly totalHits?: number;
   readonly totalMisses?: number;
-  
+
   // 大小统计
   readonly size: number;
   readonly maxSize?: number;
   readonly memoryUsage?: number;
   readonly memoryItems?: number;
   readonly itemCount?: number;
-  
+
   // 性能统计
   readonly averageResponseTime?: number;
   readonly compressionRatio?: number;
-  
+
   // 连接状态
   readonly redisConnected?: boolean;
 }
@@ -134,21 +134,21 @@ export interface ICacheManager<T = any> {
   delete(key: string): Promise<boolean>;
   clear(): Promise<void>;
   has(key: string): Promise<boolean>;
-  
+
   // 批量操作
   mget(keys: string[]): Promise<(T | null)[]>;
   mset(items: Array<{ key: string; value: T; options?: CacheOptions }>): Promise<void>;
   mdelete(keys: string[]): Promise<number>;
-  
+
   // 标签操作
   getByTag(tag: string): Promise<T[]>;
   deleteByTag(tag: string): Promise<number>;
-  
+
   // 统计和监控
   getStats(): CacheStats;
   getMetrics(): CacheMetrics[];
   resetStats(): void;
-  
+
   // 生命周期
   start?(): Promise<void>;
   stop?(): Promise<void>;

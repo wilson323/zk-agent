@@ -6,11 +6,13 @@
  * @security Production-level rule validation and testing
  */
 
-import { Logger } from '@/lib/utils/logger';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
 import { getErrorMessage } from '@/lib/utils/error-handler';
 import { SecurityRule, SecurityRuleCategory, SecurityRuleSeverity } from './code-review-system';
 
-const logger = new Logger('RuleValidator');
+// 使用导入的logger
 
 // Rule validation result
 export interface RuleValidationResult {
@@ -88,23 +90,23 @@ export class RuleValidator {
     try {
       // Basic validation
       this.validateBasicProperties(rule, result);
-      
+
       // Regex validation
       this.validateRegexPattern(rule, result);
-      
+
       // Performance validation
       if (this.validationConfig.enablePerformanceChecks) {
         await this.validatePerformance(rule, result);
       }
-      
+
       // Security validation
       if (this.validationConfig.enableSecurityChecks) {
         this.validateSecurity(rule, result);
       }
-      
+
       // Test case validation
       await this.runTestCases(rule, result);
-      
+
       // Generate suggestions
       this.generateSuggestions(rule, result);
 
@@ -121,11 +123,10 @@ export class RuleValidator {
       });
 
       return result;
-
     } catch (error) {
       result.valid = false;
       result.errors.push(`Validation failed: ${getErrorMessage(error)}`);
-      
+
       logger.error('Rule validation failed', {
         ruleId: rule.id,
         error: getErrorMessage(error),
@@ -138,7 +139,10 @@ export class RuleValidator {
   /**
    * Test rule against sample code
    */
-  async testRule(rule: SecurityRule, testCode: string): Promise<{
+  async testRule(
+    rule: SecurityRule,
+    testCode: string
+  ): Promise<{
     matches: Array<{
       line: number;
       column: number;
@@ -160,11 +164,11 @@ export class RuleValidator {
       }> = [];
 
       const lines = testCode.split('\n');
-      
+
       for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
         const line = lines[lineIndex];
         const lineMatches = Array.from(line.matchAll(rule.pattern));
-        
+
         for (const match of lineMatches) {
           matches.push({
             line: lineIndex + 1,
@@ -183,13 +187,12 @@ export class RuleValidator {
         executionTime: Number(endTime - startTime) / 1000000, // Convert to milliseconds
         memoryUsage: finalMemory - initialMemory,
       };
-
     } catch (error) {
       logger.error('Rule testing failed', {
         ruleId: rule.id,
         error: getErrorMessage(error),
       });
-      
+
       throw error;
     }
   }
@@ -199,7 +202,7 @@ export class RuleValidator {
    */
   async validateRules(rules: SecurityRule[]): Promise<Map<string, RuleValidationResult>> {
     const results = new Map<string, RuleValidationResult>();
-    
+
     for (const rule of rules) {
       try {
         const result = await this.validateRule(rule);
@@ -254,7 +257,7 @@ export class RuleValidator {
    */
   updateConfig(config: Partial<ValidationConfig>): void {
     this.validationConfig = { ...this.validationConfig, ...config };
-    
+
     logger.info('Validation configuration updated', {
       updates: Object.keys(config),
     });
@@ -342,11 +345,15 @@ export class RuleValidator {
       }
 
       // Check for anchors
-      if (!patternSource.includes('^') && !patternSource.includes('$') && 
-          !patternSource.includes('\\b')) {
-        result.suggestions.push('Consider using word boundaries (\\b) or anchors (^ $) for more precise matching');
+      if (
+        !patternSource.includes('^') &&
+        !patternSource.includes('$') &&
+        !patternSource.includes('\\b')
+      ) {
+        result.suggestions.push(
+          'Consider using word boundaries (\\b) or anchors (^ $) for more precise matching'
+        );
       }
-
     } catch (error) {
       result.errors.push(`Invalid regex pattern: ${getErrorMessage(error)}`);
     }
@@ -355,7 +362,10 @@ export class RuleValidator {
   /**
    * Private: Validate performance characteristics
    */
-  private async validatePerformance(rule: SecurityRule, result: RuleValidationResult): Promise<void> {
+  private async validatePerformance(
+    rule: SecurityRule,
+    result: RuleValidationResult
+  ): Promise<void> {
     try {
       // Calculate regex complexity
       const complexity = this.calculateRegexComplexity(rule.pattern.source);
@@ -368,7 +378,7 @@ export class RuleValidator {
       // Test execution time with sample data
       const sampleCode = this.generateSampleCode(rule.fileExtensions[0]);
       const testResult = await this.testRule(rule, sampleCode);
-      
+
       result.performance.estimatedExecutionTime = testResult.executionTime;
       result.performance.memoryUsage = this.categorizeMemoryUsage(testResult.memoryUsage);
 
@@ -379,7 +389,6 @@ export class RuleValidator {
       if (result.performance.memoryUsage === 'high') {
         result.warnings.push('High memory usage detected during pattern matching');
       }
-
     } catch (error) {
       result.warnings.push(`Performance validation failed: ${getErrorMessage(error)}`);
     }
@@ -392,16 +401,13 @@ export class RuleValidator {
     const patternSource = rule.pattern.source;
 
     // Check for potential ReDoS patterns
-    const redosPatterns = [
-      /\(\.\*\+\)/,
-      /\(\.\+\*\)/,
-      /\(\[.*\]\+\)\+/,
-      /\(\[.*\]\*\)\+/,
-    ];
+    const redosPatterns = [/\(\.\*\+\)/, /\(\.\+\*\)/, /\(\[.*\]\+\)\+/, /\(\[.*\]\*\)\+/];
 
     for (const redosPattern of redosPatterns) {
       if (redosPattern.test(patternSource)) {
-        result.errors.push('Pattern contains potential ReDoS (Regular Expression Denial of Service) vulnerability');
+        result.errors.push(
+          'Pattern contains potential ReDoS (Regular Expression Denial of Service) vulnerability'
+        );
         break;
       }
     }
@@ -414,10 +420,12 @@ export class RuleValidator {
     // Check for patterns that might leak sensitive data
     const sensitivePatterns = ['password', 'token', 'key', 'secret'];
     const lowerPattern = patternSource.toLowerCase();
-    
+
     for (const sensitive of sensitivePatterns) {
       if (lowerPattern.includes(sensitive) && !lowerPattern.includes('\\b')) {
-        result.suggestions.push(`Consider using word boundaries when matching '${sensitive}' to avoid false positives`);
+        result.suggestions.push(
+          `Consider using word boundaries when matching '${sensitive}' to avoid false positives`
+        );
       }
     }
 
@@ -430,11 +438,11 @@ export class RuleValidator {
    */
   private async runTestCases(rule: SecurityRule, result: RuleValidationResult): Promise<void> {
     const testCases = this.testCases.get(rule.id) || this.getDefaultTestCases(rule.category);
-    
+
     for (const testCase of testCases) {
       try {
         const testResult = await this.testRule(rule, testCase.code);
-        
+
         if (testResult.matches.length !== testCase.expectedMatches) {
           result.warnings.push(
             `Test case '${testCase.name}': expected ${testCase.expectedMatches} matches, got ${testResult.matches.length}`
@@ -446,7 +454,7 @@ export class RuleValidator {
           for (let i = 0; i < testCase.expectedPositions.length; i++) {
             const expected = testCase.expectedPositions[i];
             const actual = testResult.matches[i];
-            
+
             if (!actual || actual.line !== expected.line || actual.column !== expected.column) {
               result.warnings.push(
                 `Test case '${testCase.name}': position mismatch at match ${i + 1}`
@@ -454,7 +462,6 @@ export class RuleValidator {
             }
           }
         }
-
       } catch (error) {
         result.errors.push(`Test case '${testCase.name}' failed: ${getErrorMessage(error)}`);
       }
@@ -472,16 +479,23 @@ export class RuleValidator {
           result.suggestions.push('Consider using word boundaries for input validation patterns');
         }
         break;
-        
+
       case SecurityRuleCategory.INJECTION_PREVENTION:
-        if (rule.severity !== SecurityRuleSeverity.HIGH && rule.severity !== SecurityRuleSeverity.CRITICAL) {
-          result.suggestions.push('Injection prevention rules should typically be HIGH or CRITICAL severity');
+        if (
+          rule.severity !== SecurityRuleSeverity.HIGH &&
+          rule.severity !== SecurityRuleSeverity.CRITICAL
+        ) {
+          result.suggestions.push(
+            'Injection prevention rules should typically be HIGH or CRITICAL severity'
+          );
         }
         break;
-        
+
       case SecurityRuleCategory.CRYPTOGRAPHY:
         if (!rule.remediation.toLowerCase().includes('secure')) {
-          result.suggestions.push('Cryptography rules should emphasize secure alternatives in remediation');
+          result.suggestions.push(
+            'Cryptography rules should emphasize secure alternatives in remediation'
+          );
         }
         break;
     }
@@ -501,19 +515,14 @@ export class RuleValidator {
    */
   private hasCatastrophicBacktracking(pattern: string): boolean {
     // Simple heuristic for catastrophic backtracking detection
-    const problematicPatterns = [
-      /\(\.\*\)\+/,
-      /\(\.\+\)\*/,
-      /\(\[.*?\]\+\)\+/,
-      /\(\.\*\?\)\*/,
-    ];
+    const problematicPatterns = [/\(\.\*\)\+/, /\(\.\+\)\*/, /\(\[.*?\]\+\)\+/, /\(\.\*\?\)\*/];
 
     return problematicPatterns.some(p => p.test(pattern));
   }
 
   private calculateRegexComplexity(pattern: string): 'low' | 'medium' | 'high' {
     let complexity = 0;
-    
+
     // Count complex constructs
     complexity += (pattern.match(/\(.*?\)/g) || []).length * 2; // Groups
     complexity += (pattern.match(/\[.*?\]/g) || []).length; // Character classes
@@ -521,14 +530,22 @@ export class RuleValidator {
     complexity += (pattern.match(/\|/g) || []).length * 2; // Alternations
     complexity += (pattern.match(/\\\w/g) || []).length; // Escape sequences
 
-    if (complexity > 20) {return 'high';}
-    if (complexity > 10) {return 'medium';}
+    if (complexity > 20) {
+      return 'high';
+    }
+    if (complexity > 10) {
+      return 'medium';
+    }
     return 'low';
   }
 
   private categorizeMemoryUsage(bytes: number): 'low' | 'medium' | 'high' {
-    if (bytes > 1024 * 1024) {return 'high';} // > 1MB
-    if (bytes > 100 * 1024) {return 'medium';} // > 100KB
+    if (bytes > 1024 * 1024) {
+      return 'high';
+    } // > 1MB
+    if (bytes > 100 * 1024) {
+      return 'medium';
+    } // > 100KB
     return 'low';
   }
 
@@ -538,7 +555,7 @@ export class RuleValidator {
         const password = "hardcoded123";
         eval(userInput);
         document.innerHTML = unsafeData;
-        console.log("debug info");
+
       `,
       '.ts': `
         const apiKey: string = "sk-1234567890abcdef";
@@ -578,8 +595,8 @@ export class RuleValidator {
     };
 
     const relevantKeywords = categoryPatterns[category] || [];
-    const hasRelevantKeyword = relevantKeywords.some(keyword => 
-      pattern.includes(keyword) || rule.name.toLowerCase().includes(keyword)
+    const hasRelevantKeyword = relevantKeywords.some(
+      keyword => pattern.includes(keyword) || rule.name.toLowerCase().includes(keyword)
     );
 
     if (!hasRelevantKeyword) {

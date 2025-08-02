@@ -30,10 +30,10 @@ function checkHttpHealth() {
       timeout: config.timeout,
     };
 
-    const req = http.request(options, (res) => {
+    const req = http.request(options, res => {
       if (res.statusCode === 200) {
         let data = '';
-        res.on('data', (chunk) => {
+        res.on('data', chunk => {
           data += chunk;
         });
         res.on('end', () => {
@@ -53,7 +53,7 @@ function checkHttpHealth() {
       }
     });
 
-    req.on('error', (error) => {
+    req.on('error', error => {
       reject(new Error(`HTTP health check error: ${error.message}`));
     });
 
@@ -82,7 +82,7 @@ function checkDatabaseHealth() {
         timeout: config.timeout,
       };
 
-      const req = http.request(options, (res) => {
+      const req = http.request(options, res => {
         if (res.statusCode === 200) {
           resolve({ status: 'healthy', service: 'database' });
         } else {
@@ -90,7 +90,7 @@ function checkDatabaseHealth() {
         }
       });
 
-      req.on('error', (error) => {
+      req.on('error', error => {
         reject(new Error(`Database health check error: ${error.message}`));
       });
 
@@ -120,7 +120,7 @@ function checkRedisHealth() {
         timeout: config.timeout,
       };
 
-      const req = http.request(options, (res) => {
+      const req = http.request(options, res => {
         if (res.statusCode === 200) {
           resolve({ status: 'healthy', service: 'redis' });
         } else {
@@ -128,7 +128,7 @@ function checkRedisHealth() {
         }
       });
 
-      req.on('error', (error) => {
+      req.on('error', error => {
         reject(new Error(`Redis health check error: ${error.message}`));
       });
 
@@ -153,7 +153,7 @@ function checkSystemResources() {
       // 检查内存使用
       const memUsage = process.memoryUsage();
       const totalMemory = memUsage.rss + memUsage.heapUsed + memUsage.external;
-      
+
       if (totalMemory > config.maxMemoryUsage) {
         reject(new Error(`Memory usage too high: ${Math.round(totalMemory / 1024 / 1024)}MB`));
         return;
@@ -163,8 +163,8 @@ function checkSystemResources() {
       const startUsage = process.cpuUsage();
       setTimeout(() => {
         const endUsage = process.cpuUsage(startUsage);
-        const cpuPercent = (endUsage.user + endUsage.system) / 1000000 * 100; // 转换为百分比
-        
+        const cpuPercent = ((endUsage.user + endUsage.system) / 1000000) * 100; // 转换为百分比
+
         if (cpuPercent > config.maxCpuUsage) {
           reject(new Error(`CPU usage too high: ${cpuPercent.toFixed(2)}%`));
           return;
@@ -176,13 +176,13 @@ function checkSystemResources() {
           memory: {
             used: Math.round(totalMemory / 1024 / 1024),
             limit: Math.round(config.maxMemoryUsage / 1024 / 1024),
-            unit: 'MB'
+            unit: 'MB',
           },
           cpu: {
             usage: cpuPercent.toFixed(2),
             limit: config.maxCpuUsage,
-            unit: '%'
-          }
+            unit: '%',
+          },
         });
       }, 100);
     } catch (error) {
@@ -199,9 +199,11 @@ function checkDiskSpace() {
     try {
       // 检查上传目录磁盘空间
       const uploadDir = process.env.UPLOAD_DIR || '/app/uploads';
-      const result = execSync(`df -h ${uploadDir} | tail -1 | awk '{print $5}' | sed 's/%//'`, { encoding: 'utf8' });
+      const result = execSync(`df -h ${uploadDir} | tail -1 | awk '{print $5}' | sed 's/%//'`, {
+        encoding: 'utf8',
+      });
       const usagePercent = parseInt(result.trim());
-      
+
       if (usagePercent > 90) {
         reject(new Error(`Disk usage too high: ${usagePercent}%`));
         return;
@@ -212,14 +214,14 @@ function checkDiskSpace() {
         service: 'disk',
         usage: usagePercent,
         limit: 90,
-        unit: '%'
+        unit: '%',
       });
     } catch (error) {
       // 如果无法检查磁盘空间，不视为致命错误
       resolve({
         status: 'warning',
         service: 'disk',
-        message: 'Unable to check disk space'
+        message: 'Unable to check disk space',
       });
     }
   });
@@ -234,7 +236,7 @@ async function performHealthCheck() {
     status: 'healthy',
     timestamp: new Date().toISOString(),
     checks: {},
-    errors: []
+    errors: [],
   };
 
   // 执行所有健康检查
@@ -243,7 +245,7 @@ async function performHealthCheck() {
     { name: 'database', check: checkDatabaseHealth },
     { name: 'redis', check: checkRedisHealth },
     { name: 'system', check: checkSystemResources },
-    { name: 'disk', check: checkDiskSpace }
+    { name: 'disk', check: checkDiskSpace },
   ];
 
   for (const { name, check } of healthChecks) {
@@ -254,12 +256,12 @@ async function performHealthCheck() {
       results.status = 'unhealthy';
       results.errors.push({
         service: name,
-        error: error.message
+        error: error.message,
       });
       results.checks[name] = {
         status: 'unhealthy',
         service: name,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -273,7 +275,7 @@ async function performHealthCheck() {
 async function main() {
   try {
     const results = await performHealthCheck();
-    
+
     if (results.status === 'healthy') {
       console.log('✅ Health check passed');
       console.log(JSON.stringify(results, null, 2));
@@ -311,5 +313,5 @@ module.exports = {
   checkDatabaseHealth,
   checkRedisHealth,
   checkSystemResources,
-  checkDiskSpace
+  checkDiskSpace,
 };

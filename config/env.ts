@@ -35,15 +35,15 @@ const envSchema = z.object({
   BCRYPT_ROUNDS: z.coerce.number().min(10).max(15).default(12),
 
   // AI 服务配置
-  FASTGPT_BASE_URL: z.string().url().optional(),
+  FASTGPT_BASE_URL: z.string().url().or(z.literal('')).optional(),
   FASTGPT_API_KEY: z.string().optional(),
   FASTGPT_APP_ID: z.string().optional(),
-  QWEN_BASE_URL: z.string().url().optional(),
+  QWEN_BASE_URL: z.string().url().or(z.literal('')).optional(),
   QWEN_API_KEY: z.string().optional(),
-  SILICONFLOW_BASE_URL: z.string().url().optional(),
+  SILICONFLOW_BASE_URL: z.string().url().or(z.literal('')).optional(),
   SILICONFLOW_API_KEY: z.string().optional(),
   OPENAI_API_KEY: z.string().optional(),
-  OPENAI_BASE_URL: z.string().url().optional(),
+  OPENAI_BASE_URL: z.string().url().or(z.literal('')).optional(),
 
   // 文件存储配置
   UPLOAD_DIR: z.string().default('./uploads'),
@@ -126,24 +126,62 @@ const envSchema = z.object({
 
 // 验证环境变量
 function validateEnv(): z.infer<typeof envSchema> {
+  // 检查是否在客户端环境
+  const isClient = typeof window !== 'undefined';
+  
   // 在测试环境中使用宽松的验证
   if (process.env.NODE_ENV === 'test') {
-    const testSchema = envSchema.partial({
-      JWT_SECRET: true,
-      NEXTAUTH_SECRET: true,
-      DATABASE_URL: true,
-    }).extend({
-      JWT_SECRET: z.string().default('test-jwt-secret-key-for-testing-purposes-only-32-chars-minimum'),
-      NEXTAUTH_SECRET: z.string().default('test-nextauth-secret-key-for-testing-purposes-only-32-chars-minimum'),
-      DATABASE_URL: z.string().default('postgresql://test:test@localhost:5432/test_db'),
-    });
-    
+    const testSchema = envSchema
+      .partial({
+        JWT_SECRET: true,
+        NEXTAUTH_SECRET: true,
+        DATABASE_URL: true,
+      })
+      .extend({
+        JWT_SECRET: z
+          .string()
+          .default('test-jwt-secret-key-for-testing-purposes-only-32-chars-minimum'),
+        NEXTAUTH_SECRET: z
+          .string()
+          .default('test-nextauth-secret-key-for-testing-purposes-only-32-chars-minimum'),
+        DATABASE_URL: z.string().default('postgresql://test:test@localhost:5432/test_db'),
+      });
+
     try {
       return testSchema.parse(process.env);
     } catch (error) {
       console.warn('Test environment validation warning:', error);
       // 在测试环境中返回默认值
       return testSchema.parse({});
+    }
+  }
+
+  // 在客户端环境中使用宽松的验证
+  if (isClient) {
+    const clientSchema = envSchema
+      .partial({
+        JWT_SECRET: true,
+        NEXTAUTH_SECRET: true,
+        DATABASE_URL: true,
+        REDIS_URL: true,
+        REDIS_PASSWORD: true,
+        REDIS_DB: true,
+      })
+      .extend({
+        JWT_SECRET: z.string().default('client-default-jwt-secret-key-32-chars-minimum'),
+        NEXTAUTH_SECRET: z.string().default('client-default-nextauth-secret-key-32-chars-minimum'),
+        DATABASE_URL: z.string().default('postgresql://postgres:123456@localhost:5432/zk-agent'),
+        REDIS_URL: z.string().default('redis://localhost:6379'),
+        REDIS_PASSWORD: z.string().optional(),
+        REDIS_DB: z.coerce.number().min(0).default(0),
+      });
+
+    try {
+      return clientSchema.parse(process.env);
+    } catch (error) {
+      console.warn('Client environment validation warning:', error);
+      // 在客户端环境中返回默认值
+      return clientSchema.parse({});
     }
   }
 
@@ -317,4 +355,4 @@ export const backupConfig = {
   schedule: env.BACKUP_SCHEDULE,
   retentionDays: env.BACKUP_RETENTION_DAYS,
   storagePath: env.BACKUP_STORAGE_PATH,
-}; 
+};

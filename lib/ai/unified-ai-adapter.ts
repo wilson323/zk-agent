@@ -7,8 +7,9 @@
  * @integrations FastGPT、千问、硅基流动标准化适配器
  */
 
-import { Logger } from '@/lib/utils/logger';
-import { performanceMonitor } from '@/lib/middleware/performance-monitor';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
 
 // 导入统一的AI服务提供商枚举
 import { AIProvider } from '@/lib/types/enums';
@@ -103,7 +104,7 @@ class CircuitBreaker {
   private onFailure(): void {
     this.failureCount++;
     this.lastFailureTime = Date.now();
-    
+
     if (this.failureCount >= this.threshold) {
       this.state = CircuitBreakerState.OPEN;
     }
@@ -116,15 +117,26 @@ class CircuitBreaker {
 
 // 统一AI适配器类
 export class UnifiedAIAdapter {
-  private logger = new Logger('UnifiedAIAdapter');
+  private static instance: UnifiedAIAdapter;
+  private logger = getLogger();
   private circuitBreakers = new Map<AIProvider, CircuitBreaker>();
   private configs = new Map<AIProvider, AIServiceConfig>();
 
-  constructor() {
+  private constructor() {
     // 初始化熔断器
     Object.values(AIProvider).forEach(provider => {
       this.circuitBreakers.set(provider, new CircuitBreaker());
     });
+  }
+
+  /**
+   * 获取单例实例
+   */
+  static getInstance(): UnifiedAIAdapter {
+    if (!UnifiedAIAdapter.instance) {
+      UnifiedAIAdapter.instance = new UnifiedAIAdapter();
+    }
+    return UnifiedAIAdapter.instance;
   }
 
   /**
@@ -141,10 +153,7 @@ export class UnifiedAIAdapter {
   /**
    * 统一的AI调用接口
    */
-  async call(
-    provider: AIProvider,
-    request: AIRequest
-  ): Promise<AIResponse> {
+  async call(provider: AIProvider, request: AIRequest): Promise<AIResponse> {
     const requestId = this.generateRequestId();
     const startTime = Date.now();
 
@@ -155,7 +164,7 @@ export class UnifiedAIAdapter {
       }
 
       const circuitBreaker = this.circuitBreakers.get(provider)!;
-      
+
       const response = await circuitBreaker.execute(async () => {
         return await this.executeRequest(config, request, requestId);
       });
@@ -176,10 +185,9 @@ export class UnifiedAIAdapter {
         requestId,
         latency,
       };
-
     } catch (error) {
       const latency = Date.now() - startTime;
-      
+
       this.logger.error('AI request failed', {
         provider,
         requestId,
@@ -229,7 +237,7 @@ export class UnifiedAIAdapter {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${config.apiKey}`,
+        Authorization: `Bearer ${config.apiKey}`,
         'X-Request-ID': requestId,
       },
       body: JSON.stringify({
@@ -247,13 +255,7 @@ export class UnifiedAIAdapter {
     }
 
     const data = await response.json();
-    
-    return {
-      content: data.choices?.[0]?.message?.content || '',
-      usage: data.usage,
-      model: data.model,
-      finishReason: data.choices?.[0]?.finish_reason,
-    };
+    return data;
   }
 
   /**
@@ -268,7 +270,7 @@ export class UnifiedAIAdapter {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${config.apiKey}`,
+        Authorization: `Bearer ${config.apiKey}`,
         'X-DashScope-SSE': request.stream ? 'enable' : 'disable',
         'X-Request-ID': requestId,
       },
@@ -291,17 +293,12 @@ export class UnifiedAIAdapter {
     }
 
     const data = await response.json();
-    
+
     if (data.code && data.code !== '200') {
       throw new Error(`Qianwen API error: ${data.message}`);
     }
 
-    return {
-      content: data.output?.choices?.[0]?.message?.content || '',
-      usage: data.usage,
-      model: data.model,
-      finishReason: data.output?.choices?.[0]?.finish_reason,
-    };
+    return data;
   }
 
   /**
@@ -316,7 +313,7 @@ export class UnifiedAIAdapter {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${config.apiKey}`,
+        Authorization: `Bearer ${config.apiKey}`,
         'X-Request-ID': requestId,
       },
       body: JSON.stringify({
@@ -334,22 +331,13 @@ export class UnifiedAIAdapter {
     }
 
     const data = await response.json();
-    
-    return {
-      content: data.choices?.[0]?.message?.content || '',
-      usage: data.usage,
-      model: data.model,
-      finishReason: data.choices?.[0]?.finish_reason,
-    };
+    return data;
   }
 
   /**
    * 批量调用（负载均衡）
    */
-  async callWithLoadBalancing(
-    providers: AIProvider[],
-    request: AIRequest
-  ): Promise<AIResponse> {
+  async callWithLoadBalancing(providers: AIProvider[], request: AIRequest): Promise<AIResponse> {
     const availableProviders = providers.filter(provider => {
       const circuitBreaker = this.circuitBreakers.get(provider);
       return circuitBreaker?.getState() !== CircuitBreakerState.OPEN;
@@ -360,9 +348,8 @@ export class UnifiedAIAdapter {
     }
 
     // 简单的轮询负载均衡
-    const selectedProvider = availableProviders[
-      Math.floor(Math.random() * availableProviders.length)
-    ];
+    const selectedProvider =
+      availableProviders[Math.floor(Math.random() * availableProviders.length)];
 
     return await this.call(selectedProvider, request);
   }
@@ -373,15 +360,28 @@ export class UnifiedAIAdapter {
   async getHealthStatus(): Promise<Record<AIProvider, any>> {
     const status: Record<string, any> = {};
 
-    for (const [provider, config] of this.configs.entries()) {
+    // 为所有AI提供商提供状态，即使没有配置
+    for (const provider of Object.values(AIProvider)) {
       const circuitBreaker = this.circuitBreakers.get(provider)!;
-      
+      const config = this.configs.get(provider);
+
+      if (!config) {
+        // 未配置的服务返回默认状态
+        status[provider] = {
+          healthy: true,
+          configured: false,
+          circuitBreakerState: circuitBreaker.getState(),
+          lastChecked: new Date().toISOString(),
+        };
+        continue;
+      }
+
       try {
         const startTime = Date.now();
         const response = await fetch(`${config.baseUrl}/health`, {
           method: 'GET',
           headers: {
-            'Authorization': `Bearer ${config.apiKey}`,
+            Authorization: `Bearer ${config.apiKey}`,
           },
           signal: AbortSignal.timeout(5000),
         });
@@ -390,6 +390,7 @@ export class UnifiedAIAdapter {
 
         status[provider] = {
           healthy: response.ok,
+          configured: true,
           latency,
           circuitBreakerState: circuitBreaker.getState(),
           lastChecked: new Date().toISOString(),
@@ -397,6 +398,7 @@ export class UnifiedAIAdapter {
       } catch (error) {
         status[provider] = {
           healthy: false,
+          configured: true,
           error: error.message,
           circuitBreakerState: circuitBreaker.getState(),
           lastChecked: new Date().toISOString(),
@@ -431,6 +433,44 @@ export class UnifiedAIAdapter {
       this.circuitBreakers.set(provider, new CircuitBreaker());
       this.logger.info('Circuit breaker reset', { provider });
     }
+  }
+
+  /**
+   * 验证AI服务连接
+   */
+  async validateConnection(modelName: string): Promise<boolean> {
+    try {
+      // 尝试使用配置的第一个服务进行连接测试
+      const providers = this.getConfiguredServices();
+      if (providers.length === 0) {
+        throw new Error('No AI services configured');
+      }
+
+      const testRequest: AIRequest = {
+        messages: [{ role: 'user', content: 'test' }],
+        model: modelName,
+        maxTokens: 10
+      };
+
+      const response = await this.call(providers[0], testRequest);
+      return response.success;
+    } catch (error) {
+      this.logger.error('Connection validation failed:', error);
+      return false;
+    }
+  }
+
+  /**
+   * 简化的聊天接口
+   */
+  async chat(request: AIRequest): Promise<AIResponse> {
+    const providers = this.getConfiguredServices();
+    if (providers.length === 0) {
+      throw new Error('No AI services configured');
+    }
+
+    // 使用第一个可用的服务
+    return this.call(providers[0], request);
   }
 }
 
@@ -471,4 +511,4 @@ export function initializeAIServices(): void {
       timeout: 30000,
     });
   }
-} 
+}

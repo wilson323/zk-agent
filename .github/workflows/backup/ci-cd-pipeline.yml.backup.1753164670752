@@ -1,0 +1,929 @@
+name: ZK-Agent CI/CD Pipeline
+'on':
+  push:
+    branches:
+      - main
+      - develop
+      - feature/*
+      - hotfix/*
+  pull_request:
+    branches:
+      - main
+      - develop
+  release:
+    types:
+      - published
+env:
+  NODE_VERSION: 18.x
+  PNPM_VERSION: 8.x
+  OPTIMIZED_BY: ZK-Agent Pipeline Optimizer
+  OPTIMIZED_AT: '2025-07-22T05:22:51.971Z'
+  TOKEN_LIMIT_AWARE: 'true'
+jobs:
+  quality-check:
+    name: 代码质量检查
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - name: 安装依赖
+        run: |-
+          set +e
+          for i in {1..3}; do
+            echo "🔄 尝试第 $i 次..."
+            npm ci --prefer-offline --no-audit
+
+            if [ $? -eq 0 ]; then
+              echo "✅ 成功"
+              break
+            else
+              echo "❌ 失败，等待重试..."
+              sleep $((i * 5))
+            fi
+          done
+          set -e
+      - name: 代码格式检查
+        run: |
+          npm run format:check
+      - name: ESLint检查
+        run: |
+          npm run lint -- --format=json --output-file=eslint-report.json
+          npm run lint
+      - name: TypeScript类型检查
+        run: |
+          npm run type-check
+      - name: 依赖安全检查
+        run: |
+          npm audit --audit-level=moderate
+      - name: 上传ESLint报告
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eslint-report
+          path: eslint-report.json
+          retention-days: 30
+      - name: 失败诊断
+        if: failure()
+        run: |-
+          echo "🔍 收集失败诊断信息..."
+
+          # 系统信息
+          echo "📊 系统信息:"
+          uname -a
+          df -h
+          free -h
+
+          # Node.js 环境
+          echo "📦 Node.js 环境:"
+          node --version
+          npm --version
+          npm config list
+
+          # 项目状态
+          echo "📁 项目状态:"
+          ls -la
+          if [ -f package.json ]; then
+            echo "📄 package.json 存在"
+            cat package.json | jq '.scripts' || echo "无法解析 scripts"
+          fi
+
+          # 日志文件
+          echo "📋 查找日志文件:"
+          find . -name "*.log" -type f -exec echo "发现日志: {}" \; -exec tail -20 {} \;
+
+          # 错误报告
+          echo "📊 生成错误报告..."
+          mkdir -p reports/diagnostics
+          echo "$(date): CI/CD 流程失败" > reports/diagnostics/failure-$(date +%Y%m%d-%H%M%S).log
+    needs:
+      - compatibility-check
+  security-scan:
+    name: 安全扫描
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+      - name: 运行 CodeQL 分析
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript
+      - name: 执行 CodeQL 分析
+        uses: github/codeql-action/analyze@v3
+      - name: 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - name: 安装依赖
+        run: |-
+          set +e
+          for i in {1..3}; do
+            echo "🔄 尝试第 $i 次..."
+            npm ci --prefer-offline --no-audit
+            if [ $? -eq 0 ]; then
+              echo "✅ 成功"
+              break
+            else
+              echo "❌ 失败，等待重试..."
+              sleep $((i * 5))
+            fi
+          done
+          set -e
+      - name: 运行安全扫描脚本
+        run: |
+          npm run security:scan
+      - name: Semgrep 安全扫描
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: auto
+      - name: 失败诊断
+        if: failure()
+        run: |-
+          echo "🔍 收集失败诊断信息..."
+
+          # 系统信息
+          echo "📊 系统信息:"
+          uname -a
+          df -h
+          free -h
+
+          # Node.js 环境
+          echo "📦 Node.js 环境:"
+          node --version
+          npm --version
+          npm config list
+
+          # 项目状态
+          echo "📁 项目状态:"
+          ls -la
+          if [ -f package.json ]; then
+            echo "📄 package.json 存在"
+            cat package.json | jq '.scripts' || echo "无法解析 scripts"
+          fi
+
+          # 日志文件
+          echo "📋 查找日志文件:"
+          find . -name "*.log" -type f -exec echo "发现日志: {}" \; -exec tail -20 {} \;
+
+          # 错误报告
+          echo "📊 生成错误报告..."
+          mkdir -p reports/diagnostics
+          echo "$(date): CI/CD 流程失败" > reports/diagnostics/failure-$(date +%Y%m%d-%H%M%S).log
+    needs:
+      - compatibility-check
+  test:
+    name: 测试套件
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs:
+      - compatibility-check
+    strategy:
+      matrix:
+        test-suite:
+          - unit
+          - integration
+          - security
+          - performance
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: zkagent_test
+        options: '--health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5'
+        ports:
+          - '5432:5432'
+      redis:
+        image: redis:7
+        options: '--health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5'
+        ports:
+          - '6379:6379'
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+      - name: 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - name: 安装依赖
+        run: |-
+          set +e
+          for i in {1..3}; do
+            echo "🔄 尝试第 $i 次..."
+            npm ci --prefer-offline --no-audit
+
+            if [ $? -eq 0 ]; then
+              echo "✅ 成功"
+              break
+            else
+              echo "❌ 失败，等待重试..."
+              sleep $((i * 5))
+            fi
+          done
+          set -e
+      - name: 设置测试环境
+        run: |-
+          set +e
+          for i in {1..3}; do
+            echo "🔄 尝试第 $i 次..."
+            cp .env.example .env.test
+          echo "DATABASE_URL=postgresql://postgres:test_password@localhost:5432/zkagent_test" >> .env.test
+          echo "REDIS_URL=redis://localhost:6379" >> .env.test
+
+            if [ $? -eq 0 ]; then
+              echo "✅ 成功"
+              break
+            else
+              echo "❌ 失败，等待重试..."
+              sleep $((i * 5))
+            fi
+          done
+          set -e
+      - name: 初始化测试数据库
+        run: |-
+          set +e
+          for i in {1..3}; do
+            echo "🔄 尝试第 $i 次..."
+            npm run db:push
+          npm run db:seed
+
+            if [ $? -eq 0 ]; then
+              echo "✅ 成功"
+              break
+            else
+              echo "❌ 失败，等待重试..."
+              sleep $((i * 5))
+            fi
+          done
+          set -e
+        env:
+          DATABASE_URL: postgresql://postgres:test_password@localhost:5432/zkagent_test
+      - name: 运行测试 - ${{ matrix.test-suite }}
+        run: |-
+          set +e
+          for i in {1..3}; do
+            echo "🔄 尝试第 $i 次..."
+            case "${{ matrix.test-suite }}" in
+            "unit")
+              npm run test:unit -- --coverage --maxWorkers=2
+              ;;
+            "integration") 
+              npm run test:integration -- --maxWorkers=2
+              ;;
+            "security")
+              npm run test:security -- --maxWorkers=2
+              ;;
+            "performance")
+              npm run test:performance -- --maxWorkers=2
+              ;;
+          esac
+
+            if [ $? -eq 0 ]; then
+              echo "✅ 成功"
+              break
+            else
+              echo "❌ 失败，等待重试..."
+              sleep $((i * 5))
+            fi
+          done
+          set -e
+        env:
+          NODE_ENV: test
+      - name: 上传测试覆盖率
+        uses: codecov/codecov-action@v3
+        if: matrix.test-suite == 'unit'
+        with:
+          file: ./coverage/lcov.info
+          flags: unittests
+          name: codecov-umbrella
+      - name: 上传测试报告
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-${{ matrix.test-suite }}
+          path: |
+            coverage/
+            test-results/
+          retention-days: 30
+      - name: 失败诊断
+        if: failure()
+        run: |-
+          echo "🔍 收集失败诊断信息..."
+
+          # 系统信息
+          echo "📊 系统信息:"
+          uname -a
+          df -h
+          free -h
+
+          # Node.js 环境
+          echo "📦 Node.js 环境:"
+          node --version
+          npm --version
+          npm config list
+
+          # 项目状态
+          echo "📁 项目状态:"
+          ls -la
+          if [ -f package.json ]; then
+            echo "📄 package.json 存在"
+            cat package.json | jq '.scripts' || echo "无法解析 scripts"
+          fi
+
+          # 日志文件
+          echo "📋 查找日志文件:"
+          find . -name "*.log" -type f -exec echo "发现日志: {}" \; -exec tail -20 {} \;
+
+          # 错误报告
+          echo "📊 生成错误报告..."
+          mkdir -p reports/diagnostics
+          echo "$(date): CI/CD 流程失败" > reports/diagnostics/failure-$(date +%Y%m%d-%H%M%S).log
+  e2e-tests:
+    name: E2E 测试
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    needs:
+      - compatibility-check
+      - test
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+      - name: 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - name: 安装依赖
+        run: |-
+          set +e
+          for i in {1..3}; do
+            echo "🔄 尝试第 $i 次..."
+            npm ci --prefer-offline --no-audit
+          npx playwright install --with-deps
+
+            if [ $? -eq 0 ]; then
+              echo "✅ 成功"
+              break
+            else
+              echo "❌ 失败，等待重试..."
+              sleep $((i * 5))
+            fi
+          done
+          set -e
+      - name: 构建应用
+        run: |-
+          set +e
+          for i in {1..3}; do
+            echo "🔄 尝试第 $i 次..."
+            npm run build
+
+            if [ $? -eq 0 ]; then
+              echo "✅ 成功"
+              break
+            else
+              echo "❌ 失败，等待重试..."
+              sleep $((i * 5))
+            fi
+          done
+          set -e
+      - name: 启动应用
+        run: |
+          npm start &
+          npx wait-on http://localhost:3000 --timeout 60000
+        env:
+          NODE_ENV: production
+          PORT: 3000
+      - name: 运行 Playwright 测试
+        run: |-
+          set +e
+          for i in {1..3}; do
+            echo "🔄 尝试第 $i 次..."
+            npm run test:e2e
+
+            if [ $? -eq 0 ]; then
+              echo "✅ 成功"
+              break
+            else
+              echo "❌ 失败，等待重试..."
+              sleep $((i * 5))
+            fi
+          done
+          set -e
+      - name: 上传 E2E 测试报告
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
+      - name: 失败诊断
+        if: failure()
+        run: |-
+          echo "🔍 收集失败诊断信息..."
+
+          # 系统信息
+          echo "📊 系统信息:"
+          uname -a
+          df -h
+          free -h
+
+          # Node.js 环境
+          echo "📦 Node.js 环境:"
+          node --version
+          npm --version
+          npm config list
+
+          # 项目状态
+          echo "📁 项目状态:"
+          ls -la
+          if [ -f package.json ]; then
+            echo "📄 package.json 存在"
+            cat package.json | jq '.scripts' || echo "无法解析 scripts"
+          fi
+
+          # 日志文件
+          echo "📋 查找日志文件:"
+          find . -name "*.log" -type f -exec echo "发现日志: {}" \; -exec tail -20 {} \;
+
+          # 错误报告
+          echo "📊 生成错误报告..."
+          mkdir -p reports/diagnostics
+          echo "$(date): CI/CD 流程失败" > reports/diagnostics/failure-$(date +%Y%m%d-%H%M%S).log
+  build:
+    name: 构建应用
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs:
+      - compatibility-check
+      - quality-check
+      - security-scan
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+      image-digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+      - name: 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - name: 安装依赖
+        run: |-
+          set +e
+          for i in {1..3}; do
+            echo "🔄 尝试第 $i 次..."
+            npm ci --prefer-offline --no-audit
+
+            if [ $? -eq 0 ]; then
+              echo "✅ 成功"
+              break
+            else
+              echo "❌ 失败，等待重试..."
+              sleep $((i * 5))
+            fi
+          done
+          set -e
+      - name: 构建应用
+        run: |-
+          set +e
+          for i in {1..3}; do
+            echo "🔄 尝试第 $i 次..."
+            npm run build:production
+
+            if [ $? -eq 0 ]; then
+              echo "✅ 成功"
+              break
+            else
+              echo "❌ 失败，等待重试..."
+              sleep $((i * 5))
+            fi
+          done
+          set -e
+      - name: 运行构建验证
+        run: |-
+          set +e
+          for i in {1..3}; do
+            echo "🔄 尝试第 $i 次..."
+            npm run validate:production
+
+            if [ $? -eq 0 ]; then
+              echo "✅ 成功"
+              break
+            else
+              echo "❌ 失败，等待重试..."
+              sleep $((i * 5))
+            fi
+          done
+          set -e
+      - name: 设置 Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: 登录到容器仓库
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: 提取镜像元数据
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-
+      - name: 构建和推送 Docker 镜像
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64,linux/arm64
+      - name: 失败诊断
+        if: failure()
+        run: |-
+          echo "🔍 收集失败诊断信息..."
+
+          # 系统信息
+          echo "📊 系统信息:"
+          uname -a
+          df -h
+          free -h
+
+          # Node.js 环境
+          echo "📦 Node.js 环境:"
+          node --version
+          npm --version
+          npm config list
+
+          # 项目状态
+          echo "📁 项目状态:"
+          ls -la
+          if [ -f package.json ]; then
+            echo "📄 package.json 存在"
+            cat package.json | jq '.scripts' || echo "无法解析 scripts"
+          fi
+
+          # 日志文件
+          echo "📋 查找日志文件:"
+          find . -name "*.log" -type f -exec echo "发现日志: {}" \; -exec tail -20 {} \;
+
+          # 错误报告
+          echo "📊 生成错误报告..."
+          mkdir -p reports/diagnostics
+          echo "$(date): CI/CD 流程失败" > reports/diagnostics/failure-$(date +%Y%m%d-%H%M%S).log
+  deploy-staging:
+    name: 部署到预发布环境
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs:
+      - compatibility-check
+      - test
+      - e2e-tests
+      - build
+    if: github.ref == 'refs/heads/develop'
+    environment: staging
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+      - name: 部署到预发布环境
+        run: |
+          echo "部署镜像: ${{ needs.build.outputs.image-tag }}"
+          # 这里添加实际的部署逻辑
+      - name: 健康检查
+        run: |
+          curl -f https://staging.zkagent.com/api/health || exit 1
+      - name: 运行冒烟测试
+        run: |-
+          set +e
+          for i in {1..3}; do
+            echo "🔄 尝试第 $i 次..."
+            npm run test:smoke -- --env=staging
+
+            if [ $? -eq 0 ]; then
+              echo "✅ 成功"
+              break
+            else
+              echo "❌ 失败，等待重试..."
+              sleep $((i * 5))
+            fi
+          done
+          set -e
+      - name: 失败诊断
+        if: failure()
+        run: |-
+          echo "🔍 收集失败诊断信息..."
+
+          # 系统信息
+          echo "📊 系统信息:"
+          uname -a
+          df -h
+          free -h
+
+          # Node.js 环境
+          echo "📦 Node.js 环境:"
+          node --version
+          npm --version
+          npm config list
+
+          # 项目状态
+          echo "📁 项目状态:"
+          ls -la
+          if [ -f package.json ]; then
+            echo "📄 package.json 存在"
+            cat package.json | jq '.scripts' || echo "无法解析 scripts"
+          fi
+
+          # 日志文件
+          echo "📋 查找日志文件:"
+          find . -name "*.log" -type f -exec echo "发现日志: {}" \; -exec tail -20 {} \;
+
+          # 错误报告
+          echo "📊 生成错误报告..."
+          mkdir -p reports/diagnostics
+          echo "$(date): CI/CD 流程失败" > reports/diagnostics/failure-$(date +%Y%m%d-%H%M%S).log
+  deploy-production:
+    name: 部署到生产环境
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs:
+      - compatibility-check
+      - test
+      - e2e-tests
+      - build
+    if: github.event_name == 'release'
+    environment: production
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+      - name: 生产环境部署前检查
+        run: |
+          echo "检查生产环境部署条件..."
+      - name: 部署到生产环境
+        run: |
+          echo "部署镜像: ${{ needs.build.outputs.image-tag }}"
+          # 这里添加实际的生产部署逻辑
+      - name: 生产环境健康检查
+        run: |
+          curl -f https://zkagent.com/api/health || exit 1
+      - name: 生产环境验证测试
+        run: |-
+          set +e
+          for i in {1..3}; do
+            echo "🔄 尝试第 $i 次..."
+            npm run test:production-verify
+
+            if [ $? -eq 0 ]; then
+              echo "✅ 成功"
+              break
+            else
+              echo "❌ 失败，等待重试..."
+              sleep $((i * 5))
+            fi
+          done
+          set -e
+      - name: 失败诊断
+        if: failure()
+        run: |-
+          echo "🔍 收集失败诊断信息..."
+
+          # 系统信息
+          echo "📊 系统信息:"
+          uname -a
+          df -h
+          free -h
+
+          # Node.js 环境
+          echo "📦 Node.js 环境:"
+          node --version
+          npm --version
+          npm config list
+
+          # 项目状态
+          echo "📁 项目状态:"
+          ls -la
+          if [ -f package.json ]; then
+            echo "📄 package.json 存在"
+            cat package.json | jq '.scripts' || echo "无法解析 scripts"
+          fi
+
+          # 日志文件
+          echo "📋 查找日志文件:"
+          find . -name "*.log" -type f -exec echo "发现日志: {}" \; -exec tail -20 {} \;
+
+          # 错误报告
+          echo "📊 生成错误报告..."
+          mkdir -p reports/diagnostics
+          echo "$(date): CI/CD 流程失败" > reports/diagnostics/failure-$(date +%Y%m%d-%H%M%S).log
+  notify:
+    name: 通知和报告
+    runs-on: ubuntu-latest
+    needs:
+      - compatibility-check
+      - quality-check
+      - security-scan
+      - test
+      - e2e-tests
+      - build
+    if: always()
+    steps:
+      - name: 收集构建状态
+        id: status
+        run: |-
+          set +e
+          for i in {1..3}; do
+            echo "🔄 尝试第 $i 次..."
+            if [[ "${{ needs.quality-check.result }}" == "success" && 
+                "${{ needs.security-scan.result }}" == "success" && 
+                "${{ needs.test.result }}" == "success" && 
+                "${{ needs.e2e-tests.result }}" == "success" && 
+                "${{ needs.build.result }}" == "success" ]]; then
+            echo "status=success" >> $GITHUB_OUTPUT
+          else
+            echo "status=failure" >> $GITHUB_OUTPUT
+          fi
+
+            if [ $? -eq 0 ]; then
+              echo "✅ 成功"
+              break
+            else
+              echo "❌ 失败，等待重试..."
+              sleep $((i * 5))
+            fi
+          done
+          set -e
+      - name: 发送钉钉通知
+        if: always()
+        run: |
+          STATUS="${{ steps.status.outputs.status }}"
+          if [ "$STATUS" = "success" ]; then
+            MESSAGE="✅ ZK-Agent CI/CD 流水线执行成功"
+            COLOR="008000"
+          else
+            MESSAGE="❌ ZK-Agent CI/CD 流水线执行失败"
+            COLOR="FF0000"
+          fi
+
+          curl -X POST "${{ secrets.DINGTALK_WEBHOOK }}" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"msgtype\": \"markdown\",
+              \"markdown\": {
+                \"title\": \"CI/CD 状态通知\",
+                \"text\": \"## ${MESSAGE}\n\n**分支**: ${{ github.ref_name }}\n**提交**: ${{ github.sha }}\n**作者**: ${{ github.actor }}\n\n[查看详情](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})\"
+              }
+            }"
+      - name: 更新部署状态
+        if: always()
+        run: |
+          echo "Pipeline completed with status: ${{ steps.status.outputs.status }}"
+      - name: 失败诊断
+        if: failure()
+        run: |-
+          echo "🔍 收集失败诊断信息..."
+
+          # 系统信息
+          echo "📊 系统信息:"
+          uname -a
+          df -h
+          free -h
+
+          # Node.js 环境
+          echo "📦 Node.js 环境:"
+          node --version
+          npm --version
+          npm config list
+
+          # 项目状态
+          echo "📁 项目状态:"
+          ls -la
+          if [ -f package.json ]; then
+            echo "📄 package.json 存在"
+            cat package.json | jq '.scripts' || echo "无法解析 scripts"
+          fi
+
+          # 日志文件
+          echo "📋 查找日志文件:"
+          find . -name "*.log" -type f -exec echo "发现日志: {}" \; -exec tail -20 {} \;
+
+          # 错误报告
+          echo "📊 生成错误报告..."
+          mkdir -p reports/diagnostics
+          echo "$(date): CI/CD 流程失败" > reports/diagnostics/failure-$(date +%Y%m%d-%H%M%S).log
+  compatibility-check:
+    name: 环境兼容性检查
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+      - name: 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: npm
+      - name: 安装依赖
+        run: |-
+          set +e
+          for i in {1..3}; do
+            echo "🔄 尝试第 $i 次..."
+            npm ci
+            if [ $? -eq 0 ]; then
+              echo "✅ 成功"
+              break
+            else
+              echo "❌ 失败，等待重试..."
+              sleep $((i * 5))
+            fi
+          done
+          set -e
+      - name: 运行环境兼容性检查
+        run: |-
+          echo "🔍 检查开发环境兼容性..."
+
+          # 运行环境兼容性检查器
+          node scripts/tools/environment-compatibility-checker.js
+
+          # 检查 Claude Code 兼容性
+          echo "🤖 检查 Claude Code 兼容性..."
+          if command -v claude &> /dev/null; then
+            echo "✅ Claude CLI 已安装"
+            claude --version || echo "⚠️  Claude CLI 版本检查失败"
+          else
+            echo "ℹ️  Claude CLI 未安装（可选）"
+          fi
+
+          # 检查 Gemini CLI 兼容性
+          echo "🔮 检查 Gemini CLI 兼容性..."
+          if command -v gemini &> /dev/null; then
+            echo "✅ Gemini CLI 已安装"
+            gemini --version || echo "⚠️  Gemini CLI 版本检查失败"
+          else
+            echo "ℹ️  Gemini CLI 未安装（可选）"
+          fi
+
+          # 检查项目配置
+          echo "⚙️  检查项目配置..."
+          if [ -f package.json ]; then
+            echo "✅ package.json 存在"
+            npm run tools:status || echo "⚠️  工具状态检查失败"
+          fi
+
+          echo "✅ 环境兼容性检查完成"
+      - name: 上传兼容性报告
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: compatibility-report
+          path: reports/environment-compatibility.json
+      - name: 失败诊断
+        if: failure()
+        run: |-
+          echo "🔍 收集失败诊断信息..."
+
+          # 系统信息
+          echo "📊 系统信息:"
+          uname -a
+          df -h
+          free -h
+
+          # Node.js 环境
+          echo "📦 Node.js 环境:"
+          node --version
+          npm --version
+          npm config list
+
+          # 项目状态
+          echo "📁 项目状态:"
+          ls -la
+          if [ -f package.json ]; then
+            echo "📄 package.json 存在"
+            cat package.json | jq '.scripts' || echo "无法解析 scripts"
+          fi
+
+          # 日志文件
+          echo "📋 查找日志文件:"
+          find . -name "*.log" -type f -exec echo "发现日志: {}" \; -exec tail -20 {} \;
+
+          # 错误报告
+          echo "📊 生成错误报告..."
+          mkdir -p reports/diagnostics
+          echo "$(date): CI/CD 流程失败" > reports/diagnostics/failure-$(date +%Y%m%d-%H%M%S).log

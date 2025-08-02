@@ -5,7 +5,14 @@
  * @version 1.0.0
  */
 
-import { ErrorType, ErrorSeverity, CADFileType, ChatMessageType, UserRole, AlertLevel } from './enums';
+import {
+  ErrorType,
+  ErrorSeverity,
+  CADFileType,
+  ChatMessageType,
+  UserRole,
+  AlertLevel,
+} from './enums';
 
 // ============================================================================
 // 基础类型定义
@@ -473,8 +480,6 @@ export interface CacheConfig {
 // ============================================================================
 // UI组件相关接口
 // ============================================================================
-
-
 
 /**
  * 颜色令牌接口

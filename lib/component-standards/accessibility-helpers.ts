@@ -86,7 +86,7 @@ export class FocusTrap {
       'audio[controls]',
       'video[controls]',
       'details > summary:first-of-type',
-      'details[open]'
+      'details[open]',
     ].join(', ');
   }
 
@@ -100,22 +100,21 @@ export class FocusTrap {
 
     this.focusableElements = elements.filter(element => {
       return (
-        element.offsetWidth > 0 ||
-        element.offsetHeight > 0 ||
-        element.getClientRects().length > 0
+        element.offsetWidth > 0 || element.offsetHeight > 0 || element.getClientRects().length > 0
       );
     });
 
     this.firstFocusableElement = this.focusableElements[0] || null;
-    this.lastFocusableElement = 
-      this.focusableElements[this.focusableElements.length - 1] || null;
+    this.lastFocusableElement = this.focusableElements[this.focusableElements.length - 1] || null;
   }
 
   /**
    * 激活焦点陷阱
    */
   activate(options: FocusOptions = {}): void {
-    if (this.isActive) {return;}
+    if (this.isActive) {
+      return;
+    }
 
     this.previousActiveElement = document.activeElement;
     this.isActive = true;
@@ -133,7 +132,9 @@ export class FocusTrap {
    * 停用焦点陷阱
    */
   deactivate(options: FocusOptions = {}): void {
-    if (!this.isActive) {return;}
+    if (!this.isActive) {
+      return;
+    }
 
     this.isActive = false;
     this.container.removeEventListener('keydown', this.handleKeyDown);
@@ -141,7 +142,7 @@ export class FocusTrap {
     // 恢复之前的焦点
     if (options.restoreFocus && this.previousActiveElement) {
       (this.previousActiveElement as HTMLElement).focus({
-        preventScroll: options.preventScroll
+        preventScroll: options.preventScroll,
       });
     }
   }
@@ -150,7 +151,9 @@ export class FocusTrap {
    * 处理键盘事件
    */
   private handleKeyDown = (event: KeyboardEvent): void => {
-    if (event.key !== 'Tab') {return;}
+    if (event.key !== 'Tab') {
+      return;
+    }
 
     this.updateFocusableElements();
 
@@ -178,15 +181,14 @@ export class FocusTrap {
 /**
  * React Hook: 焦点陷阱
  */
-export function useFocusTrap(
-  isActive: boolean,
-  options: FocusOptions = {}
-) {
+export function useFocusTrap(isActive: boolean, options: FocusOptions = {}) {
   const containerRef = React.useRef<HTMLElement>(null);
   const focusTrapRef = React.useRef<FocusTrap | null>(null);
 
   React.useEffect(() => {
-    if (!containerRef.current) {return;}
+    if (!containerRef.current) {
+      return;
+    }
 
     if (!focusTrapRef.current) {
       focusTrapRef.current = new FocusTrap(containerRef.current);
@@ -209,16 +211,13 @@ export function useFocusTrap(
 /**
  * React Hook: 自动聚焦
  */
-export function useAutoFocus(
-  shouldFocus: boolean = true,
-  options: FocusOptions = {}
-) {
+export function useAutoFocus(shouldFocus: boolean = true, options: FocusOptions = {}) {
   const elementRef = React.useRef<HTMLElement>(null);
 
   React.useEffect(() => {
     if (shouldFocus && elementRef.current) {
       elementRef.current.focus({
-        preventScroll: options.preventScroll
+        preventScroll: options.preventScroll,
       });
     }
   }, [shouldFocus, options.preventScroll]);
@@ -251,9 +250,9 @@ export class KeyboardNavigationManager {
       enableTypeAhead: true,
       orientation: 'vertical',
       wrap: true,
-      ...config
+      ...config,
     };
-    
+
     this.updateItems();
     this.container.addEventListener('keydown', this.handleKeyDown);
   }
@@ -262,11 +261,10 @@ export class KeyboardNavigationManager {
    * 更新导航项目列表
    */
   updateItems(): void {
-    const selector = '[role="menuitem"], [role="option"], [role="tab"], [role="treeitem"], button, a[href]';
-    this.items = Array.from(
-      this.container.querySelectorAll(selector)
-    ) as HTMLElement[];
-    
+    const selector =
+      '[role="menuitem"], [role="option"], [role="tab"], [role="treeitem"], button, a[href]';
+    this.items = Array.from(this.container.querySelectorAll(selector)) as HTMLElement[];
+
     // 更新当前索引
     const activeElement = document.activeElement as HTMLElement;
     this.currentIndex = this.items.indexOf(activeElement);
@@ -277,7 +275,7 @@ export class KeyboardNavigationManager {
    */
   private handleKeyDown = (event: KeyboardEvent): void => {
     const { key, ctrlKey, metaKey } = event;
-    
+
     // 忽略修饰键组合（除了 Ctrl/Cmd + Home/End）
     if ((ctrlKey || metaKey) && !['Home', 'End'].includes(key)) {
       return;
@@ -341,14 +339,16 @@ export class KeyboardNavigationManager {
    */
   private moveNext(): void {
     this.updateItems();
-    if (this.items.length === 0) {return;}
+    if (this.items.length === 0) {
+      return;
+    }
 
     let nextIndex = this.currentIndex + 1;
-    
+
     if (nextIndex >= this.items.length) {
       nextIndex = this.config.wrap ? 0 : this.items.length - 1;
     }
-    
+
     this.focusItem(nextIndex);
   }
 
@@ -357,14 +357,16 @@ export class KeyboardNavigationManager {
    */
   private movePrevious(): void {
     this.updateItems();
-    if (this.items.length === 0) {return;}
+    if (this.items.length === 0) {
+      return;
+    }
 
     let prevIndex = this.currentIndex - 1;
-    
+
     if (prevIndex < 0) {
       prevIndex = this.config.wrap ? this.items.length - 1 : 0;
     }
-    
+
     this.focusItem(prevIndex);
   }
 
@@ -393,14 +395,16 @@ export class KeyboardNavigationManager {
    */
   private moveByPage(direction: number): void {
     this.updateItems();
-    if (this.items.length === 0) {return;}
+    if (this.items.length === 0) {
+      return;
+    }
 
     const pageSize = Math.max(1, Math.floor(this.items.length / 10));
-    const newIndex = Math.max(0, Math.min(
-      this.items.length - 1,
-      this.currentIndex + (direction * pageSize)
-    ));
-    
+    const newIndex = Math.max(
+      0,
+      Math.min(this.items.length - 1, this.currentIndex + direction * pageSize)
+    );
+
     this.focusItem(newIndex);
   }
 
@@ -409,25 +413,27 @@ export class KeyboardNavigationManager {
    */
   private handleTypeAhead(char: string): void {
     this.searchString += char.toLowerCase();
-    
+
     // 清除之前的超时
     if (this.searchTimeout) {
       clearTimeout(this.searchTimeout);
     }
-    
+
     // 设置新的超时
     this.searchTimeout = setTimeout(() => {
       this.searchString = '';
     }, 1000);
-    
+
     // 查找匹配项
     const matchingIndex = this.items.findIndex((item, index) => {
-      if (index <= this.currentIndex) {return false;}
-      
+      if (index <= this.currentIndex) {
+        return false;
+      }
+
       const text = this.getItemText(item).toLowerCase();
       return text.startsWith(this.searchString);
     });
-    
+
     if (matchingIndex !== -1) {
       this.focusItem(matchingIndex);
     } else {
@@ -436,7 +442,7 @@ export class KeyboardNavigationManager {
         const text = this.getItemText(item).toLowerCase();
         return text.startsWith(this.searchString);
       });
-      
+
       if (firstMatchIndex !== -1) {
         this.focusItem(firstMatchIndex);
       }
@@ -474,19 +480,16 @@ export class KeyboardNavigationManager {
 /**
  * React Hook: 键盘导航
  */
-export function useKeyboardNavigation(
-  config: KeyboardNavigationConfig = {}
-) {
+export function useKeyboardNavigation(config: KeyboardNavigationConfig = {}) {
   const containerRef = React.useRef<HTMLElement>(null);
   const managerRef = React.useRef<KeyboardNavigationManager | null>(null);
 
   React.useEffect(() => {
-    if (!containerRef.current) {return;}
+    if (!containerRef.current) {
+      return;
+    }
 
-    managerRef.current = new KeyboardNavigationManager(
-      containerRef.current,
-      config
-    );
+    managerRef.current = new KeyboardNavigationManager(containerRef.current, config);
 
     return () => {
       managerRef.current?.destroy();
@@ -539,7 +542,9 @@ class ScreenReaderAnnouncer {
    * 初始化公告器
    */
   private initialize(): void {
-    if (this.initialized || typeof document === 'undefined') {return;}
+    if (this.initialized || typeof document === 'undefined') {
+      return;
+    }
 
     document.body.appendChild(this.politeRegion);
     document.body.appendChild(this.assertiveRegion);
@@ -549,21 +554,14 @@ class ScreenReaderAnnouncer {
   /**
    * 发布公告
    */
-  announce(
-    message: string,
-    options: AnnouncementOptions = {}
-  ): void {
-    if (!this.initialized) {this.initialize();}
+  announce(message: string, options: AnnouncementOptions = {}): void {
+    if (!this.initialized) {
+      this.initialize();
+    }
 
-    const {
-      priority = 'polite',
-      delay = 0,
-      clear = false
-    } = options;
+    const { priority = 'polite', delay = 0, clear = false } = options;
 
-    const region = priority === 'assertive' 
-      ? this.assertiveRegion 
-      : this.politeRegion;
+    const region = priority === 'assertive' ? this.assertiveRegion : this.politeRegion;
 
     const announce = () => {
       if (clear) {
@@ -617,10 +615,7 @@ export function getScreenReaderAnnouncer(): ScreenReaderAnnouncer {
 /**
  * 发布屏幕阅读器公告
  */
-export function announceToScreenReader(
-  message: string,
-  options?: AnnouncementOptions
-): void {
+export function announceToScreenReader(message: string, options?: AnnouncementOptions): void {
   const announcer = getScreenReaderAnnouncer();
   announcer.announce(message, options);
 }
@@ -629,12 +624,9 @@ export function announceToScreenReader(
  * React Hook: 屏幕阅读器公告
  */
 export function useScreenReaderAnnouncement() {
-  const announce = React.useCallback(
-    (message: string, options?: AnnouncementOptions) => {
-      announceToScreenReader(message, options);
-    },
-    []
-  );
+  const announce = React.useCallback((message: string, options?: AnnouncementOptions) => {
+    announceToScreenReader(message, options);
+  }, []);
 
   return announce;
 }
@@ -650,14 +642,14 @@ export function useScreenReaderAnnouncement() {
 function getRelativeLuminance(color: string): number {
   // 将颜色转换为 RGB 值
   const rgb = hexToRgb(color);
-  if (!rgb) {return 0;}
+  if (!rgb) {
+    return 0;
+  }
 
   // 转换为线性 RGB
   const [r, g, b] = [rgb.r, rgb.g, rgb.b].map(c => {
     const normalized = c / 255;
-    return normalized <= 0.03928
-      ? normalized / 12.92
-      : Math.pow((normalized + 0.055) / 1.055, 2.4);
+    return normalized <= 0.03928 ? normalized / 12.92 : Math.pow((normalized + 0.055) / 1.055, 2.4);
   });
 
   // 计算相对亮度
@@ -671,10 +663,10 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   return result
     ? {
-        r: parseInt(result[1], 16),
-        g: parseInt(result[2], 16),
-        b: parseInt(result[3], 16)
-      }
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16),
+    }
     : null;
 }
 
@@ -682,16 +674,13 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
  * 计算颜色对比度
  * 基于 WCAG 2.1 对比度算法
  */
-export function calculateContrastRatio(
-  foreground: string,
-  background: string
-): number {
+export function calculateContrastRatio(foreground: string, background: string): number {
   const l1 = getRelativeLuminance(foreground);
   const l2 = getRelativeLuminance(background);
-  
+
   const lighter = Math.max(l1, l2);
   const darker = Math.min(l1, l2);
-  
+
   return (lighter + 0.05) / (darker + 0.05);
 }
 
@@ -705,14 +694,14 @@ export function checkContrastCompliance(
   fontWeight: number = 400
 ): ContrastResult {
   const ratio = calculateContrastRatio(foreground, background);
-  
+
   // 判断是否为大文本
   const isLargeText = fontSize >= 18 || (fontSize >= 14 && fontWeight >= 700);
-  
+
   // WCAG 2.1 标准
   const aaThreshold = isLargeText ? 3 : 4.5;
   const aaaThreshold = isLargeText ? 4.5 : 7;
-  
+
   let level: 'AA' | 'AAA' | 'fail';
   if (ratio >= aaaThreshold) {
     level = 'AAA';
@@ -721,11 +710,11 @@ export function checkContrastCompliance(
   } else {
     level = 'fail';
   }
-  
+
   return {
     ratio,
     level,
-    passes: level !== 'fail'
+    passes: level !== 'fail',
   };
 }
 
@@ -737,15 +726,15 @@ export function suggestAccessibleColors(
   targetRatio: number = 4.5
 ): { lighter: string; darker: string } {
   const baseLuminance = getRelativeLuminance(baseColor);
-  
+
   // 计算目标亮度
   const targetLighterLuminance = Math.min(1, (baseLuminance + 0.05) * targetRatio - 0.05);
   const targetDarkerLuminance = Math.max(0, (baseLuminance + 0.05) / targetRatio - 0.05);
-  
+
   // 这里简化处理，实际应用中需要更复杂的颜色空间转换
   const lighter = luminanceToHex(targetLighterLuminance);
   const darker = luminanceToHex(targetDarkerLuminance);
-  
+
   return { lighter, darker };
 }
 
@@ -764,6 +753,11 @@ function luminanceToHex(luminance: number): string {
 // =============================================================================
 
 import { generateId } from '../utils';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
+
+const logger = getLogger();
 
 /**
  * React Hook: 唯一 ID
@@ -786,10 +780,7 @@ export function createAriaDescription(
 /**
  * 创建 ARIA 标签关系
  */
-export function createAriaLabel(
-  elementId: string,
-  labelId: string
-): { 'aria-labelledby': string } {
+export function createAriaLabel(elementId: string, labelId: string): { 'aria-labelledby': string } {
   return { 'aria-labelledby': labelId };
 }
 
@@ -808,18 +799,15 @@ export function createAriaControls(
  */
 export function useAriaRelationships() {
   const relationships = React.useRef(new Map<string, Set<string>>());
-  
-  const addRelationship = React.useCallback(
-    (type: string, sourceId: string, targetId: string) => {
-      const key = `${sourceId}-${type}`;
-      if (!relationships.current.has(key)) {
-        relationships.current.set(key, new Set());
-      }
-      relationships.current.get(key)!.add(targetId);
-    },
-    []
-  );
-  
+
+  const addRelationship = React.useCallback((type: string, sourceId: string, targetId: string) => {
+    const key = `${sourceId}-${type}`;
+    if (!relationships.current.has(key)) {
+      relationships.current.set(key, new Set());
+    }
+    relationships.current.get(key)!.add(targetId);
+  }, []);
+
   const removeRelationship = React.useCallback(
     (type: string, sourceId: string, targetId: string) => {
       const key = `${sourceId}-${type}`;
@@ -833,20 +821,17 @@ export function useAriaRelationships() {
     },
     []
   );
-  
-  const getRelationshipValue = React.useCallback(
-    (type: string, sourceId: string): string => {
-      const key = `${sourceId}-${type}`;
-      const targets = relationships.current.get(key);
-      return targets ? Array.from(targets).join(' ') : '';
-    },
-    []
-  );
-  
+
+  const getRelationshipValue = React.useCallback((type: string, sourceId: string): string => {
+    const key = `${sourceId}-${type}`;
+    const targets = relationships.current.get(key);
+    return targets ? Array.from(targets).join(' ') : '';
+  }, []);
+
   return {
     addRelationship,
     removeRelationship,
-    getRelationshipValue
+    getRelationshipValue,
   };
 }
 
@@ -857,38 +842,36 @@ export function useAriaRelationships() {
 /**
  * 验证元素的可访问性
  */
-export function validateElementAccessibility(
-  element: HTMLElement
-): string[] {
+export function validateElementAccessibility(element: HTMLElement): string[] {
   const issues: string[] = [];
-  
+
   // 检查是否有可访问的名称
   const accessibleName = getAccessibleName(element);
   if (!accessibleName && needsAccessibleName(element)) {
     issues.push('元素缺少可访问的名称');
   }
-  
+
   // 检查颜色对比度
   const styles = window.getComputedStyle(element);
   const color = styles.color;
   const backgroundColor = styles.backgroundColor;
-  
+
   if (color && backgroundColor && color !== backgroundColor) {
     const contrast = checkContrastCompliance(color, backgroundColor);
     if (!contrast.passes) {
       issues.push(`颜色对比度不足: ${contrast.ratio.toFixed(2)}:1`);
     }
   }
-  
+
   // 检查焦点指示器
   if (isFocusable(element) && !hasFocusIndicator(element)) {
     issues.push('可聚焦元素缺少焦点指示器');
   }
-  
+
   // 检查 ARIA 属性
   const ariaIssues = validateAriaAttributes(element);
   issues.push(...ariaIssues);
-  
+
   return issues;
 }
 
@@ -898,34 +881,44 @@ export function validateElementAccessibility(
 function getAccessibleName(element: HTMLElement): string {
   // 按优先级检查各种命名方式
   const ariaLabel = element.getAttribute('aria-label');
-  if (ariaLabel) {return ariaLabel;}
-  
+  if (ariaLabel) {
+    return ariaLabel;
+  }
+
   const ariaLabelledby = element.getAttribute('aria-labelledby');
   if (ariaLabelledby) {
     const labelElement = document.getElementById(ariaLabelledby);
-    if (labelElement) {return labelElement.textContent || '';}
+    if (labelElement) {
+      return labelElement.textContent || '';
+    }
   }
-  
+
   // 检查关联的 label 元素
   const id = element.id;
   if (id) {
     const label = document.querySelector(`label[for="${id}"]`);
-    if (label) {return label.textContent || '';}
+    if (label) {
+      return label.textContent || '';
+    }
   }
-  
+
   // 检查父级 label
   const parentLabel = element.closest('label');
-  if (parentLabel) {return parentLabel.textContent || '';}
-  
+  if (parentLabel) {
+    return parentLabel.textContent || '';
+  }
+
   // 检查 alt 属性（图片）
   if (element.tagName === 'IMG') {
     return element.getAttribute('alt') || '';
   }
-  
+
   // 检查 title 属性
   const title = element.getAttribute('title');
-  if (title) {return title;}
-  
+  if (title) {
+    return title;
+  }
+
   // 检查文本内容
   return element.textContent || '';
 }
@@ -935,13 +928,21 @@ function getAccessibleName(element: HTMLElement): string {
  */
 function needsAccessibleName(element: HTMLElement): boolean {
   const role = element.getAttribute('role') || element.tagName.toLowerCase();
-  
+
   const needsName = [
-    'button', 'link', 'menuitem', 'tab', 'option',
-    'checkbox', 'radio', 'textbox', 'combobox',
-    'img', 'figure'
+    'button',
+    'link',
+    'menuitem',
+    'tab',
+    'option',
+    'checkbox',
+    'radio',
+    'textbox',
+    'combobox',
+    'img',
+    'figure',
   ];
-  
+
   return needsName.includes(role);
 }
 
@@ -950,13 +951,15 @@ function needsAccessibleName(element: HTMLElement): boolean {
  */
 function isFocusable(element: HTMLElement): boolean {
   const tabIndex = element.tabIndex;
-  if (tabIndex < 0) {return false;}
-  
+  if (tabIndex < 0) {
+    return false;
+  }
+
   const focusableTags = ['a', 'button', 'input', 'select', 'textarea'];
   if (focusableTags.includes(element.tagName.toLowerCase())) {
     return !element.hasAttribute('disabled');
   }
-  
+
   return tabIndex >= 0;
 }
 
@@ -965,24 +968,26 @@ function isFocusable(element: HTMLElement): boolean {
  */
 function hasFocusIndicator(element: HTMLElement): boolean {
   const styles = window.getComputedStyle(element, ':focus');
-  
+
   // 检查 outline
   if (styles.outlineWidth !== '0px' && styles.outlineStyle !== 'none') {
     return true;
   }
-  
+
   // 检查 box-shadow
   if (styles.boxShadow && styles.boxShadow !== 'none') {
     return true;
   }
-  
+
   // 检查 border 变化
   const normalStyles = window.getComputedStyle(element);
-  if (styles.borderWidth !== normalStyles.borderWidth ||
-      styles.borderColor !== normalStyles.borderColor) {
+  if (
+    styles.borderWidth !== normalStyles.borderWidth ||
+    styles.borderColor !== normalStyles.borderColor
+  ) {
     return true;
   }
-  
+
   return false;
 }
 
@@ -991,15 +996,15 @@ function hasFocusIndicator(element: HTMLElement): boolean {
  */
 function validateAriaAttributes(element: HTMLElement): string[] {
   const issues: string[] = [];
-  
+
   // 检查 aria-expanded 和 aria-controls 的配对
   const ariaExpanded = element.getAttribute('aria-expanded');
   const ariaControls = element.getAttribute('aria-controls');
-  
+
   if (ariaExpanded && !ariaControls) {
     issues.push('使用 aria-expanded 时应该同时设置 aria-controls');
   }
-  
+
   // 检查 aria-describedby 引用的元素是否存在
   const ariaDescribedby = element.getAttribute('aria-describedby');
   if (ariaDescribedby) {
@@ -1010,7 +1015,7 @@ function validateAriaAttributes(element: HTMLElement): string[] {
       }
     }
   }
-  
+
   // 检查 aria-labelledby 引用的元素是否存在
   const ariaLabelledby = element.getAttribute('aria-labelledby');
   if (ariaLabelledby) {
@@ -1021,7 +1026,7 @@ function validateAriaAttributes(element: HTMLElement): string[] {
       }
     }
   }
-  
+
   return issues;
 }
 
@@ -1033,22 +1038,21 @@ export function useAccessibilityValidation(
   enabled: boolean = process.env.NODE_ENV === 'development'
 ) {
   const [issues, setIssues] = React.useState<string[]>([]);
-  
+
   React.useEffect(() => {
-    if (!enabled || !elementRef.current) {return;}
-    
+    if (!enabled || !elementRef.current) {
+      return;
+    }
+
     const element = elementRef.current;
     const validationIssues = validateElementAccessibility(element);
     setIssues(validationIssues);
-    
+
     if (validationIssues.length > 0) {
-      console.warn(
-        `可访问性问题 (${element.tagName}):`,
-        validationIssues
-      );
+      logger.warn(`可访问性问题 (${element.tagName}):`, validationIssues);
     }
   }, [elementRef, enabled]);
-  
+
   return issues;
 }
 
@@ -1061,21 +1065,21 @@ export const accessibilityHelpers = {
   FocusTrap,
   useFocusTrap,
   useAutoFocus,
-  
+
   // 键盘导航
   KeyboardNavigationManager,
   useKeyboardNavigation,
-  
+
   // 屏幕阅读器
   getScreenReaderAnnouncer,
   announceToScreenReader,
   useScreenReaderAnnouncement,
-  
+
   // 颜色对比度
   calculateContrastRatio,
   checkContrastCompliance,
   suggestAccessibleColors,
-  
+
   // ARIA 工具
   generateId,
   useId,
@@ -1083,10 +1087,10 @@ export const accessibilityHelpers = {
   createAriaLabel,
   createAriaControls,
   useAriaRelationships,
-  
+
   // 验证工具
   validateElementAccessibility,
-  useAccessibilityValidation
+  useAccessibilityValidation,
 } as const;
 
 export type AccessibilityHelpers = typeof accessibilityHelpers;

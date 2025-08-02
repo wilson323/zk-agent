@@ -14,21 +14,21 @@ function generateKeyPair() {
     modulusLength: 2048,
     publicKeyEncoding: {
       type: 'spki',
-      format: 'pem'
+      format: 'pem',
     },
     privateKeyEncoding: {
       type: 'pkcs8',
-      format: 'pem'
-    }
+      format: 'pem',
+    },
   });
-  
+
   return { publicKey, privateKey };
 }
 
 // 生成自签名证书
 function generateSelfSignedCert() {
   const { publicKey, privateKey } = generateKeyPair();
-  
+
   // 创建证书信息
   const certInfo = {
     subject: {
@@ -37,7 +37,7 @@ function generateSelfSignedCert() {
       L: 'Beijing',
       O: 'ZK-Agent',
       OU: 'Development',
-      CN: 'localhost'
+      CN: 'localhost',
     },
     issuer: {
       C: 'CN',
@@ -45,13 +45,13 @@ function generateSelfSignedCert() {
       L: 'Beijing',
       O: 'ZK-Agent',
       OU: 'Development',
-      CN: 'localhost'
+      CN: 'localhost',
     },
     validFrom: new Date(),
     validTo: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1年有效期
-    serialNumber: '01'
+    serialNumber: '01',
   };
-  
+
   // 简化的证书内容（用于开发环境）
   const certificate = `-----BEGIN CERTIFICATE-----
 MIIDXTCCAkWgAwIBAgIJAKoK/heBjcOuMA0GCSqGSIb3DQEBCwUAMEUxCzAJBgNV
@@ -67,7 +67,7 @@ CzAJBgNVBAYTAkNOMRAwDgYDVQQIDAdCZWlqaW5nMRAwDgYDVQQHDAdCZWlqaW5n
 MRIwEAYDVQQKDAlaSy1BZ2VudDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoC
 ggEBANGGvJmVkqXvDflPUcwyo70+b1AiVYADdl2yQVCuEHGCGPiM9e4JGDjI6Ej
 -----END CERTIFICATE-----`;
-  
+
   return { certificate, privateKey, publicKey };
 }
 
@@ -75,27 +75,27 @@ ggEBANGGvJmVkqXvDflPUcwyo70+b1AiVYADdl2yQVCuEHGCGPiM9e4JGDjI6Ej
 function main() {
   try {
     console.log('🔐 正在生成SSL证书...');
-    
+
     const certsDir = path.join(__dirname, 'certs');
-    
+
     // 确保证书目录存在
     if (!fs.existsSync(certsDir)) {
       fs.mkdirSync(certsDir, { recursive: true });
     }
-    
+
     const { certificate, privateKey } = generateSelfSignedCert();
-    
+
     // 写入证书文件
     fs.writeFileSync(path.join(certsDir, 'server.crt'), certificate);
     fs.writeFileSync(path.join(certsDir, 'server.key'), privateKey);
-    
+
     // 设置文件权限（仅所有者可读）
     try {
       fs.chmodSync(path.join(certsDir, 'server.key'), 0o600);
     } catch (err) {
       console.warn('⚠️ 无法设置私钥文件权限:', err.message);
     }
-    
+
     console.log('✅ SSL证书生成成功!');
     console.log(`📁 证书位置: ${certsDir}`);
     console.log('📄 文件:');
@@ -104,7 +104,6 @@ function main() {
     console.log('');
     console.log('⚠️ 注意: 这是自签名证书，仅用于开发环境!');
     console.log('🔒 生产环境请使用由受信任CA签发的证书。');
-    
   } catch (error) {
     console.error('❌ SSL证书生成失败:', error.message);
     process.exit(1);
@@ -118,5 +117,5 @@ if (require.main === module) {
 module.exports = {
   generateKeyPair,
   generateSelfSignedCert,
-  main
+  main,
 };

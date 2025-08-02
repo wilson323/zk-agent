@@ -6,13 +6,14 @@
  * @security Production-level review tracking and audit logging
  */
 
-import { Logger } from '@/lib/utils/logger';
+import { getLogger } from '@/lib/utils/logger';
+
+const logger = getLogger();
 import { enhancedCacheManager } from '@/lib/cache/enhanced-cache-manager';
 import { securityAuditSystem, SecurityEventType, SecuritySeverity } from './security-audit-system';
 import { CodeReviewResult, SecurityViolation } from './code-review-system';
-import { getErrorMessage } from '@/lib/utils/error-handler';
 
-const logger = new Logger('ReviewTracker');
+// 使用导入的logger
 
 // Review status tracking
 export enum ReviewStatus {
@@ -233,12 +234,14 @@ export class ReviewTracker {
     });
 
     // Cache high-priority reviews
-    if (params.priority === ReviewPriority.CRITICAL || params.priority === ReviewPriority.EMERGENCY) {
-      await enhancedCacheManager.set(
-        `security:review:high-priority:${entryId}`,
-        entry,
-        { ttl: 86400000, tags: ['security', 'review', 'high-priority'] }
-      );
+    if (
+      params.priority === ReviewPriority.CRITICAL ||
+      params.priority === ReviewPriority.EMERGENCY
+    ) {
+      await enhancedCacheManager.set(`security:review:high-priority:${entryId}`, entry, {
+        ttl: 86400000,
+        tags: ['security', 'review', 'high-priority'],
+      });
     }
 
     // Record security event
@@ -271,12 +274,16 @@ export class ReviewTracker {
   /**
    * Update review status
    */
-  async updateReviewStatus(entryId: string, status: ReviewStatus, actor: {
-    id: string;
-    name: string;
-    role: ReviewerRole;
-    ip?: string;
-  }): Promise<boolean> {
+  async updateReviewStatus(
+    entryId: string,
+    status: ReviewStatus,
+    actor: {
+      id: string;
+      name: string;
+      role: ReviewerRole;
+      ip?: string;
+    }
+  ): Promise<boolean> {
     const entry = this.reviews.get(entryId);
     if (!entry) {
       return false;
@@ -325,7 +332,10 @@ export class ReviewTracker {
   /**
    * Add review comment
    */
-  async addComment(entryId: string, comment: Omit<ReviewComment, 'id' | 'timestamp' | 'resolved'>): Promise<string> {
+  async addComment(
+    entryId: string,
+    comment: Omit<ReviewComment, 'id' | 'timestamp' | 'resolved'>
+  ): Promise<string> {
     const entry = this.reviews.get(entryId);
     if (!entry) {
       throw new Error('Review entry not found');
@@ -375,7 +385,10 @@ export class ReviewTracker {
   /**
    * Add review approval
    */
-  async addApproval(entryId: string, approval: Omit<ReviewApproval, 'id' | 'timestamp'>): Promise<string> {
+  async addApproval(
+    entryId: string,
+    approval: Omit<ReviewApproval, 'id' | 'timestamp'>
+  ): Promise<string> {
     const entry = this.reviews.get(entryId);
     if (!entry) {
       throw new Error('Review entry not found');
@@ -462,11 +475,12 @@ export class ReviewTracker {
    */
   getOverdueReviews(): ReviewTrackingEntry[] {
     const now = new Date();
-    return Array.from(this.reviews.values()).filter(r => 
-      r.dueDate && 
-      r.dueDate < now && 
-      r.status !== ReviewStatus.APPROVED && 
-      r.status !== ReviewStatus.REJECTED
+    return Array.from(this.reviews.values()).filter(
+      r =>
+        r.dueDate &&
+        r.dueDate < now &&
+        r.status !== ReviewStatus.APPROVED &&
+        r.status !== ReviewStatus.REJECTED
     );
   }
 
@@ -480,14 +494,16 @@ export class ReviewTracker {
   /**
    * Get audit log
    */
-  getAuditLog(filters: {
-    reviewId?: string;
-    actor?: string;
-    action?: string;
-    startDate?: Date;
-    endDate?: Date;
-    riskLevel?: string;
-  } = {}): AuditLogEntry[] {
+  getAuditLog(
+    filters: {
+      reviewId?: string;
+      actor?: string;
+      action?: string;
+      startDate?: Date;
+      endDate?: Date;
+      riskLevel?: string;
+    } = {}
+  ): AuditLogEntry[] {
     let log = [...this.auditLog];
 
     if (filters.reviewId) {
@@ -520,10 +536,7 @@ export class ReviewTracker {
   /**
    * Generate compliance report
    */
-  async generateComplianceReport(timeRange: {
-    start: Date;
-    end: Date;
-  }): Promise<{
+  async generateComplianceReport(timeRange: { start: Date; end: Date }): Promise<{
     summary: {
       totalReviews: number;
       completedReviews: number;
@@ -546,16 +559,20 @@ export class ReviewTracker {
     };
     recommendations: string[];
   }> {
-    const reviews = Array.from(this.reviews.values())
-      .filter(r => r.createdAt >= timeRange.start && r.createdAt <= timeRange.end);
+    const reviews = Array.from(this.reviews.values()).filter(
+      r => r.createdAt >= timeRange.start && r.createdAt <= timeRange.end
+    );
 
-    const completedReviews = reviews.filter(r => 
-      r.status === ReviewStatus.APPROVED || r.status === ReviewStatus.REJECTED
+    const completedReviews = reviews.filter(
+      r => r.status === ReviewStatus.APPROVED || r.status === ReviewStatus.REJECTED
     );
 
     const totalViolations = reviews.reduce((sum, r) => sum + r.violations.length, 0);
-    const resolvedViolations = reviews.reduce((sum, r) => 
-      sum + r.violations.filter(v => r.comments.some(c => c.resolved && c.line === v.line)).length, 0
+    const resolvedViolations = reviews.reduce(
+      (sum, r) =>
+        sum +
+        r.violations.filter(v => r.comments.some(c => c.resolved && c.line === v.line)).length,
+      0
     );
 
     const violationsByCategory: Record<string, number> = {};
@@ -570,15 +587,19 @@ export class ReviewTracker {
       completedReviews: completedReviews.length,
       averageReviewTime: this.calculateAverageReviewTime(completedReviews),
       overdueReviews: this.getOverdueReviews().length,
-      highRiskReviews: reviews.filter(r => 
+      highRiskReviews: reviews.filter(r =>
         r.violations.some(v => v.severity === 'critical' || v.severity === 'high')
       ).length,
     };
 
     const complianceMetrics = {
       reviewCoverage: reviews.length > 0 ? (completedReviews.length / reviews.length) * 100 : 0,
-      approvalRate: completedReviews.length > 0 ? 
-        (completedReviews.filter(r => r.status === ReviewStatus.APPROVED).length / completedReviews.length) * 100 : 0,
+      approvalRate:
+        completedReviews.length > 0
+          ? (completedReviews.filter(r => r.status === ReviewStatus.APPROVED).length /
+            completedReviews.length) *
+          100
+          : 0,
       avgTimeToApproval: this.calculateAverageApprovalTime(completedReviews),
       reviewerParticipation: this.calculateReviewerParticipation(reviews),
     };
@@ -586,12 +607,22 @@ export class ReviewTracker {
     const violations = {
       total: totalViolations,
       resolved: resolvedViolations,
-      critical: reviews.reduce((sum, r) => sum + r.violations.filter(v => v.severity === 'critical').length, 0),
-      high: reviews.reduce((sum, r) => sum + r.violations.filter(v => v.severity === 'high').length, 0),
+      critical: reviews.reduce(
+        (sum, r) => sum + r.violations.filter(v => v.severity === 'critical').length,
+        0
+      ),
+      high: reviews.reduce(
+        (sum, r) => sum + r.violations.filter(v => v.severity === 'high').length,
+        0
+      ),
       byCategory: violationsByCategory,
     };
 
-    const recommendations = this.generateComplianceRecommendations(summary, complianceMetrics, violations);
+    const recommendations = this.generateComplianceRecommendations(
+      summary,
+      complianceMetrics,
+      violations
+    );
 
     return {
       summary,
@@ -662,11 +693,10 @@ export class ReviewTracker {
 
     // Cache critical audit entries
     if (entry.riskLevel === 'critical') {
-      await enhancedCacheManager.set(
-        `security:audit:critical:${entry.id}`,
-        entry,
-        { ttl: 604800000, tags: ['security', 'audit', 'critical'] }
-      );
+      await enhancedCacheManager.set(`security:audit:critical:${entry.id}`, entry, {
+        ttl: 604800000,
+        tags: ['security', 'audit', 'critical'],
+      });
     }
   }
 
@@ -689,7 +719,10 @@ export class ReviewTracker {
     return `audit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
-  private calculateEstimatedEffort(violations: SecurityViolation[], metadata: ReviewTrackingEntry['metadata']): number {
+  private calculateEstimatedEffort(
+    violations: SecurityViolation[],
+    metadata: ReviewTrackingEntry['metadata']
+  ): number {
     let effort = 30; // Base 30 minutes
 
     // Add time based on violations
@@ -698,12 +731,18 @@ export class ReviewTracker {
     effort += violations.filter(v => v.severity === 'high').length * 10; // Extra time for high
 
     // Add time based on file complexity
-    if (metadata.complexity === 'high') {effort *= 1.5;}
-    else if (metadata.complexity === 'medium') {effort *= 1.2;}
+    if (metadata.complexity === 'high') {
+      effort *= 1.5;
+    } else if (metadata.complexity === 'medium') {
+      effort *= 1.2;
+    }
 
     // Add time based on file size
-    if (metadata.linesOfCode > 1000) {effort *= 1.3;}
-    else if (metadata.linesOfCode > 500) {effort *= 1.1;}
+    if (metadata.linesOfCode > 1000) {
+      effort *= 1.3;
+    } else if (metadata.linesOfCode > 500) {
+      effort *= 1.1;
+    }
 
     return Math.round(effort);
   }
@@ -712,13 +751,21 @@ export class ReviewTracker {
     return Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60)); // Convert to minutes
   }
 
-  private calculateRiskLevel(violations: SecurityViolation[]): 'low' | 'medium' | 'high' | 'critical' {
+  private calculateRiskLevel(
+    violations: SecurityViolation[]
+  ): 'low' | 'medium' | 'high' | 'critical' {
     const criticalCount = violations.filter(v => v.severity === 'critical').length;
     const highCount = violations.filter(v => v.severity === 'high').length;
 
-    if (criticalCount > 0) {return 'critical';}
-    if (highCount > 2) {return 'high';}
-    if (highCount > 0 || violations.length > 5) {return 'medium';}
+    if (criticalCount > 0) {
+      return 'critical';
+    }
+    if (highCount > 2) {
+      return 'high';
+    }
+    if (highCount > 0 || violations.length > 5) {
+      return 'medium';
+    }
     return 'low';
   }
 
@@ -740,11 +787,21 @@ export class ReviewTracker {
     let score = 0;
     violations.forEach(v => {
       switch (v.severity) {
-        case 'critical': score += 10; break;
-        case 'high': score += 6; break;
-        case 'medium': score += 3; break;
-        case 'low': score += 1; break;
-        default: score += 0.5; break;
+        case 'critical':
+          score += 10;
+          break;
+        case 'high':
+          score += 6;
+          break;
+        case 'medium':
+          score += 3;
+          break;
+        case 'low':
+          score += 1;
+          break;
+        default:
+          score += 0.5;
+          break;
       }
     });
     return Math.min(score / violations.length || 0, 10);
@@ -752,22 +809,26 @@ export class ReviewTracker {
 
   private hasRequiredApprovals(entry: ReviewTrackingEntry): boolean {
     const approvals = entry.approvals.filter(a => a.decision === 'approved');
-    const highRiskViolations = entry.violations.filter(v => v.severity === 'critical' || v.severity === 'high');
+    const highRiskViolations = entry.violations.filter(
+      v => v.severity === 'critical' || v.severity === 'high'
+    );
 
     // High-risk changes need security specialist approval
     if (highRiskViolations.length > 0) {
-      return approvals.some(a => 
-        a.reviewerRole === ReviewerRole.SECURITY_SPECIALIST || 
-        a.reviewerRole === ReviewerRole.SECURITY_ARCHITECT
+      return approvals.some(
+        a =>
+          a.reviewerRole === ReviewerRole.SECURITY_SPECIALIST ||
+          a.reviewerRole === ReviewerRole.SECURITY_ARCHITECT
       );
     }
 
     // Regular changes need at least one senior developer approval
-    return approvals.some(a => 
-      a.reviewerRole === ReviewerRole.SENIOR_DEVELOPER ||
-      a.reviewerRole === ReviewerRole.TECH_LEAD ||
-      a.reviewerRole === ReviewerRole.SECURITY_SPECIALIST ||
-      a.reviewerRole === ReviewerRole.SECURITY_ARCHITECT
+    return approvals.some(
+      a =>
+        a.reviewerRole === ReviewerRole.SENIOR_DEVELOPER ||
+        a.reviewerRole === ReviewerRole.TECH_LEAD ||
+        a.reviewerRole === ReviewerRole.SECURITY_SPECIALIST ||
+        a.reviewerRole === ReviewerRole.SECURITY_ARCHITECT
     );
   }
 
@@ -775,9 +836,10 @@ export class ReviewTracker {
     // Update metrics based on completed review
     if (entry.completedAt && entry.actualEffort) {
       // Update average review time
-      const allCompletedReviews = Array.from(this.reviews.values())
-        .filter(r => r.completedAt && r.actualEffort);
-      
+      const allCompletedReviews = Array.from(this.reviews.values()).filter(
+        r => r.completedAt && r.actualEffort
+      );
+
       const totalTime = allCompletedReviews.reduce((sum, r) => sum + (r.actualEffort || 0), 0);
       this.metrics.averageReviewTime = totalTime / allCompletedReviews.length;
 
@@ -796,7 +858,7 @@ export class ReviewTracker {
 
   private async checkOverdueReviews(): Promise<void> {
     const overdueReviews = this.getOverdueReviews();
-    
+
     for (const review of overdueReviews) {
       await securityAuditSystem.recordEvent({
         type: SecurityEventType.ADMIN_ACTION,
@@ -825,9 +887,9 @@ export class ReviewTracker {
   private cleanupAuditLog(): void {
     const cutoffTime = Date.now() - 90 * 24 * 3600000; // 90 days ago
     const initialLength = this.auditLog.length;
-    
+
     this.auditLog = this.auditLog.filter(entry => entry.timestamp.getTime() >= cutoffTime);
-    
+
     const removedCount = initialLength - this.auditLog.length;
     if (removedCount > 0) {
       logger.info('Audit log cleaned up', {
@@ -839,36 +901,42 @@ export class ReviewTracker {
 
   private calculateAverageReviewTime(reviews: ReviewTrackingEntry[]): number {
     const reviewsWithTime = reviews.filter(r => r.actualEffort);
-    if (reviewsWithTime.length === 0) {return 0;}
-    
+    if (reviewsWithTime.length === 0) {
+      return 0;
+    }
+
     const totalTime = reviewsWithTime.reduce((sum, r) => sum + (r.actualEffort || 0), 0);
     return totalTime / reviewsWithTime.length;
   }
 
   private calculateAverageApprovalTime(reviews: ReviewTrackingEntry[]): number {
-    const approvedReviews = reviews.filter(r => r.status === ReviewStatus.APPROVED && r.completedAt);
-    if (approvedReviews.length === 0) {return 0;}
-    
+    const approvedReviews = reviews.filter(
+      r => r.status === ReviewStatus.APPROVED && r.completedAt
+    );
+    if (approvedReviews.length === 0) {
+      return 0;
+    }
+
     const totalTime = approvedReviews.reduce((sum, r) => {
       if (r.completedAt && r.createdAt) {
         return sum + (r.completedAt.getTime() - r.createdAt.getTime()) / (1000 * 60); // Convert to minutes
       }
       return sum;
     }, 0);
-    
+
     return totalTime / approvedReviews.length;
   }
 
   private calculateReviewerParticipation(reviews: ReviewTrackingEntry[]): number {
     const totalReviews = reviews.length;
     const reviewsWithComments = reviews.filter(r => r.comments.length > 0).length;
-    
+
     return totalReviews > 0 ? (reviewsWithComments / totalReviews) * 100 : 0;
   }
 
   private generateComplianceRecommendations(
-    summary: any, 
-    complianceMetrics: any, 
+    summary: any,
+    complianceMetrics: any,
     violations: any
   ): string[] {
     const recommendations: string[] = [];
@@ -878,7 +946,9 @@ export class ReviewTracker {
     }
 
     if (complianceMetrics.approvalRate < 80) {
-      recommendations.push('Review approval process - low approval rate may indicate quality issues');
+      recommendations.push(
+        'Review approval process - low approval rate may indicate quality issues'
+      );
     }
 
     if (summary.overdueReviews > 0) {

@@ -3,6 +3,11 @@
  * 统一的错误分类体系和错误处理机制
  */
 
+// 导入工具函数
+//import { generateId, delay } from '../utils';
+// 导入统一的错误严重级别枚举
+import { ErrorSeverity } from '@/lib/types/enums';
+
 // 智能体错误类型枚举
 export enum AgentErrorType {
   // CAD分析错误
@@ -10,41 +15,41 @@ export enum AgentErrorType {
   CAD_FORMAT_UNSUPPORTED = 'CAD_FORMAT_UNSUPPORTED',
   CAD_FILE_CORRUPTED = 'CAD_FILE_CORRUPTED',
   CAD_ANALYSIS_TIMEOUT = 'CAD_ANALYSIS_TIMEOUT',
-  
+
   // 海报生成错误
   POSTER_GENERATION_FAILED = 'POSTER_GENERATION_FAILED',
   POSTER_TEMPLATE_ERROR = 'POSTER_TEMPLATE_ERROR',
   POSTER_RESOURCE_LIMIT = 'POSTER_RESOURCE_LIMIT',
   POSTER_TIMEOUT = 'POSTER_TIMEOUT',
-  
+
   // 对话智能体错误
   CHAT_CONTEXT_LOST = 'CHAT_CONTEXT_LOST',
   CHAT_API_ERROR = 'CHAT_API_ERROR',
   CHAT_RATE_LIMIT = 'CHAT_RATE_LIMIT',
   CHAT_MODEL_UNAVAILABLE = 'CHAT_MODEL_UNAVAILABLE',
-  
+
   // 系统级错误
   AGENT_COMMUNICATION_ERROR = 'AGENT_COMMUNICATION_ERROR',
   RESOURCE_EXHAUSTED = 'RESOURCE_EXHAUSTED',
   SERVICE_UNAVAILABLE = 'SERVICE_UNAVAILABLE',
-  AUTHENTICATION_ERROR = 'AUTHENTICATION_ERROR'
+  AUTHENTICATION_ERROR = 'AUTHENTICATION_ERROR',
 }
 
-// 导入统一的错误严重级别枚举
-import { ErrorSeverity } from '@/lib/types/enums';
+// 重新导出ErrorSeverity以便其他模块使用
+export { ErrorSeverity };
 
 // 资源状态枚举
 export enum ResourceStatus {
   NORMAL = 'normal',
   HIGH = 'high',
-  CRITICAL = 'critical'
+  CRITICAL = 'critical',
 }
 
 // 熔断器状态
 export enum CircuitBreakerState {
   CLOSED = 'CLOSED',
   OPEN = 'OPEN',
-  HALF_OPEN = 'HALF_OPEN'
+  HALF_OPEN = 'HALF_OPEN',
 }
 
 // 基础智能体错误类
@@ -143,37 +148,19 @@ export class PosterTemplateError extends AgentError {
 // 对话智能体相关错误
 export class ChatContextLost extends AgentError {
   constructor(message: string, context: Record<string, any> = {}) {
-    super(
-      AgentErrorType.CHAT_CONTEXT_LOST,
-      message,
-      ErrorSeverity.MEDIUM,
-      'chat-agent',
-      context
-    );
+    super(AgentErrorType.CHAT_CONTEXT_LOST, message, ErrorSeverity.MEDIUM, 'chat-agent', context);
   }
 }
 
 export class ChatAPIError extends AgentError {
   constructor(message: string, context: Record<string, any> = {}) {
-    super(
-      AgentErrorType.CHAT_API_ERROR,
-      message,
-      ErrorSeverity.HIGH,
-      'chat-agent',
-      context
-    );
+    super(AgentErrorType.CHAT_API_ERROR, message, ErrorSeverity.HIGH, 'chat-agent', context);
   }
 }
 
 export class ChatRateLimit extends AgentError {
   constructor(message: string, context: Record<string, any> = {}) {
-    super(
-      AgentErrorType.CHAT_RATE_LIMIT,
-      message,
-      ErrorSeverity.MEDIUM,
-      'chat-agent',
-      context
-    );
+    super(AgentErrorType.CHAT_RATE_LIMIT, message, ErrorSeverity.MEDIUM, 'chat-agent', context);
   }
 }
 
@@ -192,25 +179,16 @@ export class ChatModelUnavailable extends AgentError {
 // 系统级错误
 export class ServiceUnavailable extends AgentError {
   constructor(message: string, context: Record<string, any> = {}) {
-    super(
-      AgentErrorType.SERVICE_UNAVAILABLE,
-      message,
-      ErrorSeverity.CRITICAL,
-      'system',
-      context
-    );
+    super(AgentErrorType.SERVICE_UNAVAILABLE, message, ErrorSeverity.CRITICAL, 'system', context);
   }
 }
 
 export class ChatServiceUnavailable extends AgentError {
   constructor(message: string, originalError?: Error, context: Record<string, any> = {}) {
-    super(
-      AgentErrorType.SERVICE_UNAVAILABLE,
-      message,
-      ErrorSeverity.HIGH,
-      'chat-service',
-      { ...context, originalError: originalError?.message }
-    );
+    super(AgentErrorType.SERVICE_UNAVAILABLE, message, ErrorSeverity.HIGH, 'chat-service', {
+      ...context,
+      originalError: originalError?.message,
+    });
   }
 }
 
@@ -328,10 +306,6 @@ export interface ChatResponse {
   context: ChatContext;
   metadata?: Record<string, any>;
 }
-
-import { generateId, delay } from '@/lib/utils';
-
-// 延迟函数已从统一工具库导入
 
 // 工具函数：指数退避计算
 export function calculateBackoffDelay(attempt: number, baseDelay: number = 1000): number {

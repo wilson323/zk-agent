@@ -6,20 +6,21 @@
 
 ## 🎯 项目核心定位
 
-| 模块 | 归属 | 路径 | 说明 |
-|------|------|------|------|
-| 对话智能体 | 用户端 | `/chat` | 用户使用，管理端配置 |
-| CAD解读智能体 | 用户端 | `/cad-analyzer` | 用户使用，管理端配置 |
-| 海报设计智能体 | 用户端 | `/poster-generator` | 用户使用，管理端配置 |
-| **🎯 AI大模型管理器** | **管理端专属** | `/admin/dashboard/ai-models` | **仅限管理员** |
-| 智能体配置管理 | 管理端专属 | `/admin/dashboard/agents` | 仅限管理员 |
-| 数据分析 | 管理端专属 | `/admin/dashboard/analytics` | 仅限管理员 |
+| 模块                  | 归属           | 路径                         | 说明                 |
+| --------------------- | -------------- | ---------------------------- | -------------------- |
+| 对话智能体            | 用户端         | `/chat`                      | 用户使用，管理端配置 |
+| CAD解读智能体         | 用户端         | `/cad-analyzer`              | 用户使用，管理端配置 |
+| 海报设计智能体        | 用户端         | `/poster-generator`          | 用户使用，管理端配置 |
+| **🎯 AI大模型管理器** | **管理端专属** | `/admin/dashboard/ai-models` | **仅限管理员**       |
+| 智能体配置管理        | 管理端专属     | `/admin/dashboard/agents`    | 仅限管理员           |
+| 数据分析              | 管理端专属     | `/admin/dashboard/analytics` | 仅限管理员           |
 
 ---
 
 ## 🚫 严禁事项
 
 ### ❌ 功能边界严禁混淆
+
 ```typescript
 // ❌ 用户端严禁出现这些功能
 const UserComponent = () => {
@@ -30,15 +31,16 @@ const UserComponent = () => {
 ```
 
 ### ❌ API路径严禁错乱
+
 ```typescript
 // ❌ 用户端严禁这些路径
-'GET /api/ag-ui/ai-models'     // 严禁！
-'GET /api/models/config'       // 严禁！
-'POST /api/user/ai-provider'   // 严禁！
+'GET /api/ag-ui/ai-models'; // 严禁！
+'GET /api/models/config'; // 严禁！
+'POST /api/user/ai-provider'; // 严禁！
 
 // ✅ 正确的路径划分
-'GET /api/ag-ui/agents'        // 用户端获取智能体
-'GET /api/admin/ai-models'     // 管理端获取AI模型
+'GET /api/ag-ui/agents'; // 用户端获取智能体
+'GET /api/admin/ai-models'; // 管理端获取AI模型
 ```
 
 ---
@@ -71,13 +73,13 @@ api/
 
 ## 🔤 命名规范速查
 
-| 类型 | 规范 | 示例 |
-|------|------|------|
-| 文件名 | kebab-case | `ai-model-service.ts` |
-| 组件名 | PascalCase | `AIModelManager` |
-| 变量名 | camelCase | `aiModelConfig` |
-| 常量名 | SCREAMING_SNAKE_CASE | `AI_MODEL_PERMISSIONS` |
-| 类型名 | PascalCase | `AIProvider`, `AdminUser` |
+| 类型   | 规范                 | 示例                      |
+| ------ | -------------------- | ------------------------- |
+| 文件名 | kebab-case           | `ai-model-service.ts`     |
+| 组件名 | PascalCase           | `AIModelManager`          |
+| 变量名 | camelCase            | `aiModelConfig`           |
+| 常量名 | SCREAMING_SNAKE_CASE | `AI_MODEL_PERMISSIONS`    |
+| 类型名 | PascalCase           | `AIProvider`, `AdminUser` |
 
 ---
 
@@ -123,7 +125,7 @@ enum AIModelPermissions {
   AI_MODEL_UPDATE = 'ai_model:update',
   AI_MODEL_DELETE = 'ai_model:delete',
   AI_PROVIDER_MANAGE = 'ai_provider:manage',
-  AI_COST_MANAGE = 'ai_cost:manage'
+  AI_COST_MANAGE = 'ai_cost:manage',
 }
 
 // 权限检查
@@ -167,13 +169,13 @@ interface ServiceInterface {
 // 组件规范
 const Component: React.FC<Props> = ({ prop1, prop2 = 'default' }) => {
   const [state, setState] = useState<StateType>(initialState);
-  
+
   const computed = useMemo(() => calculation(state), [state]);
-  
+
   const handleEvent = useCallback((event: Event) => {
     // 事件处理
   }, [dependency]);
-  
+
   return <div>{/* JSX */}</div>;
 };
 ```
@@ -182,32 +184,35 @@ const Component: React.FC<Props> = ({ prop1, prop2 = 'default' }) => {
 
 ## 🚀 性能指标速查
 
-| 指标 | 标准 | 监控方式 |
-|------|------|----------|
-| API响应时间 | < 500ms | 实时监控 |
-| 页面加载时间 | < 3s | 性能测试 |
-| 数据库查询 | < 100ms | 查询分析 |
-| 测试覆盖率 | > 80% | 自动化检查 |
-| 错误率 | < 1% | 错误日志 |
-| 系统可用性 | > 99.9% | 健康检查 |
+| 指标         | 标准    | 监控方式   |
+| ------------ | ------- | ---------- |
+| API响应时间  | < 500ms | 实时监控   |
+| 页面加载时间 | < 3s    | 性能测试   |
+| 数据库查询   | < 100ms | 查询分析   |
+| 测试覆盖率   | > 80%   | 自动化检查 |
+| 错误率       | < 1%    | 错误日志   |
+| 系统可用性   | > 99.9% | 健康检查   |
 
 ---
 
 ## 📋 开发检查清单
 
 ### ✅ 开发前
+
 - [ ] 阅读 `PROJECT-DEVELOPMENT-STANDARDS.md`
 - [ ] 确认功能归属（用户端 vs 管理端）
 - [ ] 创建功能分支
 - [ ] 配置开发环境
 
 ### ✅ 开发中
+
 - [ ] 遵循命名规范
 - [ ] 严格类型检查
 - [ ] 编写单元测试
 - [ ] 功能边界检查
 
 ### ✅ 提交前
+
 - [ ] ESLint检查通过
 - [ ] TypeScript检查通过
 - [ ] 测试用例通过
@@ -218,19 +223,23 @@ const Component: React.FC<Props> = ({ prop1, prop2 = 'default' }) => {
 ## 🆘 紧急问题处理
 
 ### 🔥 功能边界混淆
+
 **立即停止开发！** 重新确认功能归属
 
 ### 🔥 权限控制问题
+
 **立即升级！** 联系架构师确认
 
 ### 🔥 数据安全问题
+
 **立即升级！** 联系安全团队处理
 
 ---
 
 **📞 需要帮助？查看完整文档：**
+
 - [PROJECT-DEVELOPMENT-STANDARDS.md](./PROJECT-DEVELOPMENT-STANDARDS.md) - 完整开发规范
 - [DETAILED-SYSTEM-DESIGN-SPECIFICATION.md](./DETAILED-SYSTEM-DESIGN-SPECIFICATION.md) - 系统设计
 - [AI-MODEL-MANAGER-SPECIFICATION.md](./AI-MODEL-MANAGER-SPECIFICATION.md) - AI模型管理器规范
 
-**🎯 记住：AI大模型管理器是管理端专属功能，严禁在用户端出现！** 
+**🎯 记住：AI大模型管理器是管理端专属功能，严禁在用户端出现！**

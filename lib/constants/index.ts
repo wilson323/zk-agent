@@ -28,7 +28,7 @@ export const HTTP_STATUS = {
   INTERNAL_SERVER_ERROR: 500,
   BAD_GATEWAY: 502,
   SERVICE_UNAVAILABLE: 503,
-  GATEWAY_TIMEOUT: 504
+  GATEWAY_TIMEOUT: 504,
 } as const;
 
 /**
@@ -43,7 +43,7 @@ export const API_PATHS = {
   HEALTH: '/api/health',
   METRICS: '/api/metrics',
   UPLOAD: '/api/upload',
-  DOWNLOAD: '/api/download'
+  DOWNLOAD: '/api/download',
 } as const;
 
 /**
@@ -57,7 +57,7 @@ export const HEADERS = {
   ACCEPT: 'Accept',
   CACHE_CONTROL: 'Cache-Control',
   X_REQUEST_ID: 'X-Request-ID',
-  X_API_KEY: 'X-API-Key'
+  X_API_KEY: 'X-API-Key',
 } as const;
 
 /**
@@ -71,7 +71,7 @@ export const CONTENT_TYPES = {
   PLAIN: 'text/plain',
   FORM_DATA: 'multipart/form-data',
   URL_ENCODED: 'application/x-www-form-urlencoded',
-  OCTET_STREAM: 'application/octet-stream'
+  OCTET_STREAM: 'application/octet-stream',
 } as const;
 
 // ============================================================================
@@ -90,7 +90,7 @@ export const LOCAL_STORAGE_KEYS = {
   PREFERENCES: 'preferences',
   CHAT_HISTORY: 'chat_history',
   DRAFT_MESSAGE: 'draft_message',
-  LAST_VISITED: 'last_visited'
+  LAST_VISITED: 'last_visited',
 } as const;
 
 // ============================================================================
@@ -106,7 +106,7 @@ export const FILE_SIZE_LIMITS = {
   DOCUMENT: 10 * 1024 * 1024, // 10MB
   VIDEO: 100 * 1024 * 1024, // 100MB
   CAD: 50 * 1024 * 1024, // 50MB
-  GENERAL: 20 * 1024 * 1024 // 20MB
+  GENERAL: 20 * 1024 * 1024, // 20MB
 } as const;
 
 /**
@@ -114,14 +114,7 @@ export const FILE_SIZE_LIMITS = {
  * 定义系统支持的文件MIME类型
  */
 export const SUPPORTED_FILE_TYPES = {
-  IMAGES: [
-    'image/jpeg',
-    'image/jpg',
-    'image/png',
-    'image/gif',
-    'image/webp',
-    'image/svg+xml'
-  ],
+  IMAGES: ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'],
   DOCUMENTS: [
     'application/pdf',
     'application/msword',
@@ -129,7 +122,7 @@ export const SUPPORTED_FILE_TYPES = {
     'application/vnd.ms-excel',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     'text/plain',
-    'text/csv'
+    'text/csv',
   ],
   CAD_FILES: [
     'application/acad',
@@ -137,20 +130,10 @@ export const SUPPORTED_FILE_TYPES = {
     'application/dwg',
     'application/dxf',
     'application/step',
-    'application/iges'
+    'application/iges',
   ],
-  AUDIO: [
-    'audio/mpeg',
-    'audio/wav',
-    'audio/ogg',
-    'audio/mp4'
-  ],
-  VIDEO: [
-    'video/mp4',
-    'video/mpeg',
-    'video/quicktime',
-    'video/x-msvideo'
-  ]
+  AUDIO: ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp4'],
+  VIDEO: ['video/mp4', 'video/mpeg', 'video/quicktime', 'video/x-msvideo'],
 } as const;
 
 /**
@@ -162,7 +145,7 @@ export const AUDIO_FORMATS = {
   WAV: 'wav',
   OGG: 'ogg',
   M4A: 'm4a',
-  FLAC: 'flac'
+  FLAC: 'flac',
 } as const;
 
 // ============================================================================
@@ -180,7 +163,7 @@ export const MODEL_PURPOSES = {
   IMAGE_GENERATION: 'image_generation',
   CODE_GENERATION: 'code_generation',
   TRANSLATION: 'translation',
-  SUMMARIZATION: 'summarization'
+  SUMMARIZATION: 'summarization',
 } as const;
 
 /**
@@ -192,7 +175,7 @@ export const MODEL_TYPE_ICONS = {
   CLAUDE: '🧠',
   GEMINI: '💎',
   LLAMA: '🦙',
-  CUSTOM: '⚙️'
+  CUSTOM: '⚙️',
 } as const;
 
 // ============================================================================
@@ -214,7 +197,7 @@ export const SUPPORTED_LANGUAGES = {
   DE_DE: 'de-DE',
   ES_ES: 'es-ES',
   IT_IT: 'it-IT',
-  RU_RU: 'ru-RU'
+  RU_RU: 'ru-RU',
 } as const;
 
 /**
@@ -232,7 +215,7 @@ export const LANGUAGE_NAMES = {
   [SUPPORTED_LANGUAGES.DE_DE]: 'Deutsch',
   [SUPPORTED_LANGUAGES.ES_ES]: 'Español',
   [SUPPORTED_LANGUAGES.IT_IT]: 'Italiano',
-  [SUPPORTED_LANGUAGES.RU_RU]: 'Русский'
+  [SUPPORTED_LANGUAGES.RU_RU]: 'Русский',
 } as const;
 
 // ============================================================================
@@ -249,7 +232,7 @@ export const AGENT_TYPES = {
   ANALYSIS: 'analysis',
   GENERATION: 'generation',
   TRANSLATION: 'translation',
-  CODING: 'coding'
+  CODING: 'coding',
 } as const;
 
 /**
@@ -261,7 +244,7 @@ export const AGENT_STATUS = {
   RUNNING: 'running',
   PAUSED: 'paused',
   ERROR: 'error',
-  COMPLETED: 'completed'
+  COMPLETED: 'completed',
 } as const;
 
 // ============================================================================
@@ -276,7 +259,7 @@ export const PAGINATION_DEFAULTS = {
   PAGE: 1,
   LIMIT: 20,
   MAX_LIMIT: 100,
-  SORT_ORDER: 'desc'
+  SORT_ORDER: 'desc',
 } as const;
 
 /**
@@ -299,7 +282,7 @@ export const POSTER_STYLES = {
   MINIMALIST: 'minimalist',
   CREATIVE: 'creative',
   PROFESSIONAL: 'professional',
-  ARTISTIC: 'artistic'
+  ARTISTIC: 'artistic',
 } as const;
 
 /**
@@ -312,7 +295,7 @@ export const MARKETING_HEADLINES = [
   '专业品质保证',
   '卓越服务体验',
   '智能解决方案',
-  '高效便捷服务'
+  '高效便捷服务',
 ] as const;
 
 // ============================================================================
@@ -329,7 +312,7 @@ export const TIME_INTERVALS = {
   HOUR: 60 * 60 * 1000,
   DAY: 24 * 60 * 60 * 1000,
   WEEK: 7 * 24 * 60 * 60 * 1000,
-  MONTH: 30 * 24 * 60 * 60 * 1000
+  MONTH: 30 * 24 * 60 * 60 * 1000,
 } as const;
 
 /**
@@ -340,7 +323,7 @@ export const CACHE_TTL = {
   SHORT: 5 * 60, // 5分钟
   MEDIUM: 30 * 60, // 30分钟
   LONG: 2 * 60 * 60, // 2小时
-  VERY_LONG: 24 * 60 * 60 // 24小时
+  VERY_LONG: 24 * 60 * 60, // 24小时
 } as const;
 
 // ============================================================================
@@ -358,7 +341,7 @@ export const REGEX_PATTERNS = {
   USERNAME: /^[a-zA-Z0-9_]{3,20}$/,
   URL: /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$/,
   IPV4: /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/,
-  UUID: /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+  UUID: /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
 } as const;
 
 // ============================================================================
@@ -370,23 +353,23 @@ export const REGEX_PATTERNS = {
  * 定义统一的API错误消息
  */
 export const ERROR_MESSAGES = {
-  CONNECTION_FAILED: "API connection failed",
-  NETWORK_ERROR: "Network error, cannot connect to server",
-  TIMEOUT: "Connection timeout, server response time too long",
-  UNAUTHORIZED: "API key is invalid or expired",
+  CONNECTION_FAILED: 'API connection failed',
+  NETWORK_ERROR: 'Network error, cannot connect to server',
+  TIMEOUT: 'Connection timeout, server response time too long',
+  UNAUTHORIZED: 'API key is invalid or expired',
   FORBIDDEN: "You don't have permission to access this resource",
-  NOT_FOUND: "API endpoint does not exist",
-  INVALID_URL: "API endpoint URL format is incorrect",
-  UNKNOWN: "Unknown error",
+  NOT_FOUND: 'API endpoint does not exist',
+  INVALID_URL: 'API endpoint URL format is incorrect',
+  UNKNOWN: 'Unknown error',
 
   // Suggested actions
   SUGGESTIONS: {
-    ENABLE_PROXY: "Enabling proxy mode may solve CORS issues",
-    CHECK_API_KEY: "Update API key",
-    CHECK_PERMISSIONS: "Check API key permissions",
-    CHECK_NETWORK: "Check network connection",
-    RETRY_LATER: "Please try again later"
-  }
+    ENABLE_PROXY: 'Enabling proxy mode may solve CORS issues',
+    CHECK_API_KEY: 'Update API key',
+    CHECK_PERMISSIONS: 'Check API key permissions',
+    CHECK_NETWORK: 'Check network connection',
+    RETRY_LATER: 'Please try again later',
+  },
 } as const;
 
 // ============================================================================
@@ -401,7 +384,7 @@ export const ERROR_HANDLING_DEFAULT_CONFIG = {
   enableLogging: true,
   enableMetrics: true,
   enableRetry: false,
-  sensitiveFields: ['password', 'token', 'secret', 'key']
+  sensitiveFields: ['password', 'token', 'secret', 'key'],
 } as const;
 
 /**
@@ -412,13 +395,35 @@ export const API_REQUEST_DEFAULT_CONFIG = {
   method: 'GET',
   headers: {
     'Content-Type': 'application/json',
-    'Accept': 'application/json'
+    Accept: 'application/json',
   },
   timeout: 30000,
   retries: 3,
   retryDelay: 1000,
   credentials: 'same-origin',
-  cache: 'default'
+  cache: 'default',
+} as const;
+
+/**
+ * 默认重试配置
+ */
+export const DEFAULT_RETRY_CONFIG = {
+  maxRetries: 3,
+  retryDelay: 1000,
+  retryCondition: (error: any, attempt: number) => {
+    return error.status >= 500 || error.status === 429;
+  },
+} as const;
+
+/**
+ * 默认配置
+ */
+export const DEFAULT_CONFIG = {
+  timeout: 30000,
+  headers: {
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+  },
 } as const;
 
 // ============================================================================
@@ -433,7 +438,7 @@ export const ENVIRONMENTS = {
   DEVELOPMENT: 'development',
   TESTING: 'testing',
   STAGING: 'staging',
-  PRODUCTION: 'production'
+  PRODUCTION: 'production',
 } as const;
 
 /**
@@ -445,5 +450,5 @@ export const LOG_LEVELS = {
   WARN: 'warn',
   INFO: 'info',
   DEBUG: 'debug',
-  TRACE: 'trace'
+  TRACE: 'trace',
 } as const;

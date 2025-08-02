@@ -11,7 +11,7 @@ export enum CacheStrategy {
   NETWORK_FIRST = 'NetworkFirst',
   STALE_WHILE_REVALIDATE = 'StaleWhileRevalidate',
   NETWORK_ONLY = 'NetworkOnly',
-  CACHE_ONLY = 'CacheOnly'
+  CACHE_ONLY = 'CacheOnly',
 }
 
 // 缓存配置接口 - 增强版
@@ -77,7 +77,7 @@ export const SW_CONFIG = {
         connectionType: ['4g', 'wifi'],
       },
     } as CacheConfig,
-    
+
     // API请求 - 智能自适应缓存策略 (重点优化)
     api: {
       pattern: /\/api\//,
@@ -89,8 +89,8 @@ export const SW_CONFIG = {
       cacheableResponse: {
         statuses: [200, 201, 202, 204], // 只缓存成功响应
         headers: {
-          'cache-control': 'public, max-age=900' // 15分钟缓存控制
-        }
+          'cache-control': 'public, max-age=900', // 15分钟缓存控制
+        },
       },
       backgroundSync: true, // 启用后台同步
       broadcastUpdate: true, // 启用广播更新
@@ -110,7 +110,7 @@ export const SW_CONFIG = {
         timeOfDay: { start: 9, end: 18 }, // 工作时间优化
       },
     } as CacheConfig,
-    
+
     // 特殊API - 长期缓存 (新增)
     apiStatic: {
       pattern: /\/api\/(config|constants|metadata)\//,
@@ -122,7 +122,7 @@ export const SW_CONFIG = {
         statuses: [200],
       },
     } as CacheConfig,
-    
+
     // 实时API - 仅网络 (新增)
     apiRealtime: {
       pattern: /\/api\/(chat|stream|websocket)\//,
@@ -164,25 +164,20 @@ export const SW_CONFIG = {
       },
     } as CacheConfig,
   },
-  
+
   // 预缓存配置
   precache: {
     enabled: true,
-    urls: [
-      '/',
-      '/chat',
-      '/admin',
-      '/api/health',
-    ],
+    urls: ['/', '/chat', '/admin', '/api/health'],
   },
-  
+
   // 运行时配置
   runtime: {
     skipWaiting: true,
     clientsClaim: true,
     cleanupOutdatedCaches: true,
   },
-  
+
   // 性能监控 - 增强版
   monitoring: {
     enabled: true,
@@ -193,7 +188,7 @@ export const SW_CONFIG = {
     enableRealTimeMetrics: true,
     metricsEndpoint: '/api/sw-metrics',
   },
-  
+
   // 智能预热配置
   intelligentWarmup: {
     enabled: true,
@@ -211,7 +206,7 @@ export const SW_CONFIG = {
     maxWarmupRequests: 20,
     warmupInterval: 5 * 60 * 1000, // 5分钟
   },
-  
+
   // 自适应优化
   adaptiveOptimization: {
     enabled: true,
@@ -223,7 +218,7 @@ export const SW_CONFIG = {
     userPatternLearning: true,
     optimizationInterval: 10 * 60 * 1000, // 10分钟
   },
-  
+
   // 高级功能
   advancedFeatures: {
     enableServiceWorkerUpdate: true,
@@ -256,7 +251,7 @@ export const PerformanceOptimizer = {
     }
     return CacheStrategy.STALE_WHILE_REVALIDATE;
   },
-  
+
   // 动态调整缓存大小
   adjustCacheSize: (hitRate: number, currentSize: number) => {
     if (hitRate > 0.8) {
@@ -267,7 +262,7 @@ export const PerformanceOptimizer = {
     }
     return currentSize;
   },
-  
+
   // 智能清理策略
   intelligentPurge: (cacheEntries: any[], maxEntries: number) => {
     return cacheEntries

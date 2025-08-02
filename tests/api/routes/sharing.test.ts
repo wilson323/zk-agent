@@ -19,7 +19,7 @@ jest.mock('../../../lib/services/sharing-service', () => ({
   checkSharePermissions: jest.fn(),
   getShareAnalytics: jest.fn(),
   trackShareAccess: jest.fn(),
-  validateShareExpiration: jest.fn()
+  validateShareExpiration: jest.fn(),
 }));
 
 jest.mock('../../../lib/services/content-service', () => ({
@@ -27,19 +27,19 @@ jest.mock('../../../lib/services/content-service', () => ({
   validateContentAccess: jest.fn(),
   checkContentOwnership: jest.fn(),
   getContentMetadata: jest.fn(),
-  validateContentType: jest.fn()
+  validateContentType: jest.fn(),
 }));
 
 jest.mock('../../../lib/services/notification-service', () => ({
   sendShareNotification: jest.fn(),
   notifyShareAccess: jest.fn(),
-  sendShareExpiredNotification: jest.fn()
+  sendShareExpiredNotification: jest.fn(),
 }));
 
 jest.mock('../../../lib/auth/session', () => ({
   validateSession: jest.fn(),
   getUserPermissions: jest.fn(),
-  checkUserAccess: jest.fn()
+  checkUserAccess: jest.fn(),
 }));
 
 jest.mock('../../../lib/storage/share-store', () => ({
@@ -48,14 +48,14 @@ jest.mock('../../../lib/storage/share-store', () => ({
   updateShare: jest.fn(),
   deleteShare: jest.fn(),
   listShares: jest.fn(),
-  cleanupExpiredShares: jest.fn()
+  cleanupExpiredShares: jest.fn(),
 }));
 
 jest.mock('../../../lib/security/access-control', () => ({
   validateShareAccess: jest.fn(),
   checkRateLimit: jest.fn(),
   detectSuspiciousActivity: jest.fn(),
-  validateIPAccess: jest.fn()
+  validateIPAccess: jest.fn(),
 }));
 
 describe('Sharing API Error Handling', () => {
@@ -137,7 +137,9 @@ describe('Sharing API Error Handling', () => {
       const { validateShareToken } = require('../../../lib/services/sharing-service');
       validateShareToken.mockRejectedValue(new Error('Incorrect password for protected share'));
 
-      const request = new NextRequest('http://localhost:3000/api/sharing?token=protected-token&password=wrong');
+      const request = new NextRequest(
+        'http://localhost:3000/api/sharing?token=protected-token&password=wrong'
+      );
       const response = await GET(request);
       const data = await response.json();
 
@@ -204,7 +206,7 @@ describe('Sharing API Error Handling', () => {
         permissions: ['read'],
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
         password: null,
-        maxAccess: 10
+        maxAccess: 10,
       };
     });
 
@@ -215,10 +217,10 @@ describe('Sharing API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/sharing', {
         method: 'POST',
         body: JSON.stringify(invalidData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer user-token'
-        }
+          Authorization: 'Bearer user-token',
+        },
       });
 
       const response = await POST(request);
@@ -236,10 +238,10 @@ describe('Sharing API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/sharing', {
         method: 'POST',
         body: JSON.stringify({ ...validShareData, contentId: 'nonexistent-content' }),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer user-token'
-        }
+          Authorization: 'Bearer user-token',
+        },
       });
 
       const response = await POST(request);
@@ -252,15 +254,17 @@ describe('Sharing API Error Handling', () => {
 
     it('should handle insufficient permissions to share content', async () => {
       const { checkContentOwnership } = require('../../../lib/services/content-service');
-      checkContentOwnership.mockRejectedValue(new Error('Insufficient permissions to share this content'));
+      checkContentOwnership.mockRejectedValue(
+        new Error('Insufficient permissions to share this content')
+      );
 
       const request = new NextRequest('http://localhost:3000/api/sharing', {
         method: 'POST',
         body: JSON.stringify(validShareData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer limited-user-token'
-        }
+          Authorization: 'Bearer limited-user-token',
+        },
       });
 
       const response = await POST(request);
@@ -274,16 +278,16 @@ describe('Sharing API Error Handling', () => {
     it('should handle invalid expiration date', async () => {
       const invalidExpirationData = {
         ...validShareData,
-        expiresAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() // Past date
+        expiresAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // Past date
       };
 
       const request = new NextRequest('http://localhost:3000/api/sharing', {
         method: 'POST',
         body: JSON.stringify(invalidExpirationData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer user-token'
-        }
+          Authorization: 'Bearer user-token',
+        },
       });
 
       const response = await POST(request);
@@ -297,16 +301,16 @@ describe('Sharing API Error Handling', () => {
     it('should handle weak password for protected share', async () => {
       const weakPasswordData = {
         ...validShareData,
-        password: '123' // Too weak
+        password: '123', // Too weak
       };
 
       const request = new NextRequest('http://localhost:3000/api/sharing', {
         method: 'POST',
         body: JSON.stringify(weakPasswordData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer user-token'
-        }
+          Authorization: 'Bearer user-token',
+        },
       });
 
       const response = await POST(request);
@@ -324,10 +328,10 @@ describe('Sharing API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/sharing', {
         method: 'POST',
         body: JSON.stringify(validShareData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer user-token'
-        }
+          Authorization: 'Bearer user-token',
+        },
       });
 
       const response = await POST(request);
@@ -345,10 +349,10 @@ describe('Sharing API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/sharing', {
         method: 'POST',
         body: JSON.stringify(validShareData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer user-token'
-        }
+          Authorization: 'Bearer user-token',
+        },
       });
 
       const response = await POST(request);
@@ -364,16 +368,16 @@ describe('Sharing API Error Handling', () => {
 
       const invalidContentTypeData = {
         ...validShareData,
-        contentType: 'unsupported-type'
+        contentType: 'unsupported-type',
       };
 
       const request = new NextRequest('http://localhost:3000/api/sharing', {
         method: 'POST',
         body: JSON.stringify(invalidContentTypeData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer user-token'
-        }
+          Authorization: 'Bearer user-token',
+        },
       });
 
       const response = await POST(request);
@@ -390,10 +394,10 @@ describe('Sharing API Error Handling', () => {
       const request = new NextRequest('http://localhost:3000/api/sharing', {
         method: 'POST',
         body: JSON.stringify(validShareData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer user-token'
-        }
+          Authorization: 'Bearer user-token',
+        },
       });
 
       const response = await POST(request);
@@ -409,16 +413,16 @@ describe('Sharing API Error Handling', () => {
 
       const notificationData = {
         ...validShareData,
-        notifyUsers: ['user@example.com']
+        notifyUsers: ['user@example.com'],
       };
 
       const request = new NextRequest('http://localhost:3000/api/sharing', {
         method: 'POST',
         body: JSON.stringify(notificationData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer user-token'
-        }
+          Authorization: 'Bearer user-token',
+        },
       });
 
       const response = await POST(request);
@@ -436,16 +440,16 @@ describe('Sharing API Error Handling', () => {
 
       const updateData = {
         shareId: 'nonexistent-share',
-        expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString()
+        expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
       };
 
       const request = new NextRequest('http://localhost:3000/api/sharing', {
         method: 'PUT',
         body: JSON.stringify(updateData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer user-token'
-        }
+          Authorization: 'Bearer user-token',
+        },
       });
 
       const response = await PUT(request);
@@ -462,16 +466,16 @@ describe('Sharing API Error Handling', () => {
 
       const updateData = {
         shareId: 'share-123',
-        maxAccess: 20
+        maxAccess: 20,
       };
 
       const request = new NextRequest('http://localhost:3000/api/sharing', {
         method: 'PUT',
         body: JSON.stringify(updateData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer other-user-token'
-        }
+          Authorization: 'Bearer other-user-token',
+        },
       });
 
       const response = await PUT(request);
@@ -486,16 +490,16 @@ describe('Sharing API Error Handling', () => {
       const invalidUpdateData = {
         shareId: 'share-123',
         maxAccess: -1, // Invalid value
-        expiresAt: 'invalid-date'
+        expiresAt: 'invalid-date',
       };
 
       const request = new NextRequest('http://localhost:3000/api/sharing', {
         method: 'PUT',
         body: JSON.stringify(invalidUpdateData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer user-token'
-        }
+          Authorization: 'Bearer user-token',
+        },
       });
 
       const response = await PUT(request);
@@ -508,21 +512,23 @@ describe('Sharing API Error Handling', () => {
 
     it('should handle concurrent share update conflict', async () => {
       const { updateShare } = require('../../../lib/services/sharing-service');
-      updateShare.mockRejectedValue(new Error('Concurrent update detected: share modified by another user'));
+      updateShare.mockRejectedValue(
+        new Error('Concurrent update detected: share modified by another user')
+      );
 
       const updateData = {
         shareId: 'share-123',
         version: 1,
-        maxAccess: 15
+        maxAccess: 15,
       };
 
       const request = new NextRequest('http://localhost:3000/api/sharing', {
         method: 'PUT',
         body: JSON.stringify(updateData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer user-token'
-        }
+          Authorization: 'Bearer user-token',
+        },
       });
 
       const response = await PUT(request);
@@ -539,16 +545,16 @@ describe('Sharing API Error Handling', () => {
 
       const updateData = {
         shareId: 'share-123',
-        maxAccess: 15
+        maxAccess: 15,
       };
 
       const request = new NextRequest('http://localhost:3000/api/sharing', {
         method: 'PUT',
         body: JSON.stringify(updateData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer user-token'
-        }
+          Authorization: 'Bearer user-token',
+        },
       });
 
       const response = await PUT(request);
@@ -564,10 +570,13 @@ describe('Sharing API Error Handling', () => {
       const { getShare } = require('../../../lib/storage/share-store');
       getShare.mockRejectedValue(new Error('Share not found'));
 
-      const request = new NextRequest('http://localhost:3000/api/sharing?shareId=nonexistent-share', {
-        method: 'DELETE',
-        headers: { 'Authorization': 'Bearer user-token' }
-      });
+      const request = new NextRequest(
+        'http://localhost:3000/api/sharing?shareId=nonexistent-share',
+        {
+          method: 'DELETE',
+          headers: { Authorization: 'Bearer user-token' },
+        }
+      );
 
       const response = await DELETE(request);
       const data = await response.json();
@@ -583,7 +592,7 @@ describe('Sharing API Error Handling', () => {
 
       const request = new NextRequest('http://localhost:3000/api/sharing?shareId=share-123', {
         method: 'DELETE',
-        headers: { 'Authorization': 'Bearer other-user-token' }
+        headers: { Authorization: 'Bearer other-user-token' },
       });
 
       const response = await DELETE(request);
@@ -600,7 +609,7 @@ describe('Sharing API Error Handling', () => {
 
       const request = new NextRequest('http://localhost:3000/api/sharing?shareId=share-123', {
         method: 'DELETE',
-        headers: { 'Authorization': 'Bearer user-token' }
+        headers: { Authorization: 'Bearer user-token' },
       });
 
       const response = await DELETE(request);
@@ -613,7 +622,7 @@ describe('Sharing API Error Handling', () => {
     it('should handle missing share ID parameter', async () => {
       const request = new NextRequest('http://localhost:3000/api/sharing', {
         method: 'DELETE',
-        headers: { 'Authorization': 'Bearer user-token' }
+        headers: { Authorization: 'Bearer user-token' },
       });
 
       const response = await DELETE(request);
@@ -630,16 +639,16 @@ describe('Sharing API Error Handling', () => {
       const maliciousData = {
         contentId: '<script>alert("xss")</script>',
         contentType: 'document',
-        permissions: ['read', 'execute'] // Suspicious permission
+        permissions: ['read', 'execute'], // Suspicious permission
       };
 
       const request = new NextRequest('http://localhost:3000/api/sharing', {
         method: 'POST',
         body: JSON.stringify(maliciousData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer user-token'
-        }
+          Authorization: 'Bearer user-token',
+        },
       });
 
       const response = await POST(request);
@@ -655,7 +664,7 @@ describe('Sharing API Error Handling', () => {
       detectSuspiciousActivity.mockRejectedValue(new Error('Suspicious access pattern detected'));
 
       const request = new NextRequest('http://localhost:3000/api/sharing?token=valid-token', {
-        headers: { 'X-Forwarded-For': '192.168.1.100' }
+        headers: { 'X-Forwarded-For': '192.168.1.100' },
       });
 
       const response = await GET(request);
@@ -671,7 +680,7 @@ describe('Sharing API Error Handling', () => {
       validateIPAccess.mockRejectedValue(new Error('Access denied: IP address not allowed'));
 
       const request = new NextRequest('http://localhost:3000/api/sharing?token=restricted-token', {
-        headers: { 'X-Forwarded-For': '10.0.0.1' }
+        headers: { 'X-Forwarded-For': '10.0.0.1' },
       });
 
       const response = await GET(request);
@@ -690,12 +699,12 @@ describe('Sharing API Error Handling', () => {
         method: 'POST',
         body: JSON.stringify({
           contentId: 'content-123',
-          contentType: 'document'
+          contentType: 'document',
         }),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer user-token'
-        }
+          Authorization: 'Bearer user-token',
+        },
       });
 
       const response = await POST(request);
@@ -721,17 +730,17 @@ describe('Sharing API Error Handling', () => {
         shares: [
           { contentId: 'content-1', contentType: 'document' },
           { contentId: 'invalid-content', contentType: 'document' },
-          { contentId: 'content-3', contentType: 'document' }
-        ]
+          { contentId: 'content-3', contentType: 'document' },
+        ],
       };
 
       const request = new NextRequest('http://localhost:3000/api/sharing/batch', {
         method: 'POST',
         body: JSON.stringify(batchData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer user-token'
-        }
+          Authorization: 'Bearer user-token',
+        },
       });
 
       const response = await POST(request);
@@ -746,7 +755,9 @@ describe('Sharing API Error Handling', () => {
       const { getShareAnalytics } = require('../../../lib/services/sharing-service');
       getShareAnalytics.mockRejectedValue(new Error('Failed to calculate share analytics'));
 
-      const request = new NextRequest('http://localhost:3000/api/sharing/analytics?shareId=share-123');
+      const request = new NextRequest(
+        'http://localhost:3000/api/sharing/analytics?shareId=share-123'
+      );
       const response = await GET(request);
       const data = await response.json();
 
@@ -756,16 +767,16 @@ describe('Sharing API Error Handling', () => {
 
     it('should handle large batch operation size limit', async () => {
       const largeBatchData = {
-        shares: Array(1001).fill({ contentId: 'content-1', contentType: 'document' })
+        shares: Array(1001).fill({ contentId: 'content-1', contentType: 'document' }),
       };
 
       const request = new NextRequest('http://localhost:3000/api/sharing/batch', {
         method: 'POST',
         body: JSON.stringify(largeBatchData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer user-token'
-        }
+          Authorization: 'Bearer user-token',
+        },
       });
 
       const response = await POST(request);
@@ -784,16 +795,16 @@ describe('Sharing API Error Handling', () => {
 
       const validShareData = {
         contentId: 'content-123',
-        contentType: 'document'
+        contentType: 'document',
       };
 
       const request = new NextRequest('http://localhost:3000/api/sharing', {
         method: 'POST',
         body: JSON.stringify(validShareData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer user-token'
-        }
+          Authorization: 'Bearer user-token',
+        },
       });
 
       const response = await POST(request);
@@ -809,16 +820,16 @@ describe('Sharing API Error Handling', () => {
 
       const validShareData = {
         contentId: 'content-123',
-        contentType: 'document'
+        contentType: 'document',
       };
 
       const request = new NextRequest('http://localhost:3000/api/sharing', {
         method: 'POST',
         body: JSON.stringify(validShareData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer user-token'
-        }
+          Authorization: 'Bearer user-token',
+        },
       });
 
       await POST(request);
@@ -833,16 +844,16 @@ describe('Sharing API Error Handling', () => {
 
       const validShareData = {
         contentId: 'content-123',
-        contentType: 'document'
+        contentType: 'document',
       };
 
       const request = new NextRequest('http://localhost:3000/api/sharing', {
         method: 'POST',
         body: JSON.stringify(validShareData),
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer user-token'
-        }
+          Authorization: 'Bearer user-token',
+        },
       });
 
       const response = await POST(request);
